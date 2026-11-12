@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!-- LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE -->
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Content Security Policy (v196): nur eigene Skripte und Dateien, Verbindungen nur zu Open Food Facts. Eingeschleuster
+       Code (z. B. aus einer präparierten Sicherung) wird vom Browser blockiert. Inline-Styles sind nötig (Balkenbreiten). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://de.openfoodfacts.org https://world.openfoodfacts.org; worker-src 'self'; object-src 'none'; base-uri 'self'">
+  <title>LockYourGains</title>
+
+  <!-- PWA / iPhone-Home-Bildschirm -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f2f3f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0c0d10" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Gainslocker">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icon-192.png">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <button id="back" data-action="back" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Zurück</button>
+    <h1 id="title">Training</h1>
+    <button id="cancel" data-action="cancel" hidden>Abbrechen</button>
+  </header>
+
+  <main id="view"></main>
+
+  <nav id="tabs">
+    <button data-action="tab" data-tab="start"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/><rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M8 12h8M2 9.5v5M22 9.5v5"/></svg>Training</button>
+    <button data-action="tab" data-tab="plan"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4" width="15" height="17" rx="3"/><path d="M9 3v2.5h6V3M8.5 11h7M8.5 15h7M8.5 19h4"/></svg>Plan</button>
+    <button data-action="tab" data-tab="history"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/></svg>Verlauf</button>
+    <button data-action="tab" data-tab="nutrition"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v18M4.5 3v5a2.5 2.5 0 0 0 5 0V3"/><path d="M18 21V3c-2.5 1.2-4 4.2-4 8v3h4"/></svg>Ernährung</button>
+    <button data-action="tab" data-tab="data"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>Optionen</button>
+  </nav>
+
+  <div id="toast" hidden></div>
+
+  <script src="exercises.js"></script>
+  <script src="app.js"></script>
+  <script src="charts.js"></script>
+  <script src="library.js"></script>
+  <script src="guide.js"></script>
+  <script src="wizard.js"></script>
+  <script src="nutrition.js"></script>
+  <script src="food.js"></script>
+  <script src="bls.js"></script>
+  <script src="micro.js"></script>
+  <script src="menstrual.js"></script>
+  <script src="cardio.js"></script>
+  <script src="nutplan.js"></script>
+  <script src="trainplan.js"></script>
+  <script src="about.js"></script>
+  <script src="media.js"></script>
+  <script src="tour.js"></script>
+</body>
+</html>
