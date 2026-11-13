@@ -195,6 +195,15 @@ function upgradeData(d) {
   if (d.profile === undefined) d.profile = null;  // { name, sex: 'm' | 'f', color: Schlüssel aus PROFILE_COLORS } – beim ersten Öffnen gefragt
   // Farbe wird einmal nach dem Geschlecht vorbelegt (früher „Passend“ = color null) und folgt ihm danach nicht mehr
   if (d.profile && d.profile.sex && !d.profile.color) d.profile.color = d.profile.sex === 'f' ? 'berry' : 'blue';
+  // v234: neue Designs. Bisherige Nutzer behalten ihren Stil (Standard/Schlicht), neue starten mit „Kraftraum“ (currentLook).
+  // Eine früher selbst gewählte Farbwelt (abweichend von der Vorbelegung nach Geschlecht) gilt weiter (colorSet).
+  if (!d.lookV) {
+    if (d.profile) {
+      if (d.profile.look === undefined) d.profile.look = null;
+      if (d.profile.color && d.profile.color !== (d.profile.sex === 'f' ? 'berry' : 'blue')) d.profile.colorSet = true;
+    }
+    d.lookV = 1;
+  }
   if (!Array.isArray(d.customExercises)) d.customExercises = [];  // eigene Übungen: [{ name, kind, group, like, note }]
   if (!Array.isArray(d.dayTemplates)) d.dayTemplates = [];  // selbst erstellte Trainingstage: [{ id, name, intensity, groups }]
   // Periodisierung: buildWeeks Aufbauwochen, danach 1 Deload-Woche – jede Woche ist ein Durchlauf (siehe cycleInfo)
@@ -6268,7 +6277,7 @@ function prefatHelpHtml() {
 const SIZES = { '': 'Normal', l: 'Groß', xl: 'Sehr groß' };
 const OPT_SECS = {
   look: { icon: '🎨', title: 'Aussehen', render: () => appearanceCard(),
-    sub: () => { const p = data.profile || {}; return [PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || ''], LOOKS[p.look || ''], `Schrift ${SIZES[p.size || '']}`].join(' · '); } },
+    sub: () => { const p = data.profile || {}; return [PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || ''], LOOKS[currentLook()], `Schrift ${SIZES[p.size || '']}`].join(' · '); } },
   train: { icon: '🏋️', title: 'Training', render: () => motivCard() + restCard() + platesCard() + (typeof tourCard === 'function' ? tourCard() : '') + explainCard() + hintOffCard(),
     sub: () => `Motivation ${MOTIV_OPTS[motivMode()][1].toLowerCase()} · Pausen-Timer ${restCfg().off ? 'aus' : 'an'} · Langhantel ${barKg()} kg` },
   me: { icon: '👤', title: 'Profil & Ernährung', render: () => profileCard() + (typeof nutHintsCard === 'function' ? nutHintsCard() : '') + (typeof mcOptionsCard === 'function' ? mcOptionsCard() : ''),
@@ -6327,6 +6336,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 234, date: '2026-11-13', items: [
+    ['Drei neue Designs unter Optionen → Aussehen → Stil: „Kraftraum“ (sportlich, große Zahlen), „Logbuch“ (Zeilen statt Karten) und „Schwarzweiß“. Sie sehen auf iPhone und Android gleich aus. Kraftraum und Logbuch passen sich deiner Farbwelt an. Die bisherigen Stile „Standard“ und „Schlicht“ bleiben wählbar.'],
+  ] },
   { v: 233, date: '2026-11-13', items: [
     ['Ruhigere Texte: weniger Gedankenstriche und kein Fett mehr mitten im Satz. Inhalte und Regeln sind gleich geblieben.'],
   ] },
@@ -6421,7 +6433,7 @@ const CHANGES = [
     ['Beschwerden-Verlauf: Im Verlauf siehst du, seit wann es wo zwickt, und änderst es jederzeit, wenn es besser wird.'],
   ] },
   { v: 207, date: '2026-11-11', items: [
-    ['Optionen aufgeräumt: Die Einstellungen sind jetzt nach Bereichen sortiert: Aussehen, Training, Profil, Deine Daten, Hilfe.'],
+    ['Optionen aufgeräumt: Die Einstellungen sind jetzt nach Bereichen sortiert (Aussehen, Training, Profil, Deine Daten, Hilfe).'],
     ['Textgröße: Unter Optionen → Aussehen kannst du Schrift und Knöpfe größer stellen.'],
     ['Ernährung und Plan übersichtlicher: Das Körpergewicht steht direkt unter „Heute gegessen“, die Grundlagen als Zeile ganz unten.'],
   ] },
@@ -8882,8 +8894,13 @@ const profileName = () => (data.profile && data.profile.name) || '';
 const profileSex = () => (data.profile && data.profile.sex) || null;
 // Farbe: selbst gewählt, sonst passend zum Geschlecht (Frau: Beere, sonst Blau)
 const sexColor = () => profileSex() === 'f' ? 'berry' : 'blue';
+// v234: Designs bringen eine Farbe als Vorschlag mit (Kraftraum: Abendrot, Logbuch: Wald), solange keine Farbwelt selbst gewählt ist
+const LOOK_COLORS = { kraft: 'sunset', log: 'forest' };
 const profileColor = () => {
-  const c = data.profile && data.profile.color;
+  const p = data.profile || {};
+  const dc = LOOK_COLORS[currentLook()];
+  if (dc && !p.colorSet) return dc;
+  const c = p.color;
   return c && PROFILE_COLORS[c] ? c : sexColor();
 };
 
@@ -8911,7 +8928,8 @@ function applyTheme() {
   plainSync();
   iconSync();
   // Statusleiste des Handys in der Hintergrundfarbe der Farbwelt einfärben
-  const [light, dark] = plainOn() ? ['#f4f4f5', '#0e0e10'] : PROFILE_COLORS[profileColor()].bg;  // Schlicht: neutral
+  const LOOK_BG = { plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], bw: ['#ffffff', '#101010'] };
+  const [light, dark] = LOOK_BG[currentLook()] || PROFILE_COLORS[profileColor()].bg;  // Schlicht und die neuen Designs (v234): neutral
   document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
     const isDark = /dark/.test(m.getAttribute('media') || '');
     m.setAttribute('content', mode === 'dark' ? dark : mode === 'light' ? light : isDark ? dark : light);
@@ -8959,7 +8977,8 @@ function plainNode(root) {
 let plainObs = null;
 function plainSync() {
   const on = plainOn();
-  if (on) document.documentElement.dataset.look = 'plain'; else delete document.documentElement.dataset.look;
+  const look = currentLook();
+  if (look) document.documentElement.dataset.look = look; else delete document.documentElement.dataset.look;
   if (on && !plainObs && typeof MutationObserver === 'function') {
     plainObs = new MutationObserver(list => {
       for (const m of list) {
@@ -8980,7 +8999,13 @@ for (const k of ['alert', 'confirm', 'prompt']) {
   const orig = window[k];
   if (typeof orig === 'function') window[k] = function (msg, ...rest) { return orig.call(window, plainOn() ? plainStrip(String(msg)) : msg, ...rest); };
 }
-const LOOKS = { '': 'Standard', plain: 'Schlicht' };
+// Stile (v234): drei neue Designs, dazu die bisherigen „Standard“ und „Schlicht“. Ohne Angabe im Profil (neue Nutzer): Kraftraum.
+const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', bw: 'Schwarzweiß', '': 'Standard', plain: 'Schlicht' };
+const currentLook = () => {
+  const p = data.profile;
+  const l = p && p.look !== undefined ? p.look || '' : 'kraft';
+  return l in LOOKS ? l : 'kraft';
+};
 
 // Diskopumper und Booty-Plan schließen sich aus: angezeigt wird nur der passende (ohne Angabe beide)
 function classicHidden(id) {
@@ -9013,7 +9038,7 @@ function appearanceCard() {
       <div class="seg three">${Object.entries(THEME_MODES).map(([k, l]) =>
         `<button class="${((p.theme || '') === k) ? 'on' : ''}" data-action="profile-theme" data-k="${k}">${l}</button>`).join('')}
       </div>
-      <p class="hint explain">Blau und Beere haben einen neutralen grauen Hintergrund, alle anderen Farbwelten färben auch den Hintergrund ein.
+      <p class="hint explain">Im Stil Standard färben die meisten Farbwelten auch den Hintergrund ein, in allen anderen Stilen bleibt er neutral.
         „Automatisch“ folgt der Einstellung deines Handys (hell/dunkel),
         „Hell“ und „Dunkel“ gelten immer. Jede Farbwelt gibt es in beiden Varianten.</p>
       <p class="lbl">Textgröße</p>
@@ -9021,10 +9046,12 @@ function appearanceCard() {
         `<button class="${((p.size || '') === k) ? 'on' : ''}" data-action="profile-size" data-k="${k}">${l}</button>`).join('')}</div>
       <p class="hint">Macht Schrift, Felder und Knöpfe auf allen Seiten größer, gut lesbar auch ohne Brille.</p>
       <p class="lbl">Stil</p>
-      <div class="seg two">${Object.entries(LOOKS).map(([k, l]) =>
-        `<button class="${((p.look || '') === k) ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`).join('')}</div>
-      <p class="hint explain">„Standard“: mit Symbolen, Farben und Farbverläufen. „Schlicht“: ohne Emojis, ganz in Schwarz, Weiß und Grau,
-        flache Flächen und feine Linien, nur die Überschriften haben die Farbe deiner Farbwelt.</p>
+      <div class="variants look-pick">${Object.entries(LOOKS).map(([k, l]) =>
+        `<button class="vchip ${currentLook() === k ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`).join('')}</div>
+      <p class="hint explain">„Kraftraum“: sportlich mit kräftigen, schmalen Überschriften und großen Zahlen. „Logbuch“: wie ein Trainingsbuch,
+        Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Schwarzweiß“: nur Schwarz und Weiß, dicke Linien statt Karten.
+        Kraftraum und Logbuch übernehmen deine Farbwelt. Ohne eigene Wahl ist Kraftraum orange und Logbuch grün.
+        „Standard“ und „Schlicht“ sind die bisherigen Stile.</p>
       <p class="lbl">Übungen im Training</p>
       <div class="seg two tr-viewmode"><button class="${trSwipeOn() ? '' : 'on'}" data-action="tr-swipe" data-v="0">↕ Untereinander</button>
         <button class="${trSwipeOn() ? 'on' : ''}" data-action="tr-swipe" data-v="1">↔ Wischen</button></div>
@@ -9288,7 +9315,7 @@ actions['profile-look'] = el => {
   saveData(); applyTheme(); render();
 };
 actions['profile-color'] = el => {
-  data.profile = { ...(data.profile || {}), color: el.dataset.k, colorHint: true };
+  data.profile = { ...(data.profile || {}), color: el.dataset.k, colorHint: true, colorSet: true };
   saveData(); applyTheme(); render();
 };
 actions['color-hint'] = el => {

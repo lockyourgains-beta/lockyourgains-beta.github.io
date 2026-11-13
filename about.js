@@ -142,6 +142,9 @@ function aboutRights() {
       <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">openfoodfacts.org</a>.</p>
     <p><b>ZXing</b> (@zxing/library): Barcode-Erkennung, unter der
       <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache License 2.0</a>.</p>
+    <p><b>Schriften</b> Barlow (© The Barlow Project Authors), IBM Plex Sans und IBM Plex Mono (© IBM Corp.) und Schibsted Grotesk
+      (© The Schibsted-Grotesk Project Authors), unter der
+      <a href="https://openfontlicense.org" target="_blank" rel="noopener">SIL Open Font License 1.1</a>. Die Lizenztexte liegen im Ordner fonts.</p>
   </div>`;
 }
 

@@ -3235,3 +3235,105 @@ p.cali-tr { margin: -4px 0 8px; font-size: 14px; }
 .int-card { margin: 14px 0 6px; padding-top: 12px; border-top: 1px solid var(--line); }
 .int-card .variants { flex-wrap: wrap; }
 .int-card .vchip { flex: 1 1 30%; }
+
+/* ---------- v234: Designs „Kraftraum“, „Logbuch“, „Schwarzweiß“ (User 2026-11-13, data-look am html-Element) ----------
+   Eigene Schriften im Ordner fonts/ (offline im Cache, Lizenz OFL). Je Schrift gibt es nur zwei Stärken als @font-face,
+   deshalb fallen alle font-weight-Werte der App von selbst auf „normal“ oder „halbfett“: kein Wechsel von dünn bis extra fett.
+   Kraftraum und Logbuch übernehmen die Farbwelt (ohne eigene Wahl: Abendrot bzw. Wald, siehe LOOK_COLORS), Schwarzweiß bleibt
+   immer schwarz-weiß. In allen dreien: keine Verläufe, keine Leucht-Schatten, keine Versalien, neutrale Hintergründe. */
+@font-face { font-family: "LYG Barlow"; src: url(fonts/barlow-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "LYG Barlow"; src: url(fonts/barlow-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "LYG Barlow Cond"; src: url(fonts/barlow-semicond-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "LYG Plex"; src: url(fonts/plex-sans.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "LYG Plex"; src: url(fonts/plex-sans.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "LYG Plex Mono"; src: url(fonts/plex-mono-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "LYG Schibsted"; src: url(fonts/schibsted.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "LYG Schibsted"; src: url(fonts/schibsted.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+
+:root[data-look="kraft"] { --f-body: "LYG Barlow", -apple-system, "Segoe UI", Roboto, sans-serif; --f-head: "LYG Barlow Cond", "LYG Barlow", "Arial Narrow", sans-serif; --f-num: var(--f-head); }
+:root[data-look="log"] { --f-body: "LYG Plex", -apple-system, "Segoe UI", Roboto, sans-serif; --f-head: var(--f-body); --f-num: "LYG Plex Mono", ui-monospace, Consolas, monospace; }
+:root[data-look="bw"] { --f-body: "LYG Schibsted", -apple-system, "Segoe UI", Roboto, sans-serif; --f-head: var(--f-body); --f-num: var(--f-body); }
+
+/* gemeinsam: flach, einfarbige Akzente, eine Schrift überall */
+:root:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) { --accent-2: var(--accent) !important; --shadow-accent: none !important; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) body { font-family: var(--f-body); letter-spacing: 0; font-synthesis: none; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(button, input, select, textarea) { font-family: inherit; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) * { text-transform: none !important; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(table.rir th, .warm-title, .setgrid .head, .stat span, .nut-goal-row span,
+  .warm-toggle, .welcome-step, .tour-count, .fstat-row.head, .lib-sub, .hx-kicker, .hx-tab span, .cali-day, .notify-head) { letter-spacing: 0; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(header h1, main h2, main h3, .dlg-title, .wiz-q-head h2, .welcome-card h2, .ex-head h2) {
+  font-family: var(--f-head); letter-spacing: 0; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(.setgrid input, .nut-kcal, .trh-rest-t b, .stat b, .nut-goal-row b, .sessions-opt b) {
+  font-family: var(--f-num); letter-spacing: 0; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) .btn.primary::before,
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) .card.cycle::before { display: none; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(.btn.primary, .day-btn.next, .sessions-opt.on) { box-shadow: none; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) .card.cycle.is-deload { background: #56606b; box-shadow: none; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) .award-row.done .award-icon { background: #f2a516; box-shadow: none; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) .review-card { background: var(--card); }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(.ex-card.tint-0, .ex-card.tint-1, .ex-card.tint-2, .ex-card.tint-3) { background: var(--card); }
+
+/* neutrale Hintergründe statt der getönten Farbwelt-Hintergründe (die Akzentfarbe bleibt) */
+[data-look="kraft"] body { --bg: #eceef0; --card: #ffffff; --fill: #eef0f2; --input: #f4f5f6; --line-strong: #d6d9dd; --shadow: 0 1px 0 #d6d9dd; --bar: rgba(236, 238, 240, .88); }
+[data-look="log"] body { --bg: #fbfbfa; --card: #fbfbfa; --fill: #f0f1ee; --input: #f3f4f1; --line-strong: #dcdfdb; --shadow: none; --bar: rgba(251, 251, 250, .9); }
+@media (prefers-color-scheme: dark) {
+  :root[data-look="kraft"]:not([data-theme="light"]) body { --bg: #141517; --card: #1e2023; --fill: #272a2e; --input: #23262a; --line-strong: #33363b; --shadow: 0 1px 0 #2c2f33; --bar: rgba(20, 21, 23, .88); }
+  :root[data-look="log"]:not([data-theme="light"]) body { --bg: #121413; --card: #121413; --fill: #1f2220; --input: #1b1e1c; --line-strong: #2d312e; --bar: rgba(18, 20, 19, .9); }
+}
+:root[data-look="kraft"][data-theme="dark"] body { --bg: #141517; --card: #1e2023; --fill: #272a2e; --input: #23262a; --line-strong: #33363b; --shadow: 0 1px 0 #2c2f33; --bar: rgba(20, 21, 23, .88); }
+:root[data-look="log"][data-theme="dark"] body { --bg: #121413; --card: #121413; --fill: #1f2220; --input: #1b1e1c; --line-strong: #2d312e; --bar: rgba(18, 20, 19, .9); }
+
+/* Kraftraum: kantiger, kleine Rundungen, kaum Schatten */
+:root[data-look="kraft"] { --radius: 10px !important; }
+[data-look="kraft"] :is(.btn, .split-opt, .sessions-opt) { border-radius: 8px; }
+[data-look="kraft"] :is(.vchip, .chip, .step-chip, .day-no, .setno, .pill, .badge) { border-radius: 6px; }
+[data-look="kraft"] .dlg { border-radius: 12px; }
+[data-look="kraft"] header h1 { font-size: 1.15em; }
+[data-look="kraft"] .setgrid input { font-size: 1.08em; }
+
+/* Logbuch: Zeilen mit feinen Trennlinien statt Karten, Zahlen in Schreibmaschinenschrift */
+:root[data-look="log"] { --radius: 4px !important; }
+[data-look="log"] .card:not(.cycle):not(.day-btn) { background: transparent; box-shadow: none; border-radius: 0; border-top: 1px solid var(--line-strong);
+  padding-left: 2px; padding-right: 2px; }
+[data-look="log"] .day-btn:not(.next) { background: transparent; box-shadow: none; border-radius: 0; border-top: 1px solid var(--line-strong); }
+[data-look="log"] .btn:not(.primary):not(.day-btn):not(.danger-fill) { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
+[data-look="log"] :is(.btn, .split-opt, .sessions-opt, .vchip, .chip, .step-chip, .day-no, .setno, .pill, .badge) { border-radius: 4px; }
+[data-look="log"] .split-opt { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
+[data-look="log"] .split-opt.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+[data-look="log"] .dlg { border-radius: 6px; background: var(--card); box-shadow: 0 0 0 1px var(--line-strong), 0 24px 60px -24px rgba(0, 0, 0, .45); }
+[data-look="log"] .card.hints:not(.cycle):not(.day-btn) { background: var(--accent-soft); border-top: 0; border-radius: 4px; padding-left: 14px; padding-right: 14px; }
+
+/* Schwarzweiß: nur Schwarz und Weiß (dunkel umgekehrt), dicke Linien statt Karten, keine Rundungen */
+:root[data-look="bw"] { --radius: 0px !important; --head: var(--text); }
+[data-look="bw"] body {
+  --bg: #ffffff; --card: #ffffff; --fill: #f2f2f0; --input: #f6f6f4; --line-strong: #d4d4d0; --bar: rgba(255, 255, 255, .92);
+  --accent: #111111; --accent-2: #111111; --accent-soft: rgba(0, 0, 0, .06); --accent-text: var(--text);
+  --success: var(--text); --success-soft: rgba(0, 0, 0, .06); --warn: #b9b9b4; --warn-soft: rgba(0, 0, 0, .06); --warn-text: var(--text);
+  --danger: var(--text); --danger-soft: rgba(0, 0, 0, .06); --ok: var(--text); --shadow: none; --shadow-accent: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-look="bw"]:not([data-theme="light"]) body {
+    --bg: #101010; --card: #101010; --fill: #212121; --input: #1b1b1b; --line-strong: #3a3a3a; --bar: rgba(16, 16, 16, .92);
+    --accent: #4a4a4a; --accent-2: #4a4a4a; --accent-soft: rgba(255, 255, 255, .09); --success-soft: rgba(255, 255, 255, .09);
+    --warn: #8a8a86; --warn-soft: rgba(255, 255, 255, .09); --danger-soft: rgba(255, 255, 255, .09);
+  }
+}
+:root[data-look="bw"][data-theme="dark"] body {
+  --bg: #101010; --card: #101010; --fill: #212121; --input: #1b1b1b; --line-strong: #3a3a3a; --bar: rgba(16, 16, 16, .92);
+  --accent: #4a4a4a; --accent-2: #4a4a4a; --accent-soft: rgba(255, 255, 255, .09); --success-soft: rgba(255, 255, 255, .09);
+  --warn: #8a8a86; --warn-soft: rgba(255, 255, 255, .09); --danger-soft: rgba(255, 255, 255, .09);
+}
+[data-look="bw"] .card:not(.cycle) { box-shadow: none; border-radius: 0; border-top: 3px solid var(--text); padding-left: 2px; padding-right: 2px; }
+[data-look="bw"] .day-btn:not(.next) { box-shadow: none; border-radius: 0; border-top: 3px solid var(--text); }
+[data-look="bw"] :is(.btn, .split-opt, .sessions-opt, .vchip, .chip, .step-chip, .day-no, .setno, .pill, .badge, .dlg, .inp, .setgrid input) { border-radius: 2px; }
+[data-look="bw"] .btn:not(.primary):not(.day-btn):not(.danger-fill) { background: transparent; box-shadow: inset 0 0 0 1.5px var(--text); }
+[data-look="bw"] .split-opt { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
+[data-look="bw"] .split-opt.on { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--text); }
+[data-look="bw"] :is(.vchip.on, .chip.on) { background: var(--text); color: var(--bg); box-shadow: none; }
+[data-look="bw"] :is(#back, nav button.active, .link-btn, .help-link, .icon-btn, .stepper button) { color: var(--text); }
+[data-look="bw"] .card.hints { background: var(--fill); }
+[data-look="bw"] :is(.c-line, .nut-hist line, .c-dot.deload) { stroke: var(--text); }
+[data-look="bw"] :is(.c-area, .c-dot, .chart-svg .c-bar) { fill: var(--text); }
+[data-look="bw"] :is(.pb-star, .pb-tag) { color: var(--bg); background: var(--text); box-shadow: none; }
+/* Schibsted setzt bei gleich breiten Ziffern auch Punkt, Komma und Doppelpunkt breit („Wdh .“) – deshalb hier normale Ziffern */
+[data-look="bw"] * { font-variant-numeric: normal !important; }
