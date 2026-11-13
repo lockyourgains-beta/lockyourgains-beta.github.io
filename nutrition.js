@@ -655,7 +655,7 @@ function nutProteinNote(n, c) {
   const why = [nutAge(n) >= 50 ? 'du über 50 bist' : null,
     n.bodyFat != null && n.bodyFat < (n.sex === 'm' ? 15 : 23) ? 'du wenig Körperfett hast' : null].filter(Boolean);
   const low = c.protein < c.pLo - 2;
-  return `<p class="nut-protein ${low ? 'low' : ''}"><b>Eiweiß-Empfehlung: ${c.pLo}–${c.pHi} g am Tag</b>
+  return `<p class="nut-protein ${low ? 'low' : 'explain'}"><b>Eiweiß-Empfehlung: ${c.pLo}–${c.pHi} g am Tag</b>
       (${fmtNum(pr.lo)}–${fmtNum(pr.hi)} g pro kg${Math.abs(c.ref - (n.kg || nutWeight())) > 1 ? ` bezogen auf ${fmtNum(Math.round(c.ref))} kg` : ''}).
       ${low ? 'Dein Eiweiß liegt gerade darunter. ' : ''}Orientiere dich eher am oberen Rand, wenn du relativ wenig Körperfett hast,
       älter bist (ab ca. 50) oder dich vegan ernährst. Pflanzliches Eiweiß verwertet der Körper etwas schlechter.
@@ -764,7 +764,7 @@ function nutTargetCard(n, c, editable = false) {
       ${c.note ? `<p class="nut-warn">${notes[c.note]}</p>` : ''}
       ${macros}
       ${feat('nut-protein-detail') ? nutProteinNote(n, c) : ''}
-      <p class="nut-relax">😌 <b>Kein Stress:</b> Du musst diese Werte nicht aufs Gramm genau treffen. Entscheidend ist, dass Kalorien
+      <p class="nut-relax explain">😌 <b>Kein Stress:</b> Du musst diese Werte nicht aufs Gramm genau treffen. Entscheidend ist, dass Kalorien
         und Eiweiß über die Woche gesehen ungefähr passen, ±10 % sind völlig in Ordnung. Ein Tag mit mehr Kohlenhydraten oder
         weniger Fett macht nichts kaputt; wichtig ist, was du an den meisten Tagen isst.</p>
     </div>`;
@@ -853,12 +853,11 @@ function nutIntakeCard(n, c) {
        ${feat('nut-macros') ? nutIntakeBar('Kohlenhydrate', t.c, c.carbs, 'g', 0.25) + nutIntakeBar('Fett', t.f, c.fat, 'g', 0.25) : ''}
        <p class="hint nut-small">${{ food: 'Aus deinem Ernährungstagebuch', health: 'Aus Health übernommen', auto: 'Mit dem Tagesziel nachgetragen' }[t.src] || 'Von Hand eingetragen'}${nutHintsOn()
          ? ` · Grün = passt (Kalorien ±10 %, Eiweiß ab der Untergrenze${feat('nut-macros') ? ', Kohlenhydrate und Fett ±25 %' : ''}).` : '.'}</p>`
-    : '<p class="hint nut-small">Heute ist noch nichts eingetragen. Trag ins Ernährungstagebuch ein, was du isst, oder füg die Werte aus deiner Ernährungs-App über Health ein bzw. trag die Tagessummen von Hand ein.</p>';
+    : '<p class="hint nut-small">Heute ist noch nichts eingetragen. Trag oben im Ernährungstagebuch ein, was du isst, oder füg die Werte aus deiner Ernährungs-App über Health ein bzw. trag die Tagessummen von Hand ein.</p>';
   return `<div class="card nut-intake">
       <p class="nut-intake-head"><b>🍽️ Heute gegessen</b></p>
       ${body}
-      ${nutIntakeForm ? nutIntakeFormHtml() : `<button class="btn primary food-open" data-action="food-open">🍎 Ernährungstagebuch</button>
-      <div class="row" ${feat('nut-health') ? '' : 'hidden'}>
+      ${nutIntakeForm ? nutIntakeFormHtml() : `<div class="row" ${feat('nut-health') ? '' : 'hidden'}>
         <button class="btn" data-action="health-paste">❤️ Aus Health</button>
         <button class="btn" data-action="nut-intake-open" data-date="${todayISO()}">✏️ Von Hand</button></div>
       ${feat('nut-health') ? healthPasteBox() + healthGuide() : ''}
@@ -1207,7 +1206,7 @@ function renderNutrition() {
   } else if (planOn && !(n && nutReady(n) && kg != null)) {
     // Ernährungsplan ohne eingerichtete Phase: Ziele kommen nur aus dem Plan
     const pc = nutForDay(null);
-    h += nutPlanCard() + nutIntakeCard(n || {}, pc) + (feat('nut-history') ? nutHistoryCard(n || {}, pc) : '');
+    h += nutIntakeCard(n || {}, pc) + nutPlanCard() + (feat('nut-history') ? nutHistoryCard(n || {}, pc) : '');
   } else if (n && !nutReady(n)) {
     h += nutPhaseOnly(n);
   } else if (!n) {
@@ -1226,13 +1225,14 @@ function renderNutrition() {
     const stage = n.phase === 'minicut' ? nutMinicutStage(n) : null;
     const weekText = !stage ? `Woche ${week}` : stage === 'cut'
       ? `Woche ${week} von ${Math.min(n.weeks, NUT_MINICUT_MAX)}${n.round === 2 ? ' · 2. Durchgang' : ''}` : stage === 'maint' ? 'Erhaltungswoche' : 'abgeschlossen';
-    h += `<div class="nut-phase-head"><span class="wiz-q-icon" aria-hidden="true">${ph.icon}</span>
+    // v238 (User 2026-11-14): „Heute gegessen“ ganz oben (unter dem Tagebuch-Knopf), direkt darunter das Tagesziel, dann Phase und Hinweise
+    h += `${nutIntakeCard(n, c)}
+      ${typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanCard() : nutTargetCard(n, c, true)}
+      <div class="nut-phase-head"><span class="wiz-q-icon" aria-hidden="true">${ph.icon}</span>
         <div><b>${ph.label}</b><small>seit ${fmtDate(n.since + 'T12:00:00')} · ${weekText} · ${nutPace(n).label}</small></div></div>
       ${nutLowCard(n, nutForDay(c))}
       ${nutPauseCard(n)}
       ${nutPhaseHint(n)}
-      ${typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanCard() : nutTargetCard(n, c, true)}
-      ${nutIntakeCard(n, c)}
       ${(bwDone = true) && bwBlock}
       ${feat('nut-history') ? nutHistoryCard(n, nutForDay(c)) : ''}
       ${nutMeasuredCard(n, c)}
@@ -1251,7 +1251,7 @@ function renderNutrition() {
   }
   // Ernährungstagebuch (und darunter Plan-Import) auch ohne fertig eingerichtete Phase erreichbar
   if (paused || (!planOn && (!n || !nutReady(n) || kg == null))) {
-    h += `<button class="btn nav" data-action="food-open">🍎 Ernährungstagebuch<small>Eintragen, was du isst</small></button>${NP_OPEN_BTN}`;
+    h += NP_OPEN_BTN;  // v238: das Ernährungstagebuch steht nur noch oben (foodTopCard)
   }
   // Nur ein Health-Knopf: steht in „Heute gegessen“; ohne diese Karte (Ernährung nicht eingerichtet) hier beim Gewicht
   if (!bwDone) h += bwBlock;

@@ -3337,3 +3337,40 @@ p.cali-tr { margin: -4px 0 8px; font-size: 14px; }
 [data-look="bw"] :is(.pb-star, .pb-tag) { color: var(--bg); background: var(--text); box-shadow: none; }
 /* Schibsted setzt bei gleich breiten Ziffern auch Punkt, Komma und Doppelpunkt breit („Wdh .“) – deshalb hier normale Ziffern */
 [data-look="bw"] * { font-variant-numeric: normal !important; }
+
+/* v236: Halteübungen in normalen Plänen – Spalte „Ziel“ statt Tank */
+.hold-cell { display: flex; align-items: center; justify-content: center; min-width: 0; }
+.hold-ok { width: 100%; min-height: 56px; border: 0; border-radius: 14px; background: var(--fill); color: var(--accent-text); font: inherit; font-size: 22px; cursor: pointer; }
+.hold-diff { font-size: 17px; font-weight: 650; white-space: nowrap; }
+.hold-diff.over, .hold-diff.ok { color: var(--success); }
+.hold-diff.under { color: var(--warn-text); }
+.hold-up { margin: 0 0 10px; }
+
+/* v237: Säulendiagramm Ernährung je Tag (Woche & Monat), Stil wie Schritte in Apple Health */
+.fbar .fb-metric { margin-bottom: 12px; }
+.seg.four button { font-size: 15px; padding-left: 4px; padding-right: 4px; }
+.fb-head { display: flex; flex-direction: column; margin: 0 0 6px; min-height: 58px; }
+.fb-head small { font-size: 14px; color: var(--muted); }
+.fb-head b { font-size: 30px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.fb-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.fb-svg .fb-bar { fill: var(--accent); }
+.fb-svg .fb-bar.dim { fill: color-mix(in srgb, var(--accent) 40%, var(--card)); }
+.fb-svg .fb-grid { stroke: var(--line); stroke-width: 1; }
+.fb-svg .fb-base { stroke: var(--line-strong); stroke-width: 1; }
+.fb-svg .fb-avg { stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .75; }
+.fb-svg text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.fb-svg .fb-day { font-size: 12px; }
+.fb-svg .fb-day.sm { font-size: 8.5px; }
+.fb-svg .fb-day.today { fill: var(--text); font-weight: 700; }
+.fb-svg .fb-hit { fill: transparent; cursor: pointer; }
+.fb-key { display: inline-block; width: 18px; border-top: 1.5px dashed var(--text); opacity: .75; vertical-align: middle; margin-right: 4px; }
+.seg.four button { white-space: nowrap; }
+.seg.four button.on::before { content: none; }
+
+/* v238: Tagebuch-Knopf oben so auffällig wie die Hauptknöpfe */
+.food-top-main.primary { width: calc(100% - 28px); margin: 14px 14px 12px; border-radius: max(0px, calc(var(--radius) - 4px));
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; box-shadow: var(--shadow-accent); cursor: pointer; }
+.food-top-main.primary .food-top-txt b { font-size: 20px; }
+.food-top-main.primary .food-top-txt small { color: rgba(255, 255, 255, .88); }
+.food-top-main.primary .food-top-chev { color: #fff; }
+.food-top-main.primary .food-top-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, .2); font-size: 24px; }

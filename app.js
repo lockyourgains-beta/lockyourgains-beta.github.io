@@ -946,7 +946,8 @@ function capacityAt(cap, weight, newWeight) {
   return 10 + (1 - f) / 0.025;
 }
 
-const isDone = s => parseNum(s.reps) != null && parseNum(s.rir) != null;
+// Halteübungen (noTank, v236): erledigt, sobald selbst eingetragen oder bestätigt – ohne Tank
+const isDone = s => parseNum(s.reps) != null && (s.noTank ? !!s.touched : parseNum(s.rir) != null);
 
 // Tippfehler (User-Regel 2026-11-06): nachfragen, nichts wird geblockt. Trainingsgewicht: mehr als 10 % Unterschied zum Vorschlag
 // (sonst zum letzten Mal), aber nie bei genau einer Gewichtsstufe rauf oder runter – sonst käme die Frage bei kleinen Gewichten bei jedem
@@ -1038,6 +1039,7 @@ function setInput(field, ei, j, value) {
 // Wdh. nächster Satz = (Wdh. + Tank) − Ziel-Tank − Ermüdung; jeder weitere Satz noch 1 weniger.
 // Durchschnitt Tank aller erledigten Sätze im Vergleich zum Wochenziel
 function avgTankText(en) {
+  if (en.holdSec) return '';
   const idx = en.sets.map((s, i) => isDone(s) ? i : -1).filter(i => i >= 0);
   const done = idx.map(i => parseNum(en.sets[i].rir));
   if (!done.length || !en.target) return '';
@@ -1059,6 +1061,7 @@ function recalcSets(ei) {
   const bwEl = $view.querySelector(`[data-bwhint="${ei}"]`);
   if (bwEl) { const html = bwHint(en); bwEl.innerHTML = html; bwEl.hidden = !html; }
   updateNextHints(ei);
+  if (en.holdSec) { holdDiffSync(ei); return; }  // Halteübung (v236): nur über/unter anzeigen, nichts neu planen
   if (t.own) return;  // eigener Plan: folgende Sätze nicht anpassen
   const tt = { step: 2.5, ...t };
   let first = null, firstJ = -1, firstLast = -1, firstCap = null, firstReduced = false;
@@ -2505,7 +2508,7 @@ function lastCommentFor(name) {
 // vorgeschlagen wird – mit denselben Regeln wie proposeSet (refProposal). Liefert HTML je Satz.
 function nextPreview(en) {
   const out = en.sets.map(() => '');
-  if (!en.target || !en.plan || draft.deload || draft.own || draft.week == null) return out;
+  if (en.holdSec || !en.target || !en.plan || draft.deload || draft.own || draft.week == null) return out;
   const done = en.sets.map(s => isDone(s));
   if (!done.some(Boolean)) return out;
   const bw = data.cycle.buildWeeks;
@@ -4570,7 +4573,8 @@ function renderTraining() {
       // Heute: wirklich vorgeschlagene Wdh. (User-Regel 2026-11-06), nicht der Startwert des Plans
       const pr = (en.planned || []).map(x => x && x.reps).filter(x => x != null);
       const today = pr.length ? (Math.min(...pr) === Math.max(...pr) ? pr[0] : `${Math.max(...pr)}–${Math.min(...pr)}`) : t.reps;
-      h += feat('tr-tank-target')
+      h += en.holdSec ? `<p class="target">Heute: ${t.sets} × ${today} s halten · nächste Woche mehr, wenn du es schaffst (bis ${HOLD_MAX} s)</p>${holdHintHtml(en)}`
+        : feat('tr-tank-target')
         ? `<p class="target">Heute: ${t.sets} × ${today} ${holdSec(en.name) ? 's' : 'Wdh.'} · ${t.deload || !t.rirSplit ? `Ø ${targetRirText(t)} im Tank` : `Tank ${rirSeqText(t)}`}</p>`
         : `<p class="target">Heute: ${t.sets} × ${today} ${holdSec(en.name) ? 's' : 'Wdh.'} · ${feelTargetText(t)}</p>`;
       if (feat('tr-prefat') && (t.fat || 0) >= PREFAT_SHOW - 1e-9) {
@@ -4646,7 +4650,7 @@ function renderTraining() {
     // Einfach: kein Erklärtext zur Anpassung (Fachbegriffe) – die angepassten Werte stehen direkt in den Feldern
     h += `<p class="adjust ${feat('tr-rir-input') ? '' : 'simple-off'}" data-note="${ei}" ${en.note ? '' : 'hidden'}>${esc(en.note)}</p>`;
     const rirInput = feat('tr-rir-input');
-    h += `<div class="setgrid"><span class="head">Satz</span><span class="head">kg</span><span class="head">${typeof holdHead === 'function' ? holdHead(en.name) : 'Wdh.'}</span><span class="head">${rirInput ? 'Tank' : 'Gefühl'}</span>`;
+    h += `<div class="setgrid"><span class="head">Satz</span><span class="head">kg</span><span class="head">${typeof holdHead === 'function' ? holdHead(en.name) : 'Wdh.'}</span><span class="head">${en.holdSec ? 'Ziel' : rirInput ? 'Tank' : 'Gefühl'}</span>`;
     const tankHint = si => !en.target || en.target.own ? '–' : en.target.deload || !en.target.rirSplit
       ? targetRirText(en.target).replace('mind. ', '≥') : fmtNum(rirAt(en.target, si));  // Tank je Satz (v199)
     const next = feat('tr-next') ? nextPreview(en) : [];
@@ -4667,13 +4671,14 @@ function renderTraining() {
           data-field="tr-weight" data-ei="${ei}" data-si="${si}" value="${esc(s.weight)}">`}
         <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="–" class="${st}"
           data-field="tr-reps" data-ei="${ei}" data-si="${si}" value="${esc(s.reps)}">
-        ${rirInput ? `<input type="text" inputmode="decimal" autocomplete="off" placeholder="${tankHint(si)}"
+        ${en.holdSec ? `<span class="hold-cell" data-holddiff="${ei}-${si}">${holdDiffHtml(en, ei, si)}</span>`
+          : rirInput ? `<input type="text" inputmode="decimal" autocomplete="off" placeholder="${tankHint(si)}"
           class="tank" data-field="tr-rir" data-ei="${ei}" data-si="${si}" value="${esc(s.rir)}">`
           : `<button class="feel-btn ${s.rir !== '' && s.rir != null ? 'set' : ''}" data-action="tr-feel-open" data-ei="${ei}" data-si="${si}"
             aria-label="Wie hat sich Satz ${si + 1} angefühlt?">${feelIcon(en, s, si)}</button>`}
         <div class="next-hint" data-next="${ei}-${si}">${next[si] || ''}</div>
         <div class="typo-hint" data-typo="${ei}-${si}">${typoHtml(en, ei, si)}</div>
-        ${!rirInput && en.feelOpen === si ? `<div class="feel-pick">${FEELS.map(f =>
+        ${!rirInput && !en.holdSec && en.feelOpen === si ? `<div class="feel-pick">${FEELS.map(f =>
           `<button class="vchip" data-action="tr-feel" data-ei="${ei}" data-si="${si}" data-f="${f.k}">${f.icon}<small>${f.label}</small></button>`).join('')}</div>` : ''}`
         + techRowsHtml(en, ei, si);  // Teil-Sätze einer Intensitätstechnik (v211)
     });
@@ -6339,6 +6344,15 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 238, date: '2026-11-14', items: [
+    ['Reiter Ernährung aufgeräumt: Ganz oben der Knopf „Essen eintragen“, direkt darunter „Heute gegessen“ und dein Tagesziel. Das Ernährungstagebuch gibt es nur noch einmal, und die Erklärungen unter dem Tagesziel klappen nach dem zweiten Lesen zu.'],
+  ] },
+  { v: 237, date: '2026-11-14', items: [
+    ['Ernährung → Woche & Monat: neues Säulendiagramm für Kalorien, Eiweiß, Kohlenhydrate und Fett. Eine Säule je Tag, gestrichelt der Durchschnitt. Säule antippen zeigt den Wert des Tages.'],
+  ] },
+  { v: 236, date: '2026-11-14', items: [
+    ['Halteübungen wie Plank, Seitstütz oder Wandsitzen haben jetzt ein Ziel in Sekunden: Start bei 30 s, jede Woche mehr, wenn du es schaffst (wer länger hält, startet nächstes Mal dort), bis 2 Minuten. Statt des Tanks zeigt die App, ob du über oder unter dem Ziel lagst. Mit ✓ bestätigst du einen Satz, der genau gepasst hat.'],
+  ] },
   { v: 235, date: '2026-11-13', items: [
     ['Halteübungen wie Plank oder Wandsitzen zeigen jetzt überall Sekunden statt Wiederholungen: im Verlauf, beim letzten Mal, in Vergleichen, im Diagramm und im Bild zum Teilen.'],
   ] },
@@ -6781,6 +6795,7 @@ function draftEntries(day) {
     if (draft.own) Object.assign(target, { own: true, startWeight: ex.startWeight != null ? ex.startWeight : null });
     setupEntry(en, target, (i, n) => techVariant(ex, i, n));  // Ausführung bzw. Intensitätstechnik laut Plan (v211)
     if (typeof caliApply === 'function') caliApply(en, ex);  // Calisthenics (v225): Wdh./Haltezeit je Satz
+    holdApply(en, ex);  // Halteübungen in normalen Plänen (v236)
     return en;
   });
 }
@@ -7159,11 +7174,69 @@ function addAutoSet(en) {
   const prevReps = prev ? parseNum(prev.reps) : null;
   en.sets.push({
     weight: prev ? prev.weight : '',
-    reps: prevReps != null ? String(Math.max(1, prevReps - FATIGUE)) : (en.target ? String(en.target.reps) : ''),
+    reps: prevReps != null ? String(en.holdSec ? prevReps : Math.max(1, prevReps - FATIGUE)) : (en.target ? String(en.target.reps) : ''),
     rir: '',
     auto: true,
+    ...(en.holdSec ? { noTank: true } : {}),
     variant: variantOf(prev),
   });
+}
+
+/* Halteübungen in normalen Plänen (v236, User-Regel 2026-11-14): Ziel in Sekunden statt des Wdh.-Bereichs des Tages.
+   Start 30 s. Geschafft → nächste Woche das Geschaffte (auf 5 s abgerundet), mindestens +5 s, höchstens 120 s. Nicht geschafft →
+   gleich; zweimal deutlich (≥ 20 %) darunter → das Beste der beiden. Kein Tank: die App zeigt je Satz „über/unter Ziel“
+   (Satz erledigt = Sekunden eingetragen oder „✓“ getippt). Längeres Halten ist nie ein Ausreißer.
+   Ab 90 s einmal je Übung ein Hinweis auf eine schwerere Variante (data.holdHintSeen). Calisthenics-Pläne haben eigene Regeln (cali.js). */
+const HOLD_START = 30, HOLD_INC = 5, HOLD_MAX = 120, HOLD_HINT_AT = 90;
+const floor5 = x => Math.floor(x / 5) * 5;
+function holdHistory(name) {
+  const k = nameKey(name), out = [];
+  for (const s of sessionsNewestFirst()) {
+    if (s.deload) continue;  // Deload und leichte Wettkampf-Woche zählen nicht
+    const e = s.entries.find(x => nameKey(x.name) === k);
+    if (e && (e.sets || []).some(x => x.reps != null)) out.push({ date: s.date, sets: e.sets, planned: e.planned || [] });
+  }
+  return out;
+}
+function holdApply(en, ex) {
+  if (!draft || draft.own || !ex || ex.cali || !holdSec(en.name) || typeof caliSetOf !== 'function' || !en.sets.length) return;
+  const hist = holdHistory(en.name);
+  const monday = mondayISO(new Date(todayISO() + 'T12:00:00'));
+  const thisWeek = hist.find(h => h.date.slice(0, 10) >= monday);  // schon diese Woche: gleiches Ziel
+  for (let i = 0; i < en.sets.length; i++) {
+    let v = null;
+    if (thisWeek || draft.deload) { const h = thisWeek || hist[0]; if (h) v = caliSetOf(h, i).planned; }
+    else if (hist.length) {
+      const a = caliSetOf(hist[0], i), b = hist[1] ? caliSetOf(hist[1], i) : null;
+      v = a.done != null && a.done >= a.planned ? Math.max(a.planned + HOLD_INC, floor5(a.done)) : a.planned;
+      if (caliClearMiss(a) && caliClearMiss(b)) v = Math.min(a.planned, floor5(Math.max(a.done, b.done)));
+    }
+    v = Math.max(5, Math.min(HOLD_MAX, v || HOLD_START));
+    en.sets[i] = { ...en.sets[i], reps: String(v), refR: String(v), rir: '', noTank: true, auto: true };
+    en.planned[i] = { ...(en.planned[i] || { weight: null }), reps: v };
+  }
+  en.holdSec = true;
+  en.note = '';
+  en.target = { ...en.target, reps: Math.max(...en.planned.map(x => x.reps)), holdSec: true };
+}
+// Spalte „Ziel“ statt Tank: vor dem Satz das Ziel bzw. „✓“ zum Bestätigen, danach über/unter
+function holdDiffHtml(en, ei, si) {
+  const s = en.sets[si], p = ((en.planned || [])[si] || {}).reps, r = parseNum(s.reps);
+  if (!isDone(s)) return `<button class="hold-ok" data-action="hold-ok" data-ei="${ei}" data-si="${si}" aria-label="Satz ${si + 1}: Ziel ${p} s geschafft">✓</button>`;
+  if (r == null || p == null) return '';
+  const d = r - p;
+  return `<span class="hold-diff ${d > 0 ? 'over' : d < 0 ? 'under' : 'ok'}">${d > 0 ? `+${d} s` : d < 0 ? `−${-d} s` : '✓ Ziel'}</span>`;
+}
+function holdDiffSync(ei) {
+  const en = draft.entries[ei];
+  en.sets.forEach((_, si) => { const el = $view.querySelector(`[data-holddiff="${ei}-${si}"]`); if (el) el.innerHTML = holdDiffHtml(en, ei, si); });
+}
+function holdHintHtml(en) {
+  const top = Math.max(0, ...(en.planned || []).map(x => x.reps || 0));
+  if (top < HOLD_HINT_AT || (data.holdHintSeen || {})[nameKey(en.name)]) return '';
+  return `<div class="hint-item hold-up"><div>💡 Ab etwa ${HOLD_HINT_AT} Sekunden trainiert ${esc(en.name)} vor allem die Ausdauer. Mehr Kraft bringt eine
+    schwerere Variante, z. B. mit Gewicht auf dem Rücken oder mit einem angehobenen Bein. Die App steigert die Zeit weiter bis ${HOLD_MAX} s.</div>
+    <button class="icon-btn" data-action="hold-hint-off" data-name="${esc(en.name)}" aria-label="Hinweis ausblenden">✕</button></div>`;
 }
 
 // Übung im laufenden Training neu vorschlagen (Vorermüdung, Max., Gewichtsstufe, Band, Tausch) – die aktuelle Satzzahl
@@ -7181,6 +7254,7 @@ function rebuildEntry(en, target) {
     const ei = draft.entries.indexOf(en);
     if (ei >= 0) recalcSets(ei);
   }
+  holdApply(en, planExercise(en.name));  // v236: Halteziel in Sekunden bleibt
 }
 
 // Übung im laufenden Training gegen eine andere tauschen (Plan bleibt unverändert)
@@ -7240,7 +7314,7 @@ function saveTraining() {
         .map(s => ({
           weight: parseNum(s.weight), reps: parseNum(s.reps), rir: parseNum(s.rir),
           ...(s.variant ? { variant: s.variant } : {}),
-          ...(setOutlier({ weight: parseNum(s.weight), reps: parseNum(s.reps) }, outlierRef(en.name, (en.planned || [])[en.sets.indexOf(s)])) ? { outlier: 1 } : {}),
+          ...(!en.holdSec && setOutlier({ weight: parseNum(s.weight), reps: parseNum(s.reps) }, outlierRef(en.name, (en.planned || [])[en.sets.indexOf(s)])) ? { outlier: 1 } : {}),
           ...(s.open ? { open: 1 } : {}),
           ...(isTech(s.variant) && s.subs ? { subs: s.subs.map((x, j) => ({ weight: subWeight(en, en.sets.indexOf(s), j), reps: parseNum(x.reps) }))
             .filter(x => x.reps != null) } : {}),  // Teil-Sätze (v211)
@@ -7972,6 +8046,13 @@ const actions = {
     refreshPrefat();
     saveDraft(); render();
   },
+  'hold-ok': el => {
+    const ei = +el.dataset.ei, si = +el.dataset.si, s = draft.entries[ei].sets[si];
+    s.touched = true; s.auto = false;
+    restStart(ei, si);
+    recalcSets(ei); saveDraft(); render();
+  },
+  'hold-hint-off': el => { data.holdHintSeen = { ...(data.holdHintSeen || {}), [nameKey(el.dataset.name)]: true }; saveData(); render(); },
   'typo-ok': el => {
     const s = draft.entries[el.dataset.ei].sets[el.dataset.si];
     s.typoOk = `${s.weight}|${s.reps}`;

@@ -1424,9 +1424,9 @@ const foodShortDay = d => new Date(d + 'T12:00:00').toLocaleDateString('de-DE', 
 function foodTopCard() {
   const T = todayISO(), v = foodDayVals(T), c = foodGoal(T);
   return `<div class="card food-top">
-      <button class="food-top-main" data-action="food-open"><span class="food-top-ic" aria-hidden="true">🍎</span>
-        <span class="food-top-txt"><b>Ernährungstagebuch</b><small>${v ? `Heute ${nutKcal(v.kcal)}${c ? ` von ${nutKcal(c.kcal)}` : ''} kcal · Eiweiß ${v.p != null ? Math.round(v.p) : '–'} g`
-          : 'Heute noch nichts eingetragen. Antippen zum Eintragen'}</small></span><span class="food-top-chev" aria-hidden="true">›</span></button>
+      <button class="food-top-main primary" data-action="food-open"><span class="food-top-ic" aria-hidden="true">🍎</span>
+        <span class="food-top-txt"><b>Essen eintragen</b><small>Ernährungstagebuch · ${v ? `heute ${nutKcal(v.kcal)}${c ? ` von ${nutKcal(c.kcal)}` : ''} kcal, Eiweiß ${v.p != null ? Math.round(v.p) : '–'} g`
+          : 'heute noch nichts eingetragen'}</small></span><span class="food-top-chev" aria-hidden="true">›</span></button>
       <div class="row food-top-btns"><button class="btn" data-action="food-cal">📅 Kalender</button>
         <button class="btn" data-action="food-stats">📊 Woche & Monat</button></div>
     </div>`;
@@ -1462,6 +1462,55 @@ function renderFoodCal(p) {
 }
 
 /* ----- Woche & Monat ----- */
+/* ----- Säulendiagramm je Tag (v237, User-Wunsch 2026-11-14: wie die Schritte in Apple Health) -----
+   Eine Säule je Tag der Woche bzw. des Monats, darunter der Anfangsbuchstabe des Wochentags, gestrichelte Linie = Durchschnitt
+   der erfassten Tage. Oben groß der Durchschnitt; Säule antippen zeigt dort den Wert dieses Tages (noch einmal tippen = zurück). */
+const FOOD_BAR_METRICS = { kcal: { label: 'Kalorien', unit: 'kcal' }, p: { label: 'Eiweiß', unit: 'g' }, c: { label: 'Kohlenh.', unit: 'g' }, f: { label: 'Fett', unit: 'g' } };
+const FOOD_WD = ['S', 'M', 'D', 'M', 'D', 'F', 'S'];
+let foodBarSel = null;  // { key, i } – angetippte Säule
+const foodBarFmt = (k, v) => k === 'kcal' ? `${nutKcal(v)} kcal` : `${Math.round(v)} g`;
+function foodNiceStep(max) {
+  const rough = max / 3, mag = Math.pow(10, Math.floor(Math.log10(Math.max(rough, 1e-9))));
+  return [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= rough) || mag * 10;
+}
+function foodBarChart(days, metric, rangeKey) {
+  const T = todayISO();
+  const vals = days.map(d => { if (d > T) return null; const v = foodDayVals(d); return v && v[metric] != null && v[metric] > 0 ? v[metric] : null; });
+  const have = vals.filter(v => v != null);
+  if (!have.length) return '';
+  const avg = have.reduce((a, b) => a + b, 0) / have.length;
+  const step = foodNiceStep(Math.max(...have, avg)), top = Math.ceil(Math.max(...have, avg) / step) * step;
+  const W = 340, H = 190, L = 4, R = 40, TOP = 8, B = 22, pw = W - L - R, ph = H - TOP - B, n = days.length, slot = pw / n;
+  const bw = Math.max(3, slot * (n > 10 ? 0.62 : 0.56)), rad = Math.min(4, bw / 2);
+  const y = v => TOP + ph - v / top * ph;
+  const sel = foodBarSel && foodBarSel.key === rangeKey && vals[foodBarSel.i] != null ? foodBarSel.i : null;
+  const M = FOOD_BAR_METRICS[metric];
+  let svg = '';
+  for (let t = step; t <= top + 1e-9; t += step) {
+    svg += `<line class="fb-grid" x1="${L}" x2="${L + pw}" y1="${y(t)}" y2="${y(t)}"/><text class="fb-tick" x="${W - 2}" y="${y(t) + 4}" text-anchor="end">${metric === 'kcal' ? deNum(t) : Math.round(t)}</text>`;
+  }
+  svg += `<line class="fb-base" x1="${L}" x2="${L + pw}" y1="${y(0)}" y2="${y(0)}"/>`;
+  days.forEach((d, i) => {
+    const v = vals[i], cx = L + slot * (i + 0.5), x0 = cx - bw / 2;
+    if (v != null) {
+      const yt = y(v), hgt = Math.max(rad, TOP + ph - yt);
+      svg += `<path class="fb-bar${sel === i ? ' sel' : sel != null ? ' dim' : ''}" d="M${x0},${TOP + ph} V${TOP + ph - hgt + rad} Q${x0},${TOP + ph - hgt} ${x0 + rad},${TOP + ph - hgt} H${x0 + bw - rad} Q${x0 + bw},${TOP + ph - hgt} ${x0 + bw},${TOP + ph - hgt + rad} V${TOP + ph} Z"/>`;
+    }
+    const wd = new Date(d + 'T12:00:00').getDay();
+    svg += `<text class="fb-day${d === T ? ' today' : ''}${n > 10 ? ' sm' : ''}" x="${cx}" y="${H - 6}" text-anchor="middle">${FOOD_WD[wd]}</text>`;
+    if (v != null) svg += `<rect class="fb-hit" x="${L + slot * i}" y="${TOP}" width="${slot}" height="${ph + B}" data-action="food-bar" data-i="${i}" data-k="${rangeKey}"/>`;
+  });
+  svg += `<line class="fb-avg" x1="${L}" x2="${L + pw}" y1="${y(avg)}" y2="${y(avg)}"/>`;
+  const head = sel != null
+    ? `<small>${new Date(days[sel] + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}</small><b>${foodBarFmt(metric, vals[sel])}</b>`
+    : `<small>Ø pro Tag · ${have.length} von ${days.filter(d => d <= T).length} Tagen erfasst</small><b>${foodBarFmt(metric, avg)}</b>`;
+  return `<div class="card fbar"><div class="seg four fb-metric">${Object.entries(FOOD_BAR_METRICS).map(([k, m]) =>
+      `<button class="${k === metric ? 'on' : ''}" data-action="food-bar-metric" data-k="${k}">${m.label}</button>`).join('')}</div>
+    <div class="fb-head">${head}</div>
+    <svg class="fb-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${M.label} je Tag, Durchschnitt ${foodBarFmt(metric, avg)}">${svg}</svg>
+    <p class="hint nut-small"><span class="fb-key"></span> Durchschnitt der erfassten Tage. Säule antippen zeigt den Wert des Tages.</p></div>`;
+}
+
 const foodWeekStart = d => { const x = new Date(d + 'T12:00:00'); return addDaysISO(d, -((x.getDay() + 6) % 7)); };
 function foodRangeDays(range, end) {
   if (range === 'month') {
@@ -1494,6 +1543,7 @@ function renderFoodStats(p) {
         <span>Kohlenh.<b>${Math.round(A.c)} g</b></span><span>Fett<b>${Math.round(A.f)} g</b></span></div>
       <p class="hint nut-small">${got.length} von ${past.length} Tag${past.length === 1 ? '' : 'en'} erfasst${goal ? ` · Tagesziel (aktuell) ${nutKcal(goal.kcal)} kcal, Eiweiß ${Math.round(goal.protein)} g${kcalDiff != null ? ` · im Schnitt ${kcalDiff > 0 ? '+' : ''}${deNum(kcalDiff)} kcal` : ''}` : ''}
         · Anteile: Eiweiß ${pct(A.p * 4)} %, Kohlenhydrate ${pct(A.c * 4)} %, Fett ${pct(A.f * 9)} %</p></div>`;
+  h += foodBarChart(days, FOOD_BAR_METRICS[p.metric] ? p.metric : 'kcal', `${range}:${days[0]}`);
   if (range === 'month') {
     const weeks = {};
     for (const r of got) { const w = foodWeekStart(r.d); (weeks[w] = weeks[w] || []).push(r.v); }
@@ -1526,6 +1576,12 @@ actions['food-cal-day'] = el => go('food', { date: el.dataset.d });
 fields['food-cal-date'] = el => { if (/^\d{4}-\d{2}-\d{2}$/.test(el.value) && el.value <= todayISO()) go('food', { date: el.value }); };
 actions['food-stats'] = el => go('foodstats', { range: (el && el.dataset && el.dataset.range) || 'week', end: (el && el.dataset && el.dataset.end) || current.params.date || todayISO(), from: foodFrom(), date: current.params.date });
 actions['food-stats-range'] = el => go('foodstats', { ...current.params, range: el.dataset.r });
+actions['food-bar-metric'] = el => { foodBarSel = null; go('foodstats', { ...current.params, metric: el.dataset.k }); };
+actions['food-bar'] = el => {
+  const i = Number(el.dataset.i), k = el.dataset.k;
+  foodBarSel = foodBarSel && foodBarSel.key === k && foodBarSel.i === i ? null : { key: k, i };
+  render();
+};
 actions['food-stats-shift'] = el => {
   const p = current.params, d = Number(el.dataset.d), end = p.end || todayISO();
   let ne;
