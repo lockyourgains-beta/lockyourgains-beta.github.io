@@ -390,8 +390,8 @@ function chartPoints() {
     const weighted = sets.filter(x => x.weight != null);
     let v, unit = 'kg';
     if (!weighted.length) {
-      v = Math.max(...sets.map(x => x.reps || 0));  // Übung ohne Gewicht -> Wiederholungen
-      unit = 'Wdh.';
+      v = Math.max(...sets.map(x => x.reps || 0));  // Übung ohne Gewicht -> Wiederholungen (Halteübungen: Sekunden, v235)
+      unit = typeof holdSec === 'function' && holdSec(e.name) ? 's' : 'Wdh.';
     } else if (chartState.metric === 'max10') {
       const est = weighted.filter(x => x.reps != null).map(x => x.weight / repFactor(x.reps + (x.rir || 0)) / (1 - fat));
       if (!est.length) continue;

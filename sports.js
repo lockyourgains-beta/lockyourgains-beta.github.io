@@ -114,7 +114,7 @@ function renderHyrox() {
         <div class="hx-split">${bar(p.run, 'run', 'Laufen')}${bar(p.st, 'st', 'Stationen')}${bar(p.rox, 'rox', 'Roxzone')}</div>
         <p class="hx-legend"><span class="run"></span>Laufen <span class="st"></span>Stationen <span class="rox"></span>Roxzone ${hxTime(p.rox)}</p>
         <p class="hint">${esc(p.src)}.</p>`
-        : `<p class="hint">Sobald du einen Komplett-Durchgang gemacht hast oder jede Station und mindestens einen Lauf auf Zeit –, rechnet die App hier deine voraussichtliche Wettkampfzeit aus.</p>`}
+        : `<p class="hint">Sobald du einen Komplett-Durchgang gemacht hast oder jede Station und mindestens einen Lauf auf Zeit, rechnet die App hier deine voraussichtliche Wettkampfzeit aus.</p>`}
     </div>
     ${running ? '' : '<button class="btn primary" data-action="hx-open" data-v="hyroxnew">⏱ Durchgang starten</button>'}
     ${last.length ? `<div class="card"><h2>Zuletzt</h2>${last.map(hxSessionRow).join('')}</div>` : ''}
@@ -444,7 +444,7 @@ function renderHyroxEvent() {
       <label class="lbl">Zielzeit (freiwillig)<input class="inp" type="text" inputmode="decimal" data-field="hx-ev" data-k="goal" value="${esc(e.goal || '')}" placeholder="z. B. 1:25:00"></label>
       <p class="lbl">Hyrox-Einheiten pro Woche</p><div class="variants">${[2, 3, 4, 5].map(n => chip('hx-ev-per', n, String(n), e.per === n)).join('')}</div>
       ${canCombine ? `<p class="lbl">Mit deinem Kraftplan kombinieren?</p><div class="variants">${chip('hx-ev-comb', '1', 'Ja', e.combine)}${chip('hx-ev-comb', '0', 'Nein', !e.combine)}</div>
-        <p class="hint">Dann liegen die Hyrox-Einheiten auf den Tagen ohne Krafttraining, und in der Wettkampf-Woche gibt es nur ein kurzes, leichtes Krafttraining.</p>` : ''}
+        <p class="hint">Dann liegen die Hyrox-Einheiten auf den Tagen ohne Krafttraining. In der Wettkampf-Woche kannst du die Krafttrainings auf der Startseite auf leicht stellen.</p>` : ''}
     </div>
     <button class="btn primary" data-action="hx-ev-save">✔ Speichern</button>
     ${hxRace() && !e.isNew ? '<button class="btn danger" data-action="hx-ev-del">Wettkampf entfernen</button>' : ''}`;

@@ -33,7 +33,7 @@ function aboutDatenschutz() {
     <h3>Verantwortlich</h3>
     <p>${who}</p>
     <h3>Deine Daten bleiben auf deinem Gerät</h3>
-    <p>Alles, was du einträgst (Pläne, Trainings, Körpergewicht, Ernährung, Zykluskalender –, speichert die App nur im Speicher deines
+    <p>Alles, was du einträgst (Pläne, Trainings, Körpergewicht, Ernährung, Zykluskalender), speichert die App nur im Speicher deines
       Browsers auf diesem Gerät. Es gibt keinen Server, an den diese Daten geschickt werden. Darunter sind auch Gesundheitsdaten;
       sie verlassen dein Gerät nur, wenn du selbst eine Sicherung exportierst und weitergibst.</p>
     <h3>Aufruf der App (Hosting)</h3>

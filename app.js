@@ -528,15 +528,18 @@ function outlierRef(name, planned) {
   return last ? ofVariant(last.sets, '')[0] || null : null;
 }
 
-function fmtSet(s) {
+// name (optional): Halteübungen zeigen Sekunden statt Wdh. (v235)
+const holdSec = name => typeof name === 'string' && typeof isHoldName === 'function' && isHoldName(name);
+function fmtSet(s, name) {
+  const sec = holdSec(name);
   const tank = (s.rir != null && feat('tr-rir-input') ? ` · Tank ${fmtNum(s.rir)}` : '') + (s.variant ? ` · ${VARIANTS[s.variant]}` : '')
     + (s.outlier ? ' · ⚠ zählt nicht (Ausreißer)' : '');
   // Teil-Sätze (v211): Reduktion „→ 65 × 8 → 52,5 × 6“, Myo „+ 4+4+3“
   const subs = !(s.subs || []).length ? '' : s.variant === 'myo' ? ` + ${s.subs.map(x => x.reps).join('+')}`
     : ' ' + s.subs.map(x => `→ ${x.weight != null ? `${fmtNum(x.weight)} × ` : ''}${x.reps}`).join(' ');
-  if (s.weight == null) return `${s.reps} Wdh.${subs}${tank}`;
+  if (s.weight == null) return `${s.reps}${sec ? ' s' : ' Wdh.'}${subs}${tank}`;
   if (s.reps == null) return `${fmtNum(s.weight)} kg`;
-  return `${fmtNum(s.weight)} kg × ${s.reps}${subs}${tank}`;
+  return `${fmtNum(s.weight)} kg × ${s.reps}${sec ? ' s' : ''}${subs}${tank}`;
 }
 
 function sessionsNewestFirst() {
@@ -2637,12 +2640,12 @@ const draftFatPbFlags = (en, abs) => pbFatFlags(en.sets.map(x => isDone(x)
   pbBest(en.name), en.target && en.target.band, en.target ? en.target.fat || 0 : 0, abs);
 const PB_TAG = ' <span class="pb-tag" title="Neue persönliche Bestleistung">★ PB</span>';
 const FPB_TAG = ' <span class="pb-tag fpb" title="Vorermüdet und auf frisch umgerechnet deine beste Leistung bisher">💪 Vorermüdungs-PB</span>';
-const setsWithPb = (sets, flags, fflags = []) => sets.map((x, i) => fmtSet(x) + (flags[i] ? PB_TAG : fflags[i] ? FPB_TAG : '')).join('<br>');
+const setsWithPb = (sets, flags, fflags = [], name) => sets.map((x, i) => fmtSet(x, name) + (flags[i] ? PB_TAG : fflags[i] ? FPB_TAG : '')).join('<br>');
 // Sterne für ein gespeichertes Training (Verlauf, Training ansehen)
 function sessionPbHtml(s, e) {
   const best = pbBest(e.name, s.date, s.id), band = e.target && e.target.band;
   const abs = pbFlags(e.sets, best, band);
-  return setsWithPb(e.sets, abs, pbFatFlags(e.sets, best, band, sessionFat(s, s.entries.indexOf(e)), abs));
+  return setsWithPb(e.sets, abs, pbFatFlags(e.sets, best, band, sessionFat(s, s.entries.indexOf(e)), abs), e.name);
 }
 
 // Ohne Gewichts-/Wdh.-Progression: Sätze einer Variante aus dem letzten Training dieser Übung (ohne Deload)
@@ -4308,8 +4311,8 @@ function timeLimitHtml() {
           <button class="${timeEdit.ss === false ? 'on' : ''}" data-action="time-ss" data-v="0">Ohne</button></div>
           <p class="hint">Reicht die Zeit nicht, koppelt die App zuerst passende Übungen im Wechsel, das spart Pausen. Erst wenn es dann
           immer noch nicht passt, fallen Sätze weg.</p>` : ''}
-        <p class="hint">Die App kürzt das Training passend: Jede geplante Muskelgruppe bekommt zuerst 1–2 Sätze, mit einer
-          Grundübung, wenn es eine gibt –, dann folgen die übrigen Sätze der Grundübungen, danach normale Übungen und zuletzt
+        <p class="hint">Die App kürzt das Training passend: Jede geplante Muskelgruppe bekommt zuerst 1–2 Sätze (mit einer
+          Grundübung, wenn es eine gibt), dann folgen die übrigen Sätze der Grundübungen, danach normale Übungen und zuletzt
           Isolationsübungen. Gerechnet wird mit 1 Minute pro Satz plus Pause (Grundübung 4, normale Übung 3, Isolation 2 Minuten).</p>
         <div class="row"><button class="btn" data-action="time-cancel">Abbrechen</button>
           <button class="btn primary" data-action="time-save">Übernehmen</button></div>
@@ -4441,11 +4444,11 @@ function renderStart() {
 }
 
 // Werte früherer Trainings: je Satz eine Zeile; mehrere Spalten nebeneinander (z. B. letzter Zyklus | Vorwoche)
-function setRows(cols, head = false) {
+function setRows(cols, head = false, name) {
   const n = Math.max(...cols.map(c => c.sets.length));
   return `<table class="last-sets${cols.length === 1 ? ' one' : ''}">${head ?`<tr><th></th>${cols.map(c => `<th>${c.label}</th>`).join('')}</tr>` : ''}` +
     Array.from({ length: n }, (_, i) => `<tr><td class="no">${i + 1}</td>${cols.map(c =>
-      `<td>${c.sets[i] ? fmtSet(c.sets[i]) : ''}</td>`).join('')}</tr>`).join('') + '</table>';
+      `<td>${c.sets[i] ? fmtSet(c.sets[i], name) : ''}</td>`).join('')}</tr>`).join('') + '</table>';
 }
 
 // Im Training: was das Zeitlimit gekürzt hat
@@ -4568,8 +4571,8 @@ function renderTraining() {
       const pr = (en.planned || []).map(x => x && x.reps).filter(x => x != null);
       const today = pr.length ? (Math.min(...pr) === Math.max(...pr) ? pr[0] : `${Math.max(...pr)}–${Math.min(...pr)}`) : t.reps;
       h += feat('tr-tank-target')
-        ? `<p class="target">Heute: ${t.sets} × ${today} Wdh. · ${t.deload || !t.rirSplit ? `Ø ${targetRirText(t)} im Tank` : `Tank ${rirSeqText(t)}`}</p>`
-        : `<p class="target">Heute: ${t.sets} × ${today} Wdh. · ${feelTargetText(t)}</p>`;
+        ? `<p class="target">Heute: ${t.sets} × ${today} ${holdSec(en.name) ? 's' : 'Wdh.'} · ${t.deload || !t.rirSplit ? `Ø ${targetRirText(t)} im Tank` : `Tank ${rirSeqText(t)}`}</p>`
+        : `<p class="target">Heute: ${t.sets} × ${today} ${holdSec(en.name) ? 's' : 'Wdh.'} · ${feelTargetText(t)}</p>`;
       if (feat('tr-prefat') && (t.fat || 0) >= PREFAT_SHOW - 1e-9) {
         const pi = preFatigueInfo(draftPrefatList(), ei);
         const parts = [pi.same ? `${fmtNum(pi.same)} ${pi.same === 1 ? 'Satz' : 'Sätze'} ${MUSCLES[pi.g] || ''}` : '', pi.help ? `${fmtNum(pi.help)} ${pi.help === 1 ? 'Satz' : 'Sätze'} für Hilfsmuskeln` : ''].filter(Boolean);
@@ -4609,12 +4612,12 @@ function renderTraining() {
     }
     if (en.weekFirst && feat('tr-compare') && det) {
       h += `<div class="compare">Plan des 1. Trainings dieser Woche (${fmtDate(en.weekFirst.date)}):
-        ${setRows([{ sets: en.weekFirst.sets }])}<b>2. Training der Woche: höchstens dieser Plan, keine Steigerung dagegen</b></div>`;
+        ${setRows([{ sets: en.weekFirst.sets }], false, en.name)}<b>2. Training der Woche: höchstens dieser Plan, keine Steigerung dagegen</b></div>`;
     }
     // Werte vom letzten Mal: immer sichtbar, auch bei zugeklappten Details (User-Wunsch 2026-11-11, v206)
     if (!feat('tr-compare')) {
       // Einfach: eine Zeile mit den Werten vom letzten Mal
-      h += last ? `<p class="last">Letztes Mal: ${last.sets.map(x => x.weight != null ? `${fmtNum(x.weight)} kg × ${x.reps}` : `${x.reps} Wdh.`).join(' · ')}</p>`
+      h += last ? `<p class="last">Letztes Mal: ${last.sets.map(x => fmtSet({ weight: x.weight, reps: x.reps }, en.name)).join(' · ')}</p>`
         : '<p class="last">Erstes Mal, noch keine Werte.</p>';
     } else if (en.compare) {
       const rule = en.compare.shifted && !en.rule
@@ -4632,10 +4635,10 @@ function renderTraining() {
       const cols = [{ label: `Letzter Zyklus<small>${weekLabel(en.compare.week)}${occ} · ${fmtDate(en.compare.date)}</small>`, sets: en.compare.rawSets || en.compare.sets }];
       if (en.prevWeek) cols.push({ label: `Vorwoche<small>${weekLabel(en.prevWeek.week)} · ${fmtDate(en.prevWeek.date)}</small>`, sets: en.prevWeek.rawSets || en.prevWeek.sets });
       const conv = [en.compare, en.prevWeek].some(x => x && x.rawSets);
-      h += `<div class="compare">${setRows(cols, true)}<b>${rule}</b>${conv && feat('tr-prefat') ? '<br><small>Damals stand die Übung an anderer Stelle im Training. Die App hat die Werte auf die heutige Vorermüdung umgerechnet.</small>' : ''}</div>`;
+      h += `<div class="compare">${setRows(cols, true, en.name)}<b>${rule}</b>${conv && feat('tr-prefat') ? '<br><small>Damals stand die Übung an anderer Stelle im Training. Die App hat die Werte auf die heutige Vorermüdung umgerechnet.</small>' : ''}</div>`;
     } else {
       h += last
-        ? `<div class="last">Letztes Mal (${fmtDate(last.date)}):${setRows([{ sets: last.sets }])}</div>`
+        ? `<div class="last">Letztes Mal (${fmtDate(last.date)}):${setRows([{ sets: last.sets }], false, en.name)}</div>`
         : en.target && en.target.own ? '<p class="last">Erstes Mal: Werte aus deinem Plan.</p>'
         : en.target && en.target.max10 == null && !body ? ''  // dann steht oben schon der Hinweis „Erstes Mal“
           : '<p class="last">Erstes Mal, noch keine Werte.</p>';
@@ -5122,7 +5125,7 @@ function planCompare(ex, day) {
   const cmp = comparisonEntry(ex.name, day.id, ci);
   if (!cmp) return '';
   return `<p class="compare">Diese Woche (${weekLabel(ci.week)}), Vergleich mit dem letzten Zyklus:<br>
-    ${cmp.sets.map(fmtSet).join(' · ')}<br><b>Ziel: je Satz +${cmp.plus || 1} Wdh. bzw. nächste Gewichtsstufe. Ab Woche 2 höchstens Vorwoche mit Satz 1 +1 Wdh.</b></p>`;
+    ${cmp.sets.map(x => fmtSet(x, ex.name)).join(' · ')}<br><b>Ziel: je Satz +${cmp.plus || 1} Wdh. bzw. nächste Gewichtsstufe. Ab Woche 2 höchstens Vorwoche mit Satz 1 +1 Wdh.</b></p>`;
 }
 
 // Kontrolle im Plan: Sätze pro Muskelgruppe und Woche für diesen Trainingstag
@@ -5854,7 +5857,7 @@ function renderSessionEdit(s) {
   let h = `<p class="sub">${fmtDate(s.date, true)}<br>${esc(s.dayName)}</p>`;
   sessionEdit.entries.forEach((e, ei) => {
     h += `<section class="card"><h2>${esc(s.entries[ei].name)}</h2>
-      <div class="setgrid"><span class="head">Satz</span><span class="head">kg</span><span class="head">Wdh.</span><span class="head">Tank</span>`;
+      <div class="setgrid"><span class="head">Satz</span><span class="head">kg</span><span class="head">${holdSec(s.entries[ei].name) ? 'Sek.' : 'Wdh.'}</span><span class="head">Tank</span>`;
     e.sets.forEach((st, si) => {
       const v = variantOf(st);
       h += `<span class="setno ${v ? 'has-v' : ''}">${si + 1}${v ? `<small>${VARIANTS[v]}</small>` : ''}</span>
@@ -5972,7 +5975,7 @@ const IS_BETA = /-beta\.github\.io$/i.test(location.hostname) || CHANNEL_TEST ==
 const OLD_HOST = /^stepup-strength\.github\.io$/i.test(location.hostname) || CHANNEL_TEST === 'alt';
 const NEW_URL = 'https://lockyourgains.github.io/';
 let shareUrl = null, shareFile = null;
-const shareSetText = x => x.weight != null ? `${fmtNum(x.weight)} kg × ${x.reps != null ? x.reps : '–'}` : `${x.reps != null ? x.reps : '–'} Wdh.`;
+const shareSetText = (x, name) => { const u = holdSec(name); return x.weight != null ? `${fmtNum(x.weight)} kg × ${x.reps != null ? x.reps : '–'}${u ? ' s' : ''}` : `${x.reps != null ? x.reps : '–'}${u ? ' s' : ' Wdh.'}`; };
 function shareData(s) {
   const heavier = (a, b) => (b.weight || 0) > (a.weight || 0) || ((b.weight || 0) === (a.weight || 0) && (b.reps || 0) > (a.reps || 0)) ? b : a;
   const pbs = [], tops = [];
@@ -6047,7 +6050,7 @@ function shareCanvas(s) {
     y += 120;
     g.fillStyle = 'rgba(255,255,255,.14)'; rr(X, y - 94, W - 2 * X, 106, 28); g.fill();
     g.font = F(800, 44); g.fillStyle = '#fff';
-    const val = shareSetText(it.set), vw = g.measureText(val).width;
+    const val = shareSetText(it.set, it.name), vw = g.measureText(val).width;
     g.fillText(val, W - X - 36 - vw, y - 27);
     g.font = F(600, 40); g.fillStyle = 'rgba(255,255,255,.92)';
     g.fillText(fit(it.name, W - 2 * X - 108 - vw), X + 36, y - 27);
@@ -6336,6 +6339,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 235, date: '2026-11-13', items: [
+    ['Halteübungen wie Plank oder Wandsitzen zeigen jetzt überall Sekunden statt Wiederholungen: im Verlauf, beim letzten Mal, in Vergleichen, im Diagramm und im Bild zum Teilen.'],
+  ] },
   { v: 234, date: '2026-11-13', items: [
     ['Drei neue Designs unter Optionen → Aussehen → Stil: „Kraftraum“ (sportlich, große Zahlen), „Logbuch“ (Zeilen statt Karten) und „Schwarzweiß“. Sie sehen auf iPhone und Android gleich aus. Kraftraum und Logbuch passen sich deiner Farbwelt an. Die bisherigen Stile „Standard“ und „Schlicht“ bleiben wählbar.'],
   ] },
