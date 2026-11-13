@@ -815,6 +815,8 @@ function renderWizEquip() {
       ${opt('free', '🏋️', 'Freie Gewichte und Maschinen', 'Lang- und Kurzhanteln, Maschinen und Kabelzug – die App nimmt je Muskelgruppe die passendste Übung.')}
       ${true ? opt('machine', '⚙️', 'Nur Maschinentraining', 'Nur Geräte mit geführter Bewegung, Kabelzüge und die Multipresse – keine Lang- und Kurzhanteln. Leichter zu lernen und gut für den Start.') : ''}
       ${opt('home', '🏠', 'Zu Hause', 'Mit dem, was du daheim hast – Kurzhanteln, Kettlebells, Widerstandsbänder, Klimmzugstange oder ganz ohne Geräte. Als Nächstes trägst du deine Ausrüstung ein.')}
+      ${typeof caliOn === 'function' && caliOn() ? `<button class="split-opt cat" data-action="cali-open" data-from="wizard">
+        <span class="cat-icon">🤸</span><b>Calisthenics</b><small>Training mit dem eigenen Körpergewicht – Schritt für Schritt bis zu Skills wie Muscle-up, Handstand und Front Lever.</small></button>` : ''}
     </div>${navRow(wizPrev(), null)}`;
 }
 

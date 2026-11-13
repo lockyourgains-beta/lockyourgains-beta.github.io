@@ -1351,7 +1351,7 @@ const ASSIST = /curls|bizeps|seitheben|frontheben|trizeps|kickbacks|stirndrucken
 
 // Eigengewichtsübungen: Steigerung nur über die Wdh. (kg-Spalte = Körpergewicht), kein automatisches Aufwärmen.
 // ex.bwLoad = true: Gewichtsprogression trotzdem an (z. B. mit Zusatzgewicht) – dann wie eine normale Übung.
-const BODYWEIGHT = /^(klimmzuge(?!.*(zusatzgewicht|assist))|dips \((brust|trizeps)\)|bankdips|liegestutze|hyperextensions \(|sissy squats|nordic|crunches( schragbank)?$|sit-ups|beinheben|knieheben|plank|seitstutz|bauchroller|burpees|glute bridge|pike-liegestutze|diamant-liegestutze|rudern umgekehrt|kniebeugen eigengewicht|einbeinige kniebeugen|bulgarian split squats ohne|ausfallschritte eigengewicht|beincurls am boden|hip thrust am sofa|seitliches beinheben|clamshells|copenhagen|wadenheben an der treppe|dead bug|superman|y-t-w|archer-|pseudo-planche|einarmige (liegestutze|klimmzuge)|klatsch-|handstand|ring-|dips an der geraden|planche|negative klimmzuge|schulterblatt-klimmzuge|muscle-ups|front lever|back lever|toter hang|shrimp|sprung-kniebeugen|wandsitzen|hollow|l-sit|toes to bar|dragon flag|scheibenwischer|burpee-weitsprunge)/;  // v222: Calisthenics
+const BODYWEIGHT = /^(klimmzuge(?!.*(zusatzgewicht|assist))|dips \((brust|trizeps)\)|bankdips|liegestutze|hyperextensions \(|sissy squats|nordic|crunches( schragbank)?$|sit-ups|beinheben|knieheben|plank|seitstutz|bauchroller|burpees|glute bridge|pike-liegestutze|diamant-liegestutze|rudern umgekehrt|kniebeugen eigengewicht|einbeinige kniebeugen|bulgarian split squats ohne|ausfallschritte eigengewicht|beincurls am boden|hip thrust am sofa|seitliches beinheben|clamshells|copenhagen|wadenheben an der treppe|dead bug|superman|y-t-w|archer-|pseudo-planche|einarmige (liegestutze|klimmzuge)|klatsch-|handstand|ring-|dips an der geraden|planche|negative klimmzuge|schulterblatt-klimmzuge|muscle-ups|front lever|back lever|toter hang|shrimp|sprung-kniebeugen|wandsitzen|hollow|l-sit|toes to bar|dragon flag|scheibenwischer|burpee-weitsprunge|freier handstand|stutz halten|tuck l-sit|v-sit)/;  // v222: Calisthenics
 // Bandübungen laufen wie Eigengewicht (ohne kg, Steigerung über die Wdh.), dazu die Bandstufe (siehe bandShift)
 const isBodyweightName = name => BODYWEIGHT.test(norm(String(name || '').trim())) || isBandName(name);
 const isBodyweight = ex => !!ex && !ex.bwLoad && isBodyweightName(ex.name);
@@ -4244,7 +4244,9 @@ function startHintCard() {
 // Zyklus (zugeklappt) → Rückblick/Hinweise → Ernährung → weitere Trainingstage → „Wenig Zeit?“ und „Tage auslassen“ → Cardio
 function renderStart() {
   const hint = startHintCard();
-  let h = greeting() + moveCard() + betaCard();  // v217: Umzugshilfe (alte Adresse) bzw. Beta-Hinweis
+  let h = (typeof sportSwitch === 'function' ? sportSwitch('kraft') : '')  // v224 Beta-Entwurf: Kraft | Hyrox
+    + greeting() + moveCard() + betaCard()  // v217: Umzugshilfe (alte Adresse) bzw. Beta-Hinweis
+    + (typeof caliUpCards === 'function' ? caliUpCards() : '');  // v225: Calisthenics – nächste Stufe? (nur nach Rückfrage)
   if (draft) {
     h += `<div class="card highlight">
       <h2>Laufendes Training: ${esc(draft.dayName)}</h2>
@@ -4345,7 +4347,8 @@ function timeCutNote() {
 function renderTraining() {
   if (!draft) return '<p class="hint">Kein laufendes Training.</p>';
   let h = draft.own
-    ? '<p class="intro-note">Eigener Plan: Vorgeschlagen sind immer deine Werte vom letzten Mal (beim ersten Mal Sätze × Wdh. aus deinem Plan). Die App steigert nichts – Gewicht und Wdh. änderst du selbst.</p>'
+    ? (activePlan().cali ? '<p class="intro-note">Calisthenics: Die App steigert pro Woche um 1 Wdh. bzw. 5 Sekunden je Satz, bis das Stufenziel erreicht ist. Nicht geschafft? Dann bleibt das Ziel gleich.</p>'
+      : '<p class="intro-note">Eigener Plan: Vorgeschlagen sind immer deine Werte vom letzten Mal (beim ersten Mal Sätze × Wdh. aus deinem Plan). Die App steigert nichts – Gewicht und Wdh. änderst du selbst.</p>')
     : draft.deload
     ? `<p class="deload-note">${feat('tr-rir-input') ? `Deload-Woche: halbe Sätze, 15 % weniger Gewicht oder weniger Wdh. als in der letzten Trainingswoche, mindestens ${DELOAD_RIR} Wdh. im Tank. Keine Steigerung.`
       : 'Deload-Woche: halbe Sätze und etwas leichter – jeder Satz sollte sich locker anfühlen.'}</p>`
@@ -4435,10 +4438,12 @@ function renderTraining() {
     if (en.replacing) h += renderReplace(en, ei);
     const bandEx = body && en.target && en.target.band;
     if (bandEx) h += `<p class="bw-note">🎗️ Bandübung: Steigerung über die Wiederholungen – ab etwa ${BAND_MAX_REPS} Wdh. kommt das nächststärkere Band.</p>` + bandRow(en, ei);
-    else if (body) h += '<p class="bw-note">🧍 Eigengewichtsübung: Steigerung über die Wiederholungen.</p>';
+    else if (body) h += `<p class="bw-note">🧍 Eigengewichtsübung: Steigerung über die ${typeof isHoldName === 'function' && isHoldName(en.name) ? 'Haltezeit (Sekunden)' : 'Wiederholungen'}.</p>`;
     if (en.target && !en.target.own) { const bh = bwHint(en); h += `<p class="bw-hint" data-bwhint="${ei}"${bh ? '' : ' hidden'}>${bh}</p>`; }
-    if (en.target && en.target.own) {
-      h += `<p class="target">Plan: ${en.target.sets} × ${en.target.reps} Wdh.</p>`;
+    if (en.caliInfo && typeof caliTargetHtml === 'function') {
+      h += caliTargetHtml(en);
+    } else if (en.target && en.target.own) {
+      h += `<p class="target">Plan: ${en.target.sets} × ${en.target.reps} ${typeof holdUnit === 'function' ? holdUnit(en.name) : 'Wdh.'}</p>`;
     } else if (en.target) {
       const t = en.target;
       // Heute: wirklich vorgeschlagene Wdh. (User-Regel 2026-11-06), nicht der Startwert des Plans
@@ -4520,7 +4525,7 @@ function renderTraining() {
     // Einfach: kein Erklärtext zur Anpassung (Fachbegriffe) – die angepassten Werte stehen direkt in den Feldern
     h += `<p class="adjust ${feat('tr-rir-input') ? '' : 'simple-off'}" data-note="${ei}" ${en.note ? '' : 'hidden'}>${esc(en.note)}</p>`;
     const rirInput = feat('tr-rir-input');
-    h += `<div class="setgrid"><span class="head">Satz</span><span class="head">kg</span><span class="head">Wdh.</span><span class="head">${rirInput ? 'Tank' : 'Gefühl'}</span>`;
+    h += `<div class="setgrid"><span class="head">Satz</span><span class="head">kg</span><span class="head">${typeof holdHead === 'function' ? holdHead(en.name) : 'Wdh.'}</span><span class="head">${rirInput ? 'Tank' : 'Gefühl'}</span>`;
     const tankHint = si => !en.target || en.target.own ? '–' : en.target.deload || !en.target.rirSplit
       ? targetRirText(en.target).replace('mind. ', '≥') : fmtNum(rirAt(en.target, si));  // Tank je Satz (v199)
     const next = feat('tr-next') ? nextPreview(en) : [];
@@ -4727,6 +4732,8 @@ function renderPlan() {
   const c = data.cycle;
   const active = activePlan();
   let h = feat('plans-multi') ? '<h2>Meine Pläne</h2>' : '<h2>Mein Plan</h2>';
+  // v225 Calisthenics (Beta)
+  if (typeof caliOn === 'function' && caliOn()) h = `<button class="btn nav cali-entry" data-action="cali-open" data-from="plan">🤸 Calisthenics<small>Plan nach deinem Schwerpunkt oder selbst zusammengestellt · Skill-Stufen</small></button>` + h;
   // Einfach: nur der aktive Plan („Neuen Plan erstellen“ ersetzt ihn)
   for (const p of data.plans.filter(x => feat('plans-multi') || x.id === active.id)) {
     const isActive = p.id === active.id;
@@ -6620,6 +6627,7 @@ function draftEntries(day) {
     if (adapt) target.noLoadUp = true;  // Diät/Minicut angepasst: Gewicht nicht steigern, höchstens 1 Wdh. mehr
     if (draft.own) Object.assign(target, { own: true, startWeight: ex.startWeight != null ? ex.startWeight : null });
     setupEntry(en, target, (i, n) => techVariant(ex, i, n));  // Ausführung bzw. Intensitätstechnik laut Plan (v211)
+    if (typeof caliApply === 'function') caliApply(en, ex);  // Calisthenics (v225): Wdh./Haltezeit je Satz
     return en;
   });
 }
@@ -7265,7 +7273,7 @@ function importData(file) {
       days: d.days, volume: d.volume, rirPlan: d.rirPlan,  // ältere Sicherungen mit nur einem Plan
       sessions: d.sessions, bodyweight: d.bodyweight, cycle: d.cycle, steps: d.steps,
       complaints: d.complaints, hintsDismissed: d.hintsDismissed, dayTemplates: d.dayTemplates,
-      cycleShift: d.cycleShift, roundSkips: d.roundSkips, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, mcal: d.mcal, cardio: d.cardio, nutPlan: d.nutPlan,
+      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, mcal: d.mcal, cardio: d.cardio, nutPlan: d.nutPlan,
       customExercises: d.customExercises, profile: d.profile, prefatV: d.prefatV, rirV: d.rirV,
       measures: Array.isArray(d.measures) ? d.measures : [],
       painLog: Array.isArray(d.painLog) ? d.painLog : [],
@@ -8957,6 +8965,7 @@ function introHtml() {
       <div class="row intro-btns">${last ? '' : '<button class="btn" data-action="intro-skip">Überspringen</button>'}
         <button class="btn primary" data-action="intro-next">${last ? "Los geht's" : 'Weiter ›'}</button></div>
       <button class="link-btn intro-import" data-action="welcome-import">📥 Ich habe schon eine Sicherung</button>
+      ${IS_BETA ? '<button class="link-btn intro-import" data-action="beta-testdata">🧪 Testdaten laden (Beta)</button>' : ''}
     </div>`;
 }
 
@@ -9417,8 +9426,18 @@ function betaCard() {
   if (!IS_BETA) return '';
   return `<div class="card beta-card"><p><b>🧪 Beta-Version ${APP_V}</b> – hier testest du Neues, bevor alle es bekommen. Deine Daten hier sind
       getrennt von der normalen App.</p>
-    <button class="btn" data-action="beta-feedback">💬 Rückmeldung geben</button></div>`;
+    <button class="btn" data-action="beta-feedback">💬 Rückmeldung geben</button>
+    <button class="btn" data-action="beta-testdata">🧪 Testdaten laden<small>Max, 6 Monate Training und Ernährung (Mai bis Nov. 2026) – ersetzt die Daten der Beta</small></button></div>`;
 }
+// Beta (v223, User 2026-11-13): simulierte Testperson aus testdaten-max.json laden – läuft wie „Sicherung laden“ (mit Rückfrage)
+actions['beta-testdata'] = async () => {
+  if (!IS_BETA) return;
+  try {
+    const res = await fetch('testdaten-max.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error(res.status);
+    importData(new File([await res.text()], 'testdaten-max.json', { type: 'application/json' }));
+  } catch (e) { alert('Die Testdaten konnten nicht geladen werden – bitte mit Internetverbindung noch einmal versuchen.'); }
+};
 // Alte Adresse (stepup-strength.github.io): Daten ziehen nicht von selbst mit (jede Adresse hat ihren eigenen Speicher)
 function moveCard() {
   if (!OLD_HOST) return '';

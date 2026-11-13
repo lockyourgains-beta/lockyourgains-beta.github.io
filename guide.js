@@ -1138,6 +1138,21 @@ Object.assign(GUIDE_EX, {
     breath: 'Gleichmäßig, z. B. drei Schritte ein, drei aus.', mistakes: ['Zu schnell loslaufen.', 'Lange Schritte mit Landung auf der Ferse weit vor dem Körper.'] },
 });
 
+// Zwischenstufen der Skill-Leitern (v225)
+Object.assign(SHORT_EX, {
+  'Freier Handstand': { also: 'Trizeps, Trapez, Rumpf, Unterarme', steps: ['Hände schulterbreit, Finger gespreizt.', 'Mit einem Bein schwungvoll hoch, das zweite nachholen.', 'Körper ganz gestreckt, mit den Fingern das Gleichgewicht halten.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Abrollen bzw. seitlich aussteigen vorher üben.'] },
+  'Planche Lean': { also: 'Brust, Trizeps, Rumpf', steps: ['Liegestütz-Position, Finger leicht nach außen.', 'Arme gestreckt, Schultern so weit wie möglich vor die Hände lehnen.', 'Position halten, Körper gerade.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Handgelenke vorher aufwärmen.'] },
+  'Planche Advanced Tuck': { steps: ['Wie die gehockte Planche beginnen.', 'Rücken gerade machen, Knie weiter vom Körper weg.', 'Hüfte auf Schulterhöhe halten.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Arme bleiben gestreckt.'] },
+  'Planche gegrätscht': { steps: ['Aus der Advanced Tuck die Beine weit gegrätscht strecken.', 'Körper waagerecht halten.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Sehr anspruchsvoll – nur mit sicherer Advanced Tuck.'] },
+  'Front Lever Advanced Tuck': { steps: ['Aus dem Hang Knie anziehen und nach hinten kippen.', 'Rücken gerade machen, Knie vor der Hüfte.', 'Waagerecht halten.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Arme gestreckt.'] },
+  'Front Lever ein Bein': { steps: ['Wie Advanced Tuck beginnen.', 'Ein Bein ganz strecken, das andere angezogen lassen.', 'Waagerecht halten, Beine abwechseln.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.'] },
+  'Front Lever gegrätscht': { steps: ['Aus dem Hang mit gestreckten, gegrätschten Beinen nach hinten kippen.', 'Körper waagerecht halten.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.'] },
+  'Front Lever': { steps: ['Aus dem Hang den ganz gestreckten Körper nach hinten kippen.', 'Waagerecht unter der Stange halten, Beine geschlossen.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Gesäß fest, nicht in der Hüfte abknicken.'] },
+  'Stütz halten': { also: 'Schultern, Brust, Rumpf', steps: ['Am Barren oder auf Parallettes hochdrücken.', 'Arme gestreckt, Schultern aktiv nach unten drücken.', 'Ruhig halten.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Schultern nicht zu den Ohren ziehen.'] },
+  'Tuck L-Sit': { steps: ['Hände neben der Hüfte, Arme gestreckt.', 'Knie zur Brust ziehen, Gesäß vom Boden lösen.', 'Halten.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.'] },
+  'V-Sit': { steps: ['Aus dem L-Sit die gestreckten Beine weiter nach oben ziehen.', 'Hüfte nach vorn schieben, Schultern unten.', 'Halten.'], tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Braucht viel Beweglichkeit der Beinrückseite.'] },
+});
+
 // Kurzfassung einer Übung: gemeinsame Kurzfassung des Musters, ersetzt durch die eigene (SHORT_EX)
 const shortFor = (name, pattern) => ({ ...(FIG_TEXT[pattern] || {}), ...(SHORT_EX[name] || {}) });
 

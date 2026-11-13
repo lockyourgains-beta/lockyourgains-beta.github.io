@@ -32,7 +32,7 @@ function historyNames() {
 
 // Erfolge sind Serien mit Stufen: Nach jeder erreichten Stufe kommt die nächste – endlos, wenn step gesetzt ist.
 // def: { id, cat, goals, step, names, icons, name(g), desc(g), value(ctx), fmt(v) }
-const AWARD_CATS = ['Trainings', 'Tonnage', 'Kraft', 'Übungen', 'Schritte'];
+const AWARD_CATS = ['Trainings', 'Tonnage', 'Kraft', 'Übungen', 'Calisthenics', 'Hyrox', 'Schritte'];
 
 const goalAt = (def, i) => i < def.goals.length ? def.goals[i]
   : def.step ? def.goals[def.goals.length - 1] + def.step * (i - def.goals.length + 1) : null;
@@ -228,7 +228,8 @@ function stepsProgress() {
 // Alle Erfolge: Training und Schritte
 function achievementProgress() {
   const a = trainingProgress(), b = stepsProgress();
-  return { done: [...a.done, ...b.done], next: [...a.next, ...b.next] };
+  const h = typeof hyroxProgress === 'function' ? hyroxProgress() : { done: [], next: [] };  // v226: Hyrox
+  return { done: [...a.done, ...b.done, ...h.done], next: [...a.next, ...b.next, ...h.next] };
 }
 
 // Alle Trainings-Erfolge chronologisch aus dem Verlauf nachrechnen.
@@ -236,7 +237,7 @@ function achievementProgress() {
 function trainingProgress() {
   const c = {
     count: 0, total: 0, month: 0, session: 0, streak: 0, fullWeeks: 0, cycles: 0,
-    rel: { bench: 0, squat: 0, dead: 0 }, reps: { pullup: 0, dips: 0, pushup: 0 }, maxW: {}, exCount: {},
+    rel: { bench: 0, squat: 0, dead: 0 }, reps: { pullup: 0, dips: 0, pushup: 0 }, maxW: {}, exCount: {}, caliMet: {},
   };
   const months = {}, weeks = {}, deloadWeeks = new Set(), known = new Set();
   const series = STATIC_SERIES.map(def => ({ def, i: 0 }));
@@ -273,6 +274,13 @@ function trainingProgress() {
       if (/^klimmzuge/.test(n)) c.reps.pullup = Math.max(c.reps.pullup, maxReps);
       if (/^(dips|bankdips)/.test(n)) c.reps.dips = Math.max(c.reps.dips, maxReps);
       if (/^liegestutze/.test(n)) c.reps.pushup = Math.max(c.reps.pushup, maxReps);
+      // Calisthenics (v225): Stufenziel geschafft → Stufe der Leiter erreicht
+      if (typeof caliStagesOf === 'function') for (const [lad, idx, g] of caliStagesOf(e.name)) {
+        if (!caliGoalMet(real, g)) continue;
+        const key = lad.id + ':' + idx;
+        if (!known.has('cl-' + key)) { known.add('cl-' + key); series.push({ def: caliStageSeries(lad, idx), i: 0 }); }
+        c.caliMet[key] = 1;
+      }
       if (bodyKg) {
         for (const [key, re] of Object.entries(REL_LIFTS)) if (re.test(n)) c.rel[key] = Math.max(c.rel[key], maxW / bodyKg);
       }

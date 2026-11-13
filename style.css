@@ -3111,3 +3111,120 @@ header .beta-badge { flex: none; margin-left: 6px; padding: 3px 8px; border-radi
 .lib-sport-hint { margin: 4px 4px 10px; font-size: 15px; line-height: 1.45; }
 .lib-sub { margin: 14px 4px 6px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 [data-look="plain"] .lib-sub { font-family: var(--f-mono); font-weight: 400; letter-spacing: .07em; }
+
+/* ---------- v224 Beta-Entwurf: Hyrox-Umgebung und Calisthenics ---------- */
+.draft-banner { margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; background: var(--warn-soft); color: var(--text); font-size: 14.5px; line-height: 1.4; }
+.sport-seg { margin: 0 0 14px; }
+.sport-seg button { font-size: 16px; }
+.hx-kicker { margin: 0 0 2px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.hx-race h2 { margin: 0 0 4px; }
+.hx-meta { margin: 0 0 12px; color: var(--muted); font-size: 15.5px; }
+.hx-race .row .btn { flex: 1 1 0; min-height: 48px; font-size: 16px; text-align: center; margin: 0; }
+.hx-goal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 12px; text-align: center; }
+.hx-goal small { display: block; font-size: 12.5px; color: var(--muted); }
+.hx-goal b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.hx-split { display: flex; height: 12px; border-radius: 99px; overflow: hidden; gap: 2px; background: var(--fill); }
+.hx-split i, .hx-legend span { display: block; background: var(--accent); }
+.hx-split i.st, .hx-legend span.st { background: var(--accent-2); opacity: .75; }
+.hx-split i.rox, .hx-legend span.rox { background: var(--muted); opacity: .45; }
+.hx-legend { margin: 8px 0 10px; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hx-legend span { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin: 0 4px 0 8px; vertical-align: -1px; }
+.hx-legend span:first-child { margin-left: 0; }
+.hx-day { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text); text-align: left; font: inherit; }
+.hx-day:last-child { border-bottom: 0; }
+.hx-dow { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: var(--fill); font-size: 14px; font-weight: 700; }
+.hx-day.done .hx-dow { background: var(--success-soft); color: var(--success); }
+.hx-dtxt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 16.5px; }
+.hx-dtxt small { font-size: 14px; color: var(--muted); }
+.hx-dst { color: var(--muted); font-size: 20px; }
+.hx-day.done .hx-dst { color: var(--success); }
+.hx-live { text-align: center; }
+.hx-clock { margin: 0; font-size: 46px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.hx-now { margin: 10px 0 4px; display: flex; flex-direction: column; gap: 2px; }
+.hx-now small { color: var(--muted); font-size: 13.5px; }
+.hx-now b { font-size: 24px; }
+.hx-now span { color: var(--muted); }
+.hx-seg-clock { margin: 4px 0 12px; font-size: 30px; font-weight: 700; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.hx-seg-clock small { display: block; font-size: 13.5px; font-weight: 400; color: var(--muted); }
+.hx-live .row .btn { flex: 1 1 0; margin: 0; text-align: center; }
+.hx-segs { display: flex; flex-direction: column; }
+.hx-seg { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15.5px; }
+.hx-seg:last-child { border-bottom: 0; }
+.hx-seg.run { color: var(--muted); }
+.hx-seg.now { color: var(--text); font-weight: 700; background: var(--accent-soft); border-radius: 10px; padding: 8px 8px; margin: 2px -8px; }
+.hx-seg:not(.done):not(.now) { opacity: .55; }
+.hx-sno { flex: none; width: 26px; text-align: center; font-weight: 700; }
+.hx-sname { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.hx-sname small { font-size: 12.5px; font-weight: 400; color: var(--muted); }
+.hx-stime { flex: none; text-align: right; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; }
+.hx-stime small { font-size: 12px; color: var(--danger); }
+.hx-stime small.good { color: var(--success); }
+.hx-divs { flex-wrap: wrap; margin: 0 0 12px; }
+.hx-divs button { flex: 1 1 45%; font-size: 14.5px; }
+.hx-st { display: flex; align-items: center; gap: 12px; }
+.hx-stno { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--accent-soft); color: var(--accent-text); font-weight: 750; }
+.hx-sttxt { flex: 1; min-width: 0; }
+.hx-hrow { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center; padding: 6px 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+.hx-hrow small { min-width: 44px; text-align: right; color: var(--danger); }
+.hx-hrow small.good { color: var(--success); }
+.hx-hbar { height: 8px; border-radius: 99px; background: var(--fill); overflow: hidden; }
+.hx-hbar i { display: block; height: 100%; background: var(--accent); }
+.hx-tab { display: grid; grid-template-columns: 1.6fr 1fr 1fr .9fr; gap: 6px 8px; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.hx-tab span:nth-child(4n+2), .hx-tab span:nth-child(4n+3), .hx-tab span:nth-child(4n) { text-align: right; }
+.hx-tab span:nth-child(-n+4) { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+.cali-entry { margin-bottom: 18px; }
+.cali-day { margin: 14px 0 4px; font-size: 14px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.cali-ex { display: flex; justify-content: space-between; gap: 10px; width: 100%; padding: 8px 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text); font: inherit; font-size: 16px; text-align: left; }
+.cali-ex b { flex: none; font-variant-numeric: tabular-nums; }
+.cali-ex em { font-style: normal; font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-text); vertical-align: 1px; }
+.cali-open ol { margin: 0 0 8px; padding-left: 20px; font-size: 16px; line-height: 1.45; }
+.cali-open li { margin: 0 0 6px; }
+.cali-lad h2 small { font-weight: 500; font-size: 14px; }
+.cali-steps { display: flex; flex-direction: column; }
+.cali-step { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; }
+.cali-step:not(:last-child)::after { content: ''; position: absolute; left: 14px; top: 38px; bottom: -8px; width: 2px; background: var(--line-strong); }
+.cali-dot { flex: none; position: relative; z-index: 1; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: var(--fill); font-size: 14px; font-weight: 700; color: var(--muted); }
+.cali-step.done .cali-dot { background: var(--success); color: #fff; }
+.cali-step.now .cali-dot { background: var(--accent); color: #fff; box-shadow: 0 0 0 4px var(--accent-soft); }
+.cali-step.next { opacity: .6; }
+.cali-stxt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 16px; }
+.cali-step.now .cali-stxt { font-weight: 700; }
+.cali-stxt small { font-size: 13.5px; font-weight: 400; color: var(--muted); }
+[data-look="plain"] .cali-dot, [data-look="plain"] .hx-dow, [data-look="plain"] .hx-stno { border-radius: 2px; font-family: var(--f-mono); }
+[data-look="plain"] .draft-banner { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); border-radius: 4px; }
+.hx-seg:not(.done) .hx-stime small { color: var(--muted); }
+
+/* ---------- v225: Calisthenics ---------- */
+.cali-pick { border-top: 1px solid var(--line); }
+.cali-pick:first-of-type { border-top: 0; }
+.cali-pick-head { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 6px 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 17px; text-align: left; }
+.cali-check { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; box-shadow: inset 0 0 0 1.5px var(--line-strong); color: #fff; font-size: 15px; font-weight: 800; }
+.cali-pick.on .cali-check { background: var(--accent); box-shadow: none; }
+.cali-lv { margin: 0 0 10px 38px; font-size: 15px; }
+.cali-lv select { max-width: 62%; font-size: 15px; }
+.cali-rules ul { margin: 0; padding-left: 20px; font-size: 16px; line-height: 1.45; }
+.cali-rules li { margin: 0 0 6px; }
+.cali-up .row .btn { flex: 1 1 0; margin: 0; text-align: center; min-height: 52px; font-size: 16px; }
+.cali-up p { margin: 0 0 12px; }
+p.cali-tr { margin: -4px 0 8px; font-size: 14px; }
+[data-look="plain"] .cali-check { border-radius: 2px; }
+
+/* ---------- v226: Hyrox-Zeiten ---------- */
+.hx-picks .vchip, .hx-divs-sm .vchip { flex: 1 1 40%; }
+.hx-plan { margin: 0; padding-left: 22px; font-size: 15.5px; line-height: 1.5; columns: 2; column-gap: 18px; }
+.hx-plan small { color: var(--muted); }
+.hx-in { align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.hx-in span { display: flex; flex-direction: column; font-size: 16px; }
+.hx-in small { font-size: 13px; color: var(--muted); }
+.hx-in .inp { width: 100px; flex: none; text-align: center; font-variant-numeric: tabular-nums; }
+.hx-seg-clock small { display: block; }
+.split-opt.cat.hx-type { padding-left: 18px; }
+
+/* ---------- v227: Hyrox-Wettkampf und Wochenplan ---------- */
+.hx-week .hx-day { cursor: default; }
+.hx-day.today .hx-dow { background: var(--accent); color: #fff; }
+.hx-day.kraft .hx-dtxt b { color: var(--muted); }
+.hx-mini { flex: none; width: 38px; height: 38px; margin-left: 6px; border: 0; border-radius: 12px; background: var(--fill); color: var(--muted); font: inherit; font-size: 16px; font-weight: 800; }
+.hx-mini.on { background: var(--success); color: #fff; }
+.hx-goal b.good { color: var(--success); }
+[data-look="plain"] .hx-mini { border-radius: 3px; }

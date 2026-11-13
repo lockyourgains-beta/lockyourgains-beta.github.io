@@ -2084,6 +2084,40 @@ Object.assign(LIB_MOD, {
   'Wall Balls': { gear: [{ at: 'ha', type: 'plate', r: 8, fixed: true }], addProps: [WALL(172), ['r', 160, -6, 12, 4, 1]] },
 });
 
+// Zwischenstufen der Skill-Leitern (v225)
+Object.assign(LIB_EX, {
+  'Freier Handstand': ['hspu', 'Handstand ohne Wand – Gleichgewicht über die Finger halten.', 'none'],
+  'Planche Lean': ['planche', 'Liegestütz-Position, Schultern weit vor die Hände lehnen – die erste Planche-Stufe.', 'none'],
+  'Planche Advanced Tuck': ['planche', 'Wie die gehockte Planche, aber Rücken gerade und Knie weiter vom Körper weg.', 'none'],
+  'Planche gegrätscht': ['planche', 'Beine gestreckt und weit gegrätscht – viel kürzerer Hebel als die volle Planche.', 'none'],
+  'Front Lever Advanced Tuck': ['frontLever', 'Rücken gerade, Knie vor der Hüfte – längerer Hebel als gehockt.', 'none'],
+  'Front Lever ein Bein': ['frontLever', 'Ein Bein gestreckt, das andere angezogen.', 'none'],
+  'Front Lever gegrätscht': ['frontLever', 'Beide Beine gestreckt und gegrätscht.', 'none'],
+  'Front Lever': ['frontLever', 'Der volle Front Lever: Körper ganz gestreckt und waagerecht.', 'none'],
+  'Stütz halten': ['dips', 'Im Stütz am Barren oder auf Parallettes halten – Grundlage für L-Sit und Dips.', 'none'],
+  'Tuck L-Sit': ['lsit', 'Wie der L-Sit, aber mit angezogenen Knien.', 'none'],
+  'V-Sit': ['lsit', 'Beine über die Waagerechte hinaus nach oben – Steigerung des L-Sit.', 'none'],
+});
+Object.assign(LIB_MOD, {
+  'Freier Handstand': { props: MAT, poses: [
+    { root: 'ha', at: [100, 145], ua: 90, fa: 90, torso: 90, th: -90, sn: -90, fo: 0 },
+    { root: 'ha', at: [100, 145], ua: 91, fa: 91, torso: 91, th: -91, sn: -89, fo: 0 }] },
+  'Planche Lean': { props: [], poses: [
+    { root: 'ha', at: [100, 141], ua: 78, fa: 78, torso: 192, th: 12, sn: 12, fo: 100 },
+    { root: 'ha', at: [100, 141], ua: 70, fa: 70, torso: 190, th: 10, sn: 10, fo: 100 }] },
+  'Planche Advanced Tuck': { each: [{}, { th: 165, sn: 40 }] },
+  'Planche gegrätscht': { each: [{}, { torso: 178, th: 0, sn: 0, fo: 0 }] },
+  'Front Lever Advanced Tuck': { each: [{}, { th: -5, sn: 80 }] },
+  'Front Lever ein Bein': { each: [{}, { th: 0, sn: 0, th2: -28, sn2: 62, fo: 0 }] },
+  'Front Lever gegrätscht': { each: [{}, { th: 0, sn: 0, fo: 0 }] },
+  'Front Lever': { each: [{}, { th: 0, sn: 0, fo: 0 }] },
+  'Stütz halten': { poses: [
+    { root: 'ha', at: [100, 78], ua: 95, fa: 90, torso: -84, th: 100, sn: 150 },
+    { root: 'ha', at: [100, 78], ua: 95, fa: 90, torso: -84, th: 98, sn: 148 }] },
+  'Tuck L-Sit': { each: [{ th: -40, sn: 90, fo: 0 }, { th: -44, sn: 90, fo: 0 }] },
+  'V-Sit': { each: [{ torso: -100, th: -40, sn: -40, fo: -130 }, { torso: -102, th: -44, sn: -44, fo: -134 }] },
+});
+
 /* ---------- Nachschlagen ---------- */
 // Eintrag: [Muster, Hinweis, Gerät, Abwandlung]. Abwandlung (LIB_MOD) passt das Muster an die Übung an.
 const LIB_INDEX = new Map(Object.entries(LIB_EX).map(([name, [pattern, note, gear, mod]]) =>

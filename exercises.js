@@ -333,6 +333,18 @@ const EXERCISE_LIST = [
   ['Toes to Bar', A, 'bauch'],
   ['Dragon Flag', A, 'bauch'],
   ['Scheibenwischer (Windshield Wipers)', A, 'bauch'],
+  // Zwischenstufen der Skill-Leitern (v225)
+  ['Freier Handstand', A, 'schulter_vorne'],
+  ['Planche Lean', A, 'schulter_vorne'],
+  ['Planche Advanced Tuck', A, 'schulter_vorne'],
+  ['Planche gegrätscht', A, 'schulter_vorne'],
+  ['Front Lever Advanced Tuck', A, 'lat'],
+  ['Front Lever ein Bein', A, 'lat'],
+  ['Front Lever gegrätscht', A, 'lat'],
+  ['Front Lever', A, 'lat'],
+  ['Stütz halten', A, 'trizeps'],
+  ['Tuck L-Sit', A, 'bauch'],
+  ['V-Sit', A, 'bauch'],
 
   // Hyrox (v222) – Stationen; Schlitten schieben, Rudergerät und Farmer's Walk stehen schon oben
   ['SkiErg', N, 'ausdauer'],
@@ -371,7 +383,8 @@ const EX_SPORTS = {
         'Wandsitzen (Wall Sit)', 'Shrimp Squats', 'Einbeinige Kniebeugen (Pistol Squats)', 'Nordic Hamstring Curls', 'Sissy Squats', 'Glute Bridge einbeinig']],
       ['Rumpf', ['Plank (Unterarmstütz)', 'Seitstütz', 'Hollow Body Hold', 'Knieheben hängend', 'Beinheben hängend', 'Toes to Bar', 'L-Sit',
         'Scheibenwischer (Windshield Wipers)', 'Bauchroller (Ab Wheel)', 'Dragon Flag']],
-      ['Skills', ['Handstand an der Wand', 'Planche (Tuck)', 'Front Lever (Tuck)', 'Back Lever (Tuck)']],
+      ['Skills', ['Stütz halten', 'Tuck L-Sit', 'V-Sit', 'Handstand an der Wand', 'Freier Handstand', 'Planche Lean', 'Planche (Tuck)', 'Planche Advanced Tuck',
+        'Planche gegrätscht', 'Front Lever (Tuck)', 'Front Lever Advanced Tuck', 'Front Lever ein Bein', 'Front Lever gegrätscht', 'Front Lever', 'Back Lever (Tuck)']],
     ],
   },
   hyrox: {
@@ -401,7 +414,7 @@ const SPORT_NEW = new Set(['Archer-Liegestütze', 'Pseudo-Planche-Liegestütze',
   'Dips an der geraden Stange (Straight Bar Dips)', 'Handstand-Liegestütze an der Wand', 'Handstand an der Wand', 'Planche (Tuck)', 'Archer-Klimmzüge',
   'Einarmige Klimmzüge', 'Negative Klimmzüge', 'Schulterblatt-Klimmzüge (Scapula Pulls)', 'Muscle-ups', 'Ring-Rudern', 'Front Lever (Tuck)',
   'Back Lever (Tuck)', 'Toter Hang (Dead Hang)', 'Shrimp Squats', 'Sprung-Kniebeugen (Jump Squats)', 'Wandsitzen (Wall Sit)', 'Hollow Body Hold',
-  'L-Sit', 'Toes to Bar', 'Dragon Flag', 'Scheibenwischer (Windshield Wipers)', 'SkiErg', 'Schlitten ziehen (Sled Pull)',
+  'L-Sit', 'Toes to Bar', 'Dragon Flag', 'Scheibenwischer (Windshield Wipers)', 'Freier Handstand', 'Planche Lean', 'Planche Advanced Tuck', 'Planche gegrätscht', 'Front Lever Advanced Tuck', 'Front Lever ein Bein', 'Front Lever gegrätscht', 'Front Lever', 'Stütz halten', 'Tuck L-Sit', 'V-Sit', 'SkiErg', 'Schlitten ziehen (Sled Pull)',
   'Burpee-Weitsprünge (Burpee Broad Jumps)', 'Sandsack-Ausfallschritte (Sandbag Lunges)', 'Wall Balls', 'Laufen'].map(n => n.toLowerCase()));
 
 // „Nur Maschinentraining“: Geräte mit geführter Bewegung, Kabelzüge und Multipresse – keine Lang- und Kurzhanteln
@@ -458,7 +471,9 @@ const HOME_EX = {
   'Einarmige Klimmzüge': ['bar'], 'Negative Klimmzüge': ['bar'], 'Schulterblatt-Klimmzüge (Scapula Pulls)': ['bar'], 'Muscle-ups': ['bar'],
   'Front Lever (Tuck)': ['bar'], 'Back Lever (Tuck)': ['bar'], 'Toter Hang (Dead Hang)': ['bar'], 'Toes to Bar': ['bar'],
   'Shrimp Squats': [], 'Sprung-Kniebeugen (Jump Squats)': [], 'Wandsitzen (Wall Sit)': [], 'Hollow Body Hold': [], 'L-Sit': [],
-  'Scheibenwischer (Windshield Wipers)': [], 'Dragon Flag': ['bench'], 'Burpee-Weitsprünge (Burpee Broad Jumps)': [], 'Laufen': [],
+  'Scheibenwischer (Windshield Wipers)': [], 'Dragon Flag': ['bench'], 'Freier Handstand': [], 'Planche Lean': [], 'Planche Advanced Tuck': [],
+  'Planche gegrätscht': [], 'Front Lever Advanced Tuck': ['bar'], 'Front Lever ein Bein': ['bar'], 'Front Lever gegrätscht': ['bar'], 'Front Lever': ['bar'],
+  'Stütz halten': [], 'Tuck L-Sit': [], 'V-Sit': [], 'Burpee-Weitsprünge (Burpee Broad Jumps)': [], 'Laufen': [],
 };
 const HOME_INDEX = new Map(Object.entries(HOME_EX).map(([n, needs]) => [n.toLowerCase(), needs]));
 // Heim-Ausrüstung (data.home): Kurzhantel-/Kettlebell-Gewichte, Bänder (Stufen 1–4), Türanker, Stange, Bank 0/1/2, Dips
