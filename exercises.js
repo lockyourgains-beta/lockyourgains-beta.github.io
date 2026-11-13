@@ -2,7 +2,7 @@
 'use strict';
 
 // Vorschlagsliste für die Übungseingabe: [Name, Übungsart, Muskelgruppe]
-// Übungsart: G = Grundübung (+1 im Tank), N = normal, A = Assistenzübung (−1 im Tank).
+// Übungsart: G = Grundübung (+0,5 im Tank), N = normal, A = Assistenzübung (−0,5 im Tank).
 // Muskelgruppe: bestimmt, aus welchem Wochenvolumen die Übung ihre Sätze bekommt.
 // Eigene Übungen hinzufügen: eine Zeile pro Übung, z. B. ['Meine Übung', N, 'brust'],
 const G = 'compound', N = 'normal', A = 'assist';

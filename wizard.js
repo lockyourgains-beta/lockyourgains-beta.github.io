@@ -157,9 +157,9 @@ const wizSetMin = g => ASSIST_GROUPS.includes(g) ? (wiz && wiz.ss ? SET_MIN_ASSI
 // Volumen-Variante (direkt nach der Aufteilung gefragt): vol = Faktor auf die Sätze, rir = Verschiebung des Tank-Ziels
 // (vom User festgelegt: mehr Volumen = Tank wie bisher, weniger Volumen = etwa 1 Wdh. weniger im Tank, nie unter 0)
 const VOL_STYLES = {
-  high: { vol: 1.2, rir: 0, label: 'Mehr Volumen, mehr im Tank' },
+  high: { vol: 1.2, rir: 0.5, label: 'Mehr Volumen, mehr im Tank' },  // v231: ±0,5 im Tank (normale Übungen höchstens 2)
   mid: { vol: 1, rir: 0, label: 'Ausgewogen' },
-  low: { vol: 0.8, rir: -1, label: 'Weniger Volumen, näher am Muskelversagen' },
+  low: { vol: 0.8, rir: -0.5, label: 'Weniger Volumen, näher am Muskelversagen' },
 };
 const wizStyle = () => VOL_STYLES[wiz.style] || VOL_STYLES.mid;
 // Obergrenze Sätze pro Training: bei „Mehr Volumen“ im selben Verhältnis höher (25 → 30), sonst würde sie das Mehr wieder kappen
@@ -168,7 +168,8 @@ const wizStyle = () => VOL_STYLES[wiz.style] || VOL_STYLES.mid;
 const TIME_NO_LIMIT = 120;
 const sessionCap = () => (wiz.timeMax || TIME_NO_LIMIT) * Math.max(1, wizStyle().vol);
 // Tank-Ziel normaler Übungen (Intro…W4) für Erfahrung und Variante
-const wizRirBase = style => RIR_PLAN[4].map(v => Math.max(0, v + wizLevel().rir + style.rir));
+const wizRirBase = (style, course = wiz.course || 'strong') => [1, 2, 3, 4].map(wk =>
+  Math.max(0, rirNormalBase(course, wk, style.rir) + rirLevelBonus(wiz.level)));  // v230/v231: Tank-Regel wie rirAutoRange
 
 // Erfahrungsstufe: empfohlene Trainingstage pro Woche, Startvolumen (Anteil der Wochenziele), Tank-Ziel
 // (+ = weiter weg vom Muskelversagen) und – für Neulinge – nur einfache Aufteilungen
@@ -711,6 +712,7 @@ function wizFlow() {
   // Standard ohne Volumen-Variante und RIR-Tabelle
   const steps = ['mode', ...eq, 'level', 'sessions', 'time', 'split'];  // time: Höchstdauer (alle Modi, gleich nach „wie oft“)
   if (feat('wiz-style')) steps.push('style');  // style: Volumen-Variante direkt nach der Aufteilung
+  if (feat('tr-rir-input')) steps.push('course');  // v230: Intensitätsverlauf im Zyklus (ab Standard; Einfach endet nach der Aufteilung)
   if (custom) steps.push('days', 'freq');
   else {
     if (tpl && tpl.pairs && feat('wiz-freq')) steps.push('freq');
@@ -1129,6 +1131,19 @@ function renderWizTime() {
 }
 
 // Schritt „Variante“: mehr Volumen mit mehr im Tank, ausgewogen oder weniger Volumen näher am Muskelversagen
+// v230: Intensitätsverlauf im Zyklus (Ambitions-Stufen in v231 wieder entfernt)
+function renderWizCourse() {
+  const opt = (k, title, body, on) => `<button class="split-opt freq-opt int-opt ${on ? 'on' : ''}" data-action="wiz-course" data-k="${k}"><b>${title}</b><small>${body}</small></button>`;
+  const prev = c => wizRirBase(wizStyle(), c).map(fmtNum).join(' → ');
+  const next = wizNext();
+  return `<div class="card wiz-q"><div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">📈</span><h2>Wie stark soll die Intensität im Zyklus steigen?</h2></div>
+      <p class="hint wiz-q-explain">Von Woche zu Woche kann der Tank kleiner werden – der Zyklus wird dann intensiver, bis die Deload-Woche kommt. Du kannst es später im Plan jederzeit ändern.</p>
+      ${Object.entries(RIR_COURSES).map(([k, x]) => opt(k, x.label, `${x.text} Normale Übungen: ${prev(k)}.`, (wiz.course || 'strong') === k)).join('')}
+    </div>
+    <div class="row"><button class="btn" data-action="wiz-step" data-to="${wizPrev()}">Zurück</button>
+      ${next ? `<button class="btn primary" data-action="wiz-step" data-to="${next}">Weiter</button>` : '<button class="btn primary" data-action="wiz-quick-go">Weiter</button>'}</div>`;
+}
+
 function renderWizStyle() {
   const tank = k => { const r = wizRirBase(VOL_STYLES[k]); return `${fmtNum(r[0])} → ${fmtNum(r[3])}`; };
   const opt = (k, title, body) => `<button class="split-opt freq-opt int-opt ${wiz.style === k ? 'on' : ''}" data-action="wiz-style" data-k="${k}">
@@ -1139,15 +1154,15 @@ function renderWizStyle() {
       bleiben (RIR). Beides lässt sich gegeneinander tauschen: Mehr Sätze mit etwas mehr Luft wirken ähnlich wie weniger Sätze,
       die dafür härter sind. Wähle, was besser zu deiner Zeit, deiner Erholung und deinem Gefühl im Training passt.`,
     opt('high', 'Mehr Volumen, mehr im Tank', `Jede Muskelgruppe bekommt <strong>20 % mehr Arbeitssätze</strong> als bei „Ausgewogen“.
-        Die Wiederholungen im Tank bleiben wie bei „Ausgewogen“ (normale Übungen: ${tank('high')} von Intro bis Woche 4).
+        Dafür bleibt in jedem Satz <strong>0,5 Wdh. mehr im Tank</strong>, bei normalen Übungen höchstens 2 (normale Übungen: ${tank('high')} von Intro bis Woche 4).
         Damit das Mehr nicht abgeschnitten wird, steigt die Obergrenze der Sätze pro Training um 20 % (das Training dauert dann etwas länger).`) +
     opt('mid', 'Ausgewogen', `Sätze und Tank genau so, wie die App sie für deine Erfahrung berechnet (normale Übungen: Tank ${tank('mid')}) – der Mittelweg aus beiden Varianten.`) +
     opt('low', 'Weniger Volumen, näher am Muskelversagen', `Jede Muskelgruppe bekommt <strong>20 % weniger Arbeitssätze</strong> als bei „Ausgewogen“.
-        Dafür bleibt in jedem Satz etwa <strong>1 Wdh. weniger im Tank</strong> (normale Übungen: ${tank('low')} von Intro bis Woche 4, nie unter 0).
+        Dafür bleibt in jedem Satz <strong>0,5 Wdh. weniger im Tank</strong> (normale Übungen: ${tank('low')} von Intro bis Woche 4, nie unter 0).
         Die Obergrenze der Sätze pro Training bleibt, wie sie zu deiner Trainingsdauer passt.`),
     true,
     `<p class="hint">Die genauen Sätze und Tank-Werte siehst du später in den Schritten „Volumen“ und „RIR“ und kannst sie dort noch
-      selbst anpassen. Grundübungen behalten wie immer 1 Wdh. mehr im Tank, Assistenzübungen 1 weniger (nie unter 0).</p>`);
+      selbst anpassen. Grundübungen behalten wie immer 0,5 Wdh. mehr im Tank, Assistenzübungen 0,5 weniger (nie unter 0).</p>`);
 }
 
 // Schritt „Häufigkeit“: jeden Tag 1× (mehr Abwechslung) oder halb so viele Tage je 2× (einfacher)
@@ -1362,7 +1377,7 @@ function renderWizFocus(kind) {
 function renderWizard() {
   if (!wiz) return '<p class="hint">Der Assistent wurde beendet.</p><button class="btn primary" data-action="wiz-start">Neu starten</button>';
   let h = wizSteps();
-  const simple = { mode: renderWizMode, ownday: renderWizOwnDay, ownname: renderWizOwnName, level: renderWizLevel, equip: renderWizEquip, homeeq: renderWizHomeEq, sessions: renderWizSessions, split: renderWizSplit, time: renderWizTime, style: renderWizStyle, freq: renderWizFreq, days: renderWizDays,
+  const simple = { mode: renderWizMode, ownday: renderWizOwnDay, ownname: renderWizOwnName, level: renderWizLevel, equip: renderWizEquip, homeeq: renderWizHomeEq, sessions: renderWizSessions, split: renderWizSplit, time: renderWizTime, style: renderWizStyle, course: renderWizCourse, freq: renderWizFreq, days: renderWizDays,
     basics: renderWizBasics, intq: renderWizInt, deloadq: renderWizDeload, progq: renderWizProg };
   if (simple[wiz.step]) return h + simple[wiz.step]();
   if (wiz.step === 'prio' || wiz.step === 'low') return h + renderWizFocus(wiz.step);
@@ -1417,8 +1432,8 @@ function renderWizard() {
           <b>noch geschafft hättest</b>. 2 im Tank heißt: Du hörst 2 Wiederholungen vor dem Muskelversagen auf. Die Tabelle zeigt
           dein Ziel je Muskelgruppe und Woche: Von Woche zu Woche wird der Tank kleiner – du trainierst näher am Versagen, der Zyklus
           wird intensiver. Die Werte gelten für <b>normale</b> Übungen; bei Grundübungen (z. B. Kniebeugen, Bankdrücken) bleibt
-          1 Wdh. mehr im Tank, bei Assistenzübungen (z. B. Curls, Seitheben) 1 weniger – nie unter 0. In der Deload-Woche
-          immer mindestens ${DELOAD_RIR}. Gewählte Variante: <b>${wizStyle().label}</b>${wiz.style === 'low' ? ' (etwa 1 Wdh. weniger im Tank)' : ''}.</p>
+          0,5 Wdh. mehr im Tank, bei Assistenzübungen (z. B. Curls, Seitheben) 0,5 weniger – nie unter 0. In der Deload-Woche
+          immer mindestens ${DELOAD_RIR}. Gewählte Variante: <b>${wizStyle().label}</b>${wiz.style === 'low' ? ' (0,5 Wdh. weniger im Tank)' : wiz.style === 'high' ? ' (0,5 Wdh. mehr im Tank, normale Übungen höchstens 2)' : ''}.</p>
         <table class="rir vol view">${weekHead()}`;
       for (const g of groups) h += `<tr><td>${MUSCLES[g]}</td>${wiz.rir[g].map(v => `<td>${fmtNum(v)}</td>`).join('')}</tr>`;
       return h + `</table>
@@ -1426,7 +1441,7 @@ function renderWizard() {
         <div class="row"><button class="btn" data-action="wiz-step" data-to="volume">Zurück</button>${next}</div>`;
     }
     h += `<div class="card"><h2>RIR bearbeiten</h2>
-      <p class="hint">Ziel im Tank je Muskelgruppe und Woche für <b>normale</b> Übungen. Grundübungen bekommen +1, Assistenzübungen −1 (nie unter 0). Deload immer mind. ${DELOAD_RIR}.</p>
+      <p class="hint">Ziel im Tank je Muskelgruppe und Woche für <b>normale</b> Übungen. Grundübungen bekommen +0,5, Assistenzübungen −0,5 (nie unter 0). Deload immer mind. ${DELOAD_RIR}.</p>
       <table class="rir vol">${weekHead()}
       <tr class="all-row"><td><b>Alle</b></td>${[0, 1, 2, 3].map(w =>
         `<td><input class="vol-inp" type="text" inputmode="decimal" data-field="wiz-rir-all" data-w="${w}" placeholder="–"></td>`).join('')}</tr>`;
@@ -1802,6 +1817,8 @@ Object.assign(actions, {
     if (wiz.timeMax !== m) { wiz.timeMax = m; wiz.volKey = {}; }
     render();
   },
+  'wiz-course': el => { wiz.course = el.dataset.k; wiz.rir = {}; render(); },
+  'wiz-quick-go': () => wizQuick(),
   'wiz-style': el => {
     if (wiz.style !== el.dataset.k) { wiz.style = el.dataset.k; wiz.rir = {}; wiz.volKey = {}; }
     render();
@@ -1862,7 +1879,7 @@ Object.assign(actions, {
     const days = wiz.own.map(d => ({ id: uid(), name: d.name.trim() || 'Trainingstag', intensity: '', exercises: ownExercises(d, app) }));
     const plan = newPlan(wiz.name.trim() || 'Mein Plan', days);
     plan.byHand = true;  // selbst eingetragen: offene Tage werden mit demselben Formular weiter erstellt
-    if (app) plan.level = wiz.level;
+    if (app) Object.assign(plan, { level: wiz.level, rirMode: 'auto', rirCourse: 'strong', rirStyle: 0 });
     else Object.assign(plan, { own: true, progression: { volume: false, load: false } });
     if (wizMachines()) plan.equip = 'machine';  // Ersetzen: passende Übungen zuerst
     if (wizHome()) plan.equip = 'home';
@@ -1986,7 +2003,8 @@ Object.assign(actions, {
     if (draft && !askOk(`Es läuft noch ein Training (${draft.dayName}). Trotzdem den neuen Plan aktiv setzen?`)) return;
     const plan = newPlan(wiz.name.trim() || 'Neuer Plan', days);
     plan.volume = wiz.volume;
-    plan.rirPlan = wiz.rir;
+    if (wiz.rirEdited) Object.assign(plan, { rirPlan: wiz.rir, rirMode: 'table' });  // selbst bearbeitete Tabelle
+    else Object.assign(plan, { rirPlan: {}, rirMode: 'auto', rirCourse: wiz.course || 'strong', rirStyle: wizStyle().rir });
     plan.progression = { ...wiz.progression };
     plan.perWeek = wiz.rotate ? 1 : wiz.perWeek;
     if (wiz.rotate) plan.rotate = wiz.rotate;  // Wechsel-Plan (siehe dayTimes in app.js)
@@ -2058,6 +2076,7 @@ Object.assign(fields, {
     const n = parseNum(el.value);
     if (n == null || n < 0 || n > 6) return;
     wiz.rir[el.dataset.g][+el.dataset.w] = n;
+    wiz.rirEdited = true;
   },
   // „Alle“: ganze Spalte auf einmal setzen
   'wiz-rir-all': el => {
@@ -2066,6 +2085,7 @@ Object.assign(fields, {
     const w = +el.dataset.w;
     for (const g of wizGroups()) {
       wiz.rir[g][w] = n;
+      wiz.rirEdited = true;
       const inp = $view.querySelector(`[data-field="wiz-rir"][data-g="${g}"][data-w="${w}"]`);
       if (inp) inp.value = fmtNum(n);
     }

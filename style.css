@@ -3228,3 +3228,8 @@ p.cali-tr { margin: -4px 0 8px; font-size: 14px; }
 .hx-mini.on { background: var(--success); color: #fff; }
 .hx-goal b.good { color: var(--success); }
 [data-look="plain"] .hx-mini { border-radius: 3px; }
+
+/* ---------- v230: Intensität im Plan ---------- */
+.int-card { margin: 14px 0 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.int-card .variants { flex-wrap: wrap; }
+.int-card .vchip { flex: 1 1 30%; }

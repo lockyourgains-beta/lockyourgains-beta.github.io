@@ -217,6 +217,7 @@ function upgradeData(d) {
     for (const s of d.sessions || []) s.dayName = ren(s.dayName);
     d.renamedInt = true;
   }
+  for (const p of d.plans || []) rirMigratePlan(p);  // v230: neue Tank-Regel
   return d;
 }
 
@@ -448,7 +449,7 @@ const APP_MODES = {
 };
 const FEATURE_MODE = {
   // Plan-Assistent
-  'wiz-custom': 's', 'wiz-style': 'x', 'wiz-freq': 's', 'wiz-days': 's', 'wiz-name': 's', 'wiz-focus': 's', 'wiz-volume': 's',
+  'wiz-custom': 's', 'wiz-style': 's', 'wiz-freq': 's', 'wiz-days': 's', 'wiz-name': 's', 'wiz-focus': 's', 'wiz-volume': 's',
   'wiz-volume-edit': 'x', 'wiz-rir': 'x', 'wiz-preview': 's', 'wiz-int': 's', 'wiz-deload': 's', 'wiz-prog': 's', 'entry-week': 's',
   // Vor dem Training
   'check-detail': 's', 'first-max': 's', 'cycle-choice': 's',
@@ -1315,7 +1316,7 @@ const progChip = (key, on, attrs) =>
 // Ziel im Tank pro Trainingswoche (normale Übungen, als Durchschnitt über die Sätze).
 // [min, max] = Bereich; gerechnet wird mit der Mitte.
 // v199 (User-Wunsch 2026-11-10): generell 0,5 weniger im Tank – vorher [2, 1.5, 1, 0.5]
-const RIR_PLAN = { 4: [1.5, 1, 0.5, 0] };  // Eckwerte Start … Höhepunkt (siehe curveAt)
+const RIR_PLAN = { 4: [2, 1.5, 1, 0.5] };  // v230: Standard der Intro-Woche wieder 2 (Kurve „Deutlich“)  // Eckwerte Start … Höhepunkt (siehe curveAt)
 
 // Sätze und Tank sind als 4 Eckwerte gespeichert (Start, 2, 3, Höhepunkt). Bei einer anderen Zykluslänge verteilt die App
 // den Anstieg gleichmäßig auf die Aufbauwochen der Standardlänge (data.cycle.defWeeks); Wochen darüber hinaus
@@ -1330,9 +1331,9 @@ function curveAt(arr, week, len = curveLen()) {
   return at(i) + (at(i + 1) - at(i)) * f;
 }
 
-// Übungsart: Grundübungen +1 im Tank, Assistenzübungen −1 (näher ans Muskelversagen)
+// Übungsart: Grundübungen +0,5 im Tank, Assistenzübungen −0,5 (User-Regel 2026-11-13, vorher ±1)
 const KINDS = { compound: 'Grundübung', normal: 'Normale Übung', assist: 'Assistenzübung' };
-const KIND_OFFSET = { compound: 1, normal: 0, assist: -1 };
+const KIND_OFFSET = { compound: 0.5, normal: 0, assist: -0.5 };
 // Wie hat sich der Zyklus angefühlt? (User-Regel 2026-11-08): zu schwer +0,5 Wdh. im Tank, zu leicht −0,5, passt so ±0 – für alle
 // Übungen des Plans, summiert über die Zyklen (Claudes Grenze: insgesamt höchstens ±2), nie unter 0 (siehe rirRange).
 // Gefragt beim ersten Deload-Training (dann spürt man die Belastung noch voll), wirksam erst ab dem nächsten Zyklus:
@@ -1380,7 +1381,52 @@ function kindOf(ex) {
 
 // Tank-Ziel als Bereich [min, max] für Übungsart und Woche. Hat die Muskelgruppe eigene Werte
 // (data.rirPlan, aus dem Plan-Assistenten), gelten diese als Basis für normale Übungen.
+/* Tank-Regel (v230, User 2026-11-13): normale Übungen starten in der Intro-Woche bei 2; wie stark der Tank im Zyklus sinkt,
+   wählt man je Plan (Intensitätsverlauf). Neuling +1, Einsteiger +0,5 (kein Abzug für „Alter Hase“).
+   v231 (User 2026-11-13): statt Ambitions-Stufen verschiebt die Volumen-Variante den Tank – Mehr Volumen +0,5, Weniger Volumen −0,5
+   (plan.rirStyle), auch in Diät/Minicut. Verlauf + Variante zusammen höchstens 2 (Obergrenze für normale Übungen);
+   Erfahrungsbonus und Übungsart kommen danach dazu: Grundübungen +0,5, Assistenzübungen −0,5, nie unter 0.
+   Pläne mit selbst bearbeiteter Tabelle: plan.rirMode 'table' (dort keine Obergrenze). */
+const RIR_NORMAL_MAX = 2;
+const rirNormalBase = (course, w, style) => Math.min(RIR_NORMAL_MAX, rirCourseVal(course, w) + (style || 0));
+const RIR_COURSES = {
+  flat: { label: 'Gleichbleibend', text: 'Der Tank bleibt den ganzen Zyklus gleich.' },
+  mod: { label: 'Moderat', text: 'Alle 2 Wochen 0,5 weniger im Tank.' },
+  strong: { label: 'Deutlich', text: 'Jede Woche 0,5 weniger im Tank, ab Woche 4 bleibt es dabei.' },
+};
+function rirCourseVal(course, w) {
+  w = Math.max(1, w || 1);
+  if (course === 'flat') return 2;
+  if (course === 'mod') return Math.max(0.5, 2 - 0.5 * Math.floor((w - 1) / 2));
+  return Math.max(0.5, 2 - 0.5 * (w - 1));
+}
+const rirLevelBonus = lv => Math.max(0, typeof LEVELS !== 'undefined' && LEVELS[lv] ? LEVELS[lv].rir || 0 : 0);
+// diet: Verlauf immer „Deutlich“ (Diät-Regel v229), die Volumen-Variante des Plans gilt weiter (v231)
+function rirAutoRange(kind, week, p = {}, diet = false) {
+  const base = rirNormalBase(diet ? 'strong' : p.rirCourse || 'strong', week, p.rirStyle) + rirLevelBonus(p.level);
+  const v = Math.max(0, base + KIND_OFFSET[kind || 'normal'] + rirFeelAdj());
+  return [v, v];
+}
+// Bestehende Pläne umstellen: Standard-Tabellen (alle Gruppen gleich, altes Muster ± Verschiebung) → automatisch; selbst bearbeitete bleiben
+function rirMigratePlan(p) {
+  if (p) delete p.ambition;  // v231: Ambitions-Stufen entfallen
+  if (p && p.rirStyle === -1) p.rirStyle = -0.5;  // v231: „Weniger Volumen“ jetzt −0,5
+  if (!p || p.rirMode) return;
+  const arrs = Object.values(p.rirPlan || {});
+  const auto = { rirMode: 'auto', rirCourse: 'strong', rirStyle: 0 };
+  if (!arrs.length) { Object.assign(p, auto); return; }
+  const OLD = [1.5, 1, 0.5, 0];
+  const same = arrs.every(x => Array.isArray(x) && JSON.stringify(x) === JSON.stringify(arrs[0]));
+  let k = null;
+  if (same && arrs[0].length === 4) for (let x = -2; x <= 2; x += 0.5) if (OLD.every((v, i) => Math.abs(Math.max(0, v + x) - arrs[0][i]) < 1e-9)) { k = x; break; }
+  if (k == null) { p.rirMode = 'table'; return; }
+  const oldLv = typeof LEVELS !== 'undefined' && LEVELS[p.level] ? LEVELS[p.level].rir || 0 : 0;
+  Object.assign(p, auto, { rirStyle: k - oldLv <= -0.75 ? -0.5 : 0, rirPlan: {} });
+}
+
 function rirRange(kind, week, buildWeeks, group) {
+  const ap = typeof activePlan === 'function' && data.plans && data.plans.length ? activePlan() : null;
+  if (ap && ap.rirMode === 'auto') return rirAutoRange(kind, week, ap);
   const custom = group && data.rirPlan && data.rirPlan[group];
   let base;
   const arr = custom || RIR_PLAN[4];
@@ -1443,10 +1489,34 @@ function rirMigrate() {
   saveData();
 }
 
+/* Diät/Minicut mit angepasstem Training (User-Regel 2026-11-13, ersetzt „1 Wdh. weniger im Tank“):
+   Tank startet in der Intro-Woche bei 2 und sinkt je Woche um 0,5 – nie unter den Wert von Woche 4 (0,5).
+   Grundübungen +0,5, Assistenzübungen −0,5 (statt ±1). Neuling und Einsteiger behalten ihr Plus aus der Erfahrungsstufe,
+   der Abzug für „Alter Hase“ entfällt. Eine eigene Tank-Tabelle des Plans gilt in der Diät nicht. */
+// v230: dieselbe Regel wie im normalen Zyklus, Verlauf in der Diät immer „Deutlich“, Ambition gilt auch hier
+function dietRirRange(kind, week) {
+  return rirAutoRange(kind, week, activePlan() || {}, true);
+}
+const dietAdaptNow = () => typeof nutTrainAdapt === 'function' && nutTrainAdapt() && !ownPlan();
+
 function weekRirText(kind, group) {
   const ci = cycleInfo();
   if (ci.deload) return `Deload – mind. ${DELOAD_RIR}`;
+  if (dietAdaptNow()) return `${fmtNum(dietRirRange(kind, ci.week)[0])} (${weekLabel(ci.week)}, an die Diät angepasst)`;
   return `${rirLabel(kind, ci.week, ci.buildWeeks, group)} (${weekLabel(ci.week)})`;
+}
+
+function planIntensityCard(bw) {
+  const p = activePlan();
+  if (!p || p.own || !p.days.length) return '';
+  const chip = (act, k, label, on) => `<button class="vchip ${on ? 'on' : ''}" data-action="${act}" data-k="${k}">${label}</button>`;
+  if (p.rirMode === 'table') return `<div class="int-card"><p class="lbl">Intensität</p><p class="hint">Dieser Plan nutzt eine selbst bearbeitete Tank-Tabelle.</p>
+      <button class="btn small" data-action="plan-rir-auto">Auf automatische Werte umstellen</button></div>`;
+  if (!feat('tr-rir-input')) return '';  // Einfach: läuft im Hintergrund mit „Deutlich“
+  const prev = [...Array(Math.max(1, Math.min(bw, 8)))].map((_, i) => `${i ? 'W' + (i + 1) : 'Intro'} ${fmtNum(rirAutoRange('normal', i + 1, p)[0])}`).join(' · ');
+  return `<div class="int-card"><p class="lbl">Wie stark soll die Intensität im Zyklus steigen?</p>
+      <div class="variants">${Object.entries(RIR_COURSES).map(([k, x]) => chip('plan-course', k, x.label, (p.rirCourse || 'strong') === k)).join('')}</div>
+      <p class="hint">${esc(RIR_COURSES[p.rirCourse || 'strong'].text)}${p.rirStyle ? ` Dazu ${p.rirStyle > 0 ? '0,5 mehr' : '0,5 weniger'} im Tank aus der Volumen-Variante „${p.rirStyle > 0 ? 'Mehr' : 'Weniger'} Volumen“.` : ''} Tank normaler Übungen: ${prev}.</p></div>`;
 }
 
 function rirTable(buildWeeks) {
@@ -1461,7 +1531,7 @@ function rirTable(buildWeeks) {
       h += `<tr><td>${MUSCLES[g] || g}</td>` + plan.map((_, i) =>
         `<td class="${!ci.deload && ci.week === i + 1 ? 'now' : ''}">${rirLabel('normal', i + 1, buildWeeks, g)}</td>`).join('') + '</tr>';
     }
-    return h + `</table></div><p class="hint">Grundübungen +1, Assistenzübungen −1 (nie unter 0). Deload: mind. ${DELOAD_RIR}.</p>`;
+    return h + `</table></div><p class="hint">Grundübungen +0,5, Assistenzübungen −0,5 (nie unter 0). Deload: mind. ${DELOAD_RIR}.</p>`;
   }
   let h = '<div class="table-wrap"><table class="rir"><tr><th>Ziel im Tank</th>';
   plan.forEach((_, i) => { h += `<th class="${!ci.deload && ci.week === i + 1 ? 'now' : ''}">${i === 0 ? 'Intro' : 'W' + (i + 1)}</th>`; });
@@ -1727,15 +1797,12 @@ function addSets(exs, sets, count, state) {
 
 // Sätze pro Übung eines Trainingstags (nur bei Tag-Typ und Muskelgruppen aus der Volumen-Tabelle)
 // vol: Volumen-Tabelle (Standard: data.volume; der Plan-Assistent rechnet mit seinem Entwurf)
-// half: Anstieg ab der Intro-Woche halbiert (Training an Diät/Minicut angepasst, siehe nutTrainAdapt)
+// half = Training an Diät/Minicut angepasst (User-Regel 2026-11-13): Intro-Woche mit dem Volumen von Woche 2 des Plans,
+// Woche 2 mit dem von Woche 3, danach kein weiterer Anstieg
+const dietVolWeek = w => Math.min(w + 1, 3);
 function autoSetsForDay(day, week, deload, vol = data.volume, half = false) {
   const res = new Map();
-  const vw = (g, w) => {
-    const v = dayVolume(day, g, w, vol);
-    if (!half) return v;
-    const intro = dayVolume(day, g, 1, vol);
-    return intro + Math.floor((v - intro) / 2);  // halber Satz -> abrunden
-  };
+  const vw = (g, w) => dayVolume(day, g, half ? dietVolWeek(w) : w, vol);
   if (!dayIntensity(day)) return res;
   const byGroup = {};
   for (const e of day.exercises) {
@@ -1748,7 +1815,7 @@ function autoSetsForDay(day, week, deload, vol = data.volume, half = false) {
     if (deload) {
       sets = distributeStart(exs, Math.ceil(dayVolume(day, g, 99, vol) / 2));  // Deload: halber Höhepunkt
     } else {
-      sets = distributeStart(exs, dayVolume(day, g, 1, vol));
+      sets = distributeStart(exs, vw(g, 1));
       const state = { k: 0 };
       for (let w = 2; w <= week; w++) addSets(exs, sets, Math.max(0, vw(g, w) - vw(g, w - 1)), state);
     }
@@ -1961,11 +2028,11 @@ function trimToTime(entries, limit) {
 const deloadSets = sets => Math.max(1, Math.round(sets / 2));
 // Sätze pro Woche: Start in der Intro-Woche, Steigerung erst am Zyklusende –
 // bei +1 nur in der letzten Woche, bei +2 in den letzten beiden Wochen je +1 usw.
-// half: Anstieg halbiert (Training an Diät/Minicut angepasst)
+// half = Training an Diät/Minicut angepasst (v229): Wert wie sonst eine Woche später, ab Woche 3 gleich
 function setsForWeek(ex, week, buildWeeks, half = false) {
   const full = Math.max(0, ex.setsEnd - ex.sets);
-  const diff = half ? Math.floor(full / 2) : full;
-  return ex.sets + Math.max(0, diff - (buildWeeks - week));
+  const w = half ? Math.min(dietVolWeek(week), buildWeeks) : week;  // Diät: wie sonst eine Woche später, ab Woche 3 gleich (v229)
+  return ex.sets + Math.max(0, full - (buildWeeks - w));
 }
 
 // ref: erster normaler Satz der letzten Trainingswoche (lastWorkSet) – Bezug für Gewicht und Wdh. (User-Regel
@@ -3500,11 +3567,24 @@ function complReportDraw({ weeks = 8 }) {
 
 // Geschätztes Max. bei 10 Wdh. pro Übung und abgeschlossenem Zyklus (Deload zählt nicht).
 // Weniger als 1 % Zuwachs gegenüber dem Zyklus davor = Stillstand.
+// Diät und Minicut (User 2026-11-13): Im Kaloriendefizit ist Kraft halten normal – dann keine Stillstand-Hinweise
+// und Trainings aus einer Diät- bzw. Minicut-Zeit zählen auch danach nicht für den Vergleich
+const DEFICIT_PHASES = ['diet', 'minicut'];
+const inDeficitPhase = () => !!(data.nutrition && DEFICIT_PHASES.includes(data.nutrition.phase));
+function phaseOnDate(iso) {
+  const n = data.nutrition, d = String(iso).slice(0, 10);
+  if (!n) return null;
+  if (n.since && d >= n.since) return n.phase;
+  const h = (n.history || []).find(x => d >= x.from && d < x.to);
+  return h ? h.phase : null;
+}
 function stagnationHints() {
+  if (inDeficitPhase()) return [];
   const ci = cycleInfo();
   const byEx = {};
   for (const s of data.sessions) {
     if (s.deload) continue;
+    if (DEFICIT_PHASES.includes(phaseOnDate(s.date))) continue;
     const cs = sessionCycle(s).cycleStart;
     if (cs >= ci.cycleStart) continue;  // nur abgeschlossene Zyklen
     s.entries.forEach((e, ei) => {
@@ -4943,6 +5023,7 @@ function periodCard(c, active) {
         Deload: halbe Sätze, 15 % weniger Gewicht oder weniger Wdh. als in der letzten Trainingswoche, mindestens ${DELOAD_RIR} Wdh. im Tank, keine Steigerung. Anschließend beginnt der nächste Zyklus.</p>`;
   }
   if (feat('plan-week-prog')) h += progressionTable();
+  h += planIntensityCard(c.buildWeeks);  // v230: Ambition und Intensitätsverlauf
   if (feat('plan-rir')) h += rirTable(c.buildWeeks);
   h += '</div>';
   if (feat('plan-volume')) h += volumeEditor();
@@ -5602,9 +5683,9 @@ function renderLibAdd(p) {
   const f = libForm;
   const chip = (action, key, val, label) => `<button class="vchip ${f[key] === val ? 'on' : ''}" data-action="${action}" data-v="${val}">${label}</button>`;
   const kindInfo = {
-    compound: 'große, schwere Mehrgelenkübung, meist mit Langhantel (z. B. Kniebeugen, Bankdrücken) – mit mehreren Aufwärmsätzen und 1 Wdh. mehr im Tank',
+    compound: 'große, schwere Mehrgelenkübung, meist mit Langhantel (z. B. Kniebeugen, Bankdrücken) – mit mehreren Aufwärmsätzen und 0,5 Wdh. mehr im Tank',
     normal: 'die meisten Maschinen-, Kabel- und Kurzhantelübungen – 1 Aufwärmsatz, Tank wie geplant',
-    assist: 'kleine Isolationsübung (z. B. Seitheben, Curls, Waden) – ohne Aufwärmen und 1 Wdh. näher am Muskelversagen',
+    assist: 'kleine Isolationsübung (z. B. Seitheben, Curls, Waden) – ohne Aufwärmen und 0,5 Wdh. näher am Muskelversagen',
   };
   return `${p.name ? '' : `<div class="card">
       <h2>So legst du eine eigene Übung an</h2>
@@ -6217,6 +6298,19 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 231, date: '2026-11-13', items: [
+    ['Plan-Assistent: Die Frage „Mehr Volumen oder mehr Intensität?“ gibt es jetzt schon ab Standard. Mehr Volumen bringt 0,5 Wdh. mehr im Tank, Weniger Volumen 0,5 weniger – auch in einer Diät. Normale Übungen haben dabei höchstens 2 im Tank (Neulinge und Einsteiger behalten ihren Zuschlag).', 'tr-rir-input'],
+  ] },
+  { v: 230, date: '2026-11-13', items: [
+    ['Neue Tank-Regel: Normale Übungen starten in der Intro-Woche bei 2 Wiederholungen im Tank, Grundübungen 0,5 mehr, Assistenzübungen 0,5 weniger.'],
+    ['Neu im Plan und im Plan-Assistenten: „Wie stark soll die Intensität im Zyklus steigen?“ – gleichbleibend, moderat oder deutlich.', 'tr-rir-input'],
+  ] },
+  { v: 229, date: '2026-11-13', items: [
+    ['Training an die Diät angepasst – neue Regel: Das Volumen startet auf dem Stand von Woche 2, steigt in Woche 2 auf den Stand von Woche 3 und bleibt dann gleich. Im Tank bleiben in der Intro-Woche 2 Wiederholungen, danach jede Woche 0,5 weniger bis 0,5 (Grundübungen +0,5, Assistenzübungen −0,5).'],
+  ] },
+  { v: 228, date: '2026-11-13', items: [
+    ['In einer Diät oder einem Minicut gibt es keine Stillstand-Hinweise mehr – im Kaloriendefizit ist Kraft halten normal und schon ein Erfolg. Auch danach zählen Trainings aus dieser Zeit nicht für den Vergleich.'],
+  ] },
   { v: 222, date: '2026-11-13', items: [
     ['🤸 Übungsbibliothek: neuer Bereich Calisthenics – vom Toten Hang bis zu Muscle-up, Handstand, Front Lever und Planche, mit Figuren und ausführlicher Anleitung.'],
     ['🏁 Neuer Bereich Hyrox: alle Stationen in Wettkampf-Reihenfolge mit Strecken und Gewichten je Klasse, dazu passende Übungen.'],
@@ -6600,7 +6694,7 @@ function draftEntries(day) {
   // (Wochen nach der letzten Aufbauwoche, Deload „selbst bestimmen“: Sätze wie in der letzten Aufbauwoche)
   const setsWeek = draft.deload ? draft.week
     : Math.min(bw, volumeWeek({ week: draft.week, cycleStart: draft.cycleStart }, prog.volume));
-  // Ernährungsphase Diät/Minicut mit angepasstem Training: halber Volumenanstieg, 1 Wdh. weniger im Tank
+  // Ernährungsphase Diät/Minicut mit angepasstem Training (v229): Volumen wie sonst eine Woche später, ab Woche 2 ohne Anstieg; Tank 2 → 0,5
   // (nicht im Deload und nicht bei eigenen Plänen)
   const adapt = !draft.deload && !draft.own && nutTrainAdapt();
   draft.nutAdapt = adapt;
@@ -6614,7 +6708,7 @@ function draftEntries(day) {
     const en = { name: ex.name.trim(), ...(ex.ss ? { ss: ex.ss, ssRest: ex.ssRest } : {}) };  // Supersatz (v210)
     // Ziel im Tank aus Zykluswoche und Übungsart (Deload: Wert der letzten Trainingswoche, dann mind. 3)
     const week = draft.deload ? bw : draft.week;
-    const [lo, hi] = rirRange(kindOf(ex), week, bw, groupOf(ex)).map(x => Math.max(0, x - (adapt ? 1 : 0)));
+    const [lo, hi] = adapt ? dietRirRange(kindOf(ex), week) : rirRange(kindOf(ex), week, bw, groupOf(ex));  // Diät: eigene Tank-Regel (v229)
     const rir = (lo + hi) / 2;
     const rirText = lo === hi ? fmtNum(lo) : `${fmtNum(lo)}–${fmtNum(hi)}`;
     // Sätze: automatisch aus dem Muskelgruppen-Volumen, sonst laut Wochenplan der Übung
@@ -7467,6 +7561,11 @@ const actions = {
     go('libex', { name, from: current.view, fromParams: current.params, returnY: window.scrollY, tab });
   },
   // Muskelgruppe auf-/zuklappen (Liste wird erst beim Aufklappen gezeichnet)
+  'plan-course': el => { activePlan().rirCourse = el.dataset.k; saveData(); render(); },
+  'plan-rir-auto': () => {
+    if (!askOk('Auf automatische Tank-Werte umstellen? Deine eigene Tabelle wird dabei nicht mehr verwendet.')) return;
+    Object.assign(activePlan(), { rirMode: 'auto', rirCourse: 'strong', rirStyle: 0, rirPlan: {} }); saveData(); render();
+  },
   'lib-toggle': el => {
     const g = el.dataset.g;
     if (libOpenGroups.has(g)) libOpenGroups.delete(g); else libOpenGroups.add(g);

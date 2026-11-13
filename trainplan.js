@@ -279,7 +279,7 @@ Object.assign(actions, {
       d.exercises.forEach((e, i) => { const f = preFatigue(list, i); if (e.max10 != null && f && knownMax10(e.name) == null) e.max10 = Math.round(e.max10 / (1 - f) * 2) / 2; });
     }
     const plan = newPlan((im.name || '').trim() || 'Importierter Plan', days);
-    if (im.prog === 'app') plan.level = im.level;
+    if (im.prog === 'app') Object.assign(plan, { level: im.level, rirMode: 'auto', rirCourse: 'strong', rirStyle: 0 });
     else Object.assign(plan, { own: true, progression: { volume: false, load: false } });
     data.plans.push(plan);
     data.activePlanId = plan.id;
