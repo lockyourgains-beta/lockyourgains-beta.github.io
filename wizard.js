@@ -315,7 +315,7 @@ function wizCandidates(g) {
   // Standard-Vorschläge zuerst, danach alle übrigen Übungen der Muskelgruppe aus der Liste
   let pool = machineFilter(uniqueNames([...(g === 'brust' && wizHome() && wiz.level === 'neuling' ? ['Liegestütze erhöht'] : []), ...(defaultPicks(g) || []), ...byKind(EXERCISE_LIST.filter(([, , gr]) => gr === g).map(([name]) => name))]), g);
   // zu Hause: Ausweich-Übung nur, wenn ihr Vorbild nicht geht (z. B. Floor Press nur ohne Bank)
-  pool = pool.filter(x => !tooHard(x));
+  pool = pool.filter(x => !tooHard(x) && !(typeof SPORT_NEW !== 'undefined' && SPORT_NEW.has(nameKey(x))));  // v222: Calisthenics-/Hyrox-Übungen nur von Hand
   if (wizHome()) pool = pool.filter(x => !(HOME_ALT[x] && pool.includes(HOME_ALT[x])));
   else pool = pool.filter(x => !HOME_PROP.test(norm(x)));  // im Studio keine Behelfsübungen (Sofa, Tisch, Band …)
   return { existing, pool };

@@ -1290,7 +1290,6 @@ const LIB_EX = {
   'Glute Bridge': ['bridge', 'Auf dem Boden – Einstieg zum Hip Thrust.'],
   'Gesäß-Kickbacks Kabelzug': ['glutekick', 'Fußmanschette am unteren Kabelzug.'],
   'Gesäß-Kickbacks Kabelzug diagonal': ['glutekick', 'Fußmanschette am unteren Kabelzug, das Bein geht schräg nach hinten außen (etwa 45°) – betont den seitlichen Po (mittlerer Gesäßmuskel).'],
-  'Gesäß-Kickbacks Kabelzug überkreuzt': ['glutekick', 'Kabel von der Gegenseite: Es läuft vor dem Standbein vorbei, das Arbeitsbein zieht schräg nach hinten außen – mehr oberer und seitlicher Po. Becken gerade halten, nicht aufdrehen.'],
   'Gesäßmaschine (Glute Kickback)': ['glutekick', 'Geführt, Bein drückt gegen das Polster nach hinten.'],
   'Abduktoren Maschine': ['abductor', 'Trainiert die äußere Hüfte (seitliches Gesäß).'],
   'Abduktoren Kabelzug': ['abductor', 'Im Stand, Bein seitlich nach außen führen.'],
@@ -1887,6 +1886,202 @@ Object.assign(LIB_MOD, {
   'Copenhagen Plank': { pattern: 'copenhagen' },
   'Wadenheben an der Treppe': { props: STAIR },
   'Dead Bug': { pattern: 'deadBug' },
+});
+
+/* ---------- Calisthenics, Hyrox, seitliche Kickbacks (v222, User 2026-11-12) ---------- */
+const WALL = x => ['l', x, -22, x, 148, 5];                                 // Wand (für Handstand, Wandsitzen, Wall Balls)
+const RINGS = (x, y) => [['l', x, -22, x, y - 5, 2], ['c', x, y, 4.5]];       // Turnring an Seil
+const PARALLETTES = [['r', 82, 141, 30, 5, 2]];
+const LOW_BARS = [['r', 78, 126, 36, 4, 2], ['l', 82, 130, 82, 148, 3], ['l', 110, 130, 110, 148, 3]];  // Parallettes (hoch)
+Object.assign(FIG_PATTERNS, {
+  // Handstand-Liegestütze an der Wand: kopfüber, Füße an der Wand, Kopf Richtung Boden
+  hspu: { vb: TOPV, thumb: 0, props: [WALL(80), ...MAT], poses: [
+    { root: 'ha', at: [96, 145], ua: 90, fa: 90, torso: 90, th: -96, sn: -96, fo: 180 },
+    { root: 'ha', at: [96, 145], ua: 25, fa: 155, torso: 90, th: -96, sn: -96, fo: 180 },
+  ] },
+  // Muscle-up: Hang – Brust zur Stange – Stütz über der Stange
+  muscleUp: { vb: [0, -14, 200, 236], noGround: true, thumb: 2, props: [['l', 54, 74, 150, 74, 4], ['l', 58, 74, 58, 222, 4], ['l', 146, 74, 146, 222, 4]], poses: [
+    { root: 'ha', at: [104, 74], ua: -78, fa: -86, th: 100, sn: 150 },
+    { root: 'ha', at: [104, 74], ua: 100, fa: -75, torso: -80, th: 105, sn: 150 },
+    { root: 'ha', at: [104, 74], ua: 92, fa: 90, torso: -82, th: 98, sn: 96 },
+  ] },
+  // Wandsitzen: Rücken an der Wand, Knie 90°
+  wallSit: { thumb: 0, props: [WALL(78)], poses: [
+    figPose({ hip: [90, 112], sh: [86, 70], el: [100, 90], ha: [112, 104], kn: [123, 112], ft: [123, 145], x: { fo: 0 } }),
+    figPose({ hip: [90, 112], sh: [86, 70], el: [100, 90], ha: [112, 105], kn: [123, 112], ft: [123, 145], x: { fo: 0 } }),
+  ] },
+  // Hollow Body Hold: Rückenlage, Schultern und gestreckte Beine knapp über dem Boden
+  hollow: { thumb: 0, props: MAT, poses: [
+    { root: 'hip', at: [104, 140], torso: 197, ua: 192, fa: 190, th: -10, sn: -10, fo: -100 },
+    { root: 'hip', at: [104, 140], torso: 194, ua: 189, fa: 187, th: -7, sn: -7, fo: -97 },
+  ] },
+  // L-Sit: Stütz auf den Händen, Beine waagerecht nach vorn
+  lsit: { thumb: 0, props: LOW_BARS, poses: [
+    { root: 'ha', at: [94, 126], ua: 84, fa: 88, torso: -86, th: 2, sn: 2, fo: -88 },
+    { root: 'ha', at: [94, 126], ua: 84, fa: 88, torso: -84, th: -3, sn: -3, fo: -93 },
+  ] },
+  // Dragon Flag: auf der Bank, Hände hinter dem Kopf an der Bank, Körper gestreckt von den Schultern abwärts
+  dragonFlag: { vb: TOPV, thumb: 1, props: BENCH, poses: [
+    { root: 'sh', at: [62, 98], torso: 112, nk: 68, ua: 205, fa: 120, th: -68, sn: -68, fo: 22 },
+    { root: 'sh', at: [62, 98], torso: 166, nk: 14, ua: 205, fa: 120, th: -14, sn: -14, fo: 76 },
+  ] },
+  // Front Lever (gehockt): aus dem Hang den Körper waagerecht unter die Stange, Rücken zum Boden
+  frontLever: { vb: [0, 0, 200, 182], noGround: true, thumb: 1, props: BAR(30), poses: [
+    { root: 'ha', at: [128, 30], ua: -80, fa: -84, torso: -90, th: -40, sn: 70 },
+    { root: 'ha', at: [128, 30], ua: -58, fa: -58, torso: 0, th: -28, sn: 62, fo: 150 },
+  ] },
+  // Back Lever (gehockt): Körper waagerecht, Bauch zum Boden, Arme gestreckt hinter dem Körper
+  backLever: { vb: [0, 0, 200, 182], noGround: true, thumb: 1, props: BAR(30), poses: [
+    { root: 'ha', at: [92, 30], ua: -80, fa: -84, torso: -90, th: -40, sn: 70 },
+    { root: 'ha', at: [92, 30], ua: -125, fa: -125, torso: 180, th: 120, sn: -110, fo: 170 },
+  ] },
+  // Planche (gehockt): Hände am Boden, Schultern weit vor den Händen, Füße in der Luft
+  planche: { thumb: 1, props: PARALLETTES, poses: [
+    { root: 'ha', at: [100, 141], ua: 82, fa: 82, torso: 165, th: 120, sn: 30, fo: 120 },
+    { root: 'ha', at: [100, 141], ua: 72, fa: 72, torso: 175, th: 130, sn: 20, fo: 110 },
+  ] },
+  // SkiErg: Arme von oben nach unten ziehen, dabei in Hüfte und Knien einknicken
+  skierg: { vb: TOPV, thumb: 0, props: [['l', 172, -12, 172, 148, 6], ['r', 160, 128, 26, 20, 3]],
+    gear: [{ at: 'ha', type: 'cable', from: [170, -6], fixed: true }], poses: [
+      { ...STAND, at: [104, 145], ua: -62, fa: -58 },
+      { ...STAND, at: [104, 145], sn: 108, th: 58, torso: -42, ua: 95, fa: 100 },
+    ] },
+  // Schlitten ziehen: Seil Hand über Hand, tiefe stabile Position, Schlitten rechts
+  sledPull: { thumb: 0, props: [['r', 168, 126, 26, 20, 3], ['l', 170, 126, 178, 108, 4]],
+    gear: [{ at: 'ha', type: 'cable', from: [168, 134], fixed: true }], poses: [
+      { root: 'hip', at: [88, 92], torso: -102, ua: 8, fa: 4, th: 62, sn: 112, th2: 118, sn2: 92, fo: 0, fo2: 0 },
+      { root: 'hip', at: [88, 92], torso: -110, ua: 100, fa: -10, th: 62, sn: 112, th2: 118, sn2: 92, fo: 0, fo2: 0 },
+    ] },
+  // Seitliche Kickbacks am Kabelzug, von vorn: Kabel von der Gegenseite, Bein schräg nach hinten außen
+  sideKick: { front: true, thumb: 1, props: [['l', 34, 30, 34, 148, 4]],
+    gear: [{ at: 'ft2', type: 'cable', from: [36, 144], fixed: true }], poses: [
+      figPose({ front: true, hip: [100, 86], sh: [98, 45], el: [76, 58], ha: [56, 62], el2: [120, 66], ha2: [114, 84], kn: [94, 116], ft: [94, 145], kn2: [107, 116], ft2: [109, 145], x: { fo: 160, fo2: 20 } }),
+      figPose({ front: true, hip: [98, 86], sh: [92, 45], el: [70, 58], ha: [52, 62], el2: [114, 66], ha2: [108, 84], kn: [94, 116], ft: [94, 145], kn2: [126, 107], ft2: [152, 124], x: { fo: 160, fo2: 30 } }),
+    ] },
+});
+
+// Kurzfassungen der neuen Bewegungsmuster
+Object.assign(FIG_TEXT, {
+  hspu: { also: 'Trizeps, oberer Trapez, Rumpf',
+    steps: ['Mit dem Gesicht zur Wand in den Handstand schwingen, Hände etwa eine Handbreit vor der Wand, Fersen an der Wand.',
+      'Körper fest anspannen, Blick zwischen die Hände.', 'Kontrolliert absenken, bis der Kopf die Matte leicht berührt – Kopf und Hände bilden ein Dreieck.',
+      'Kraftvoll zurück in den gestreckten Handstand drücken.'],
+    tips: ['Vorstufe: Pike-Liegestütze, dann mit erhöhten Füßen.', 'Matte oder Kissen unter den Kopf.', 'Kein Hohlkreuz – Bauch und Gesäß fest.'] },
+  muscleUp: { also: 'Brust, Trizeps, Bizeps, Rumpf',
+    steps: ['Aus dem Hang leicht vorschwingen.', 'Explosiv zur Stange ziehen – Brust bzw. Bauch zur Stange, nicht nur das Kinn darüber.',
+      'Am höchsten Punkt die Schultern über die Stange bringen und die Handgelenke darüberkippen.', 'Aus dem tiefen Stütz hochdrücken, bis die Arme gestreckt sind.',
+      'Kontrolliert zurück in den Hang.'],
+    tips: ['Voraussetzung: etwa 8–10 saubere Klimmzüge und Dips.', 'Erst mit Band oder Sprung üben.', 'Übergang langsam lernen – schont Schultern und Ellbogen.'] },
+  wallSit: { also: 'Gesäß, Waden',
+    steps: ['Rücken an die Wand lehnen, Füße etwa einen Schritt vor der Wand.', 'An der Wand hinabgleiten, bis die Knie etwa 90° gebeugt sind.',
+      'Position halten – Rücken an der Wand, Gewicht auf den ganzen Füßen.'],
+    tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Knie über den Füßen, nicht nach innen.', 'Leichter: weniger tief.'] },
+  hollow: { also: 'Hüftbeuger, vorderer Rumpf',
+    steps: ['Auf den Rücken legen, Arme über den Kopf strecken.', 'Unteren Rücken fest in den Boden drücken.',
+      'Schultern und gestreckte Beine knapp vom Boden abheben – der Körper bildet eine flache Schale.', 'Position halten, ruhig weiteratmen.'],
+    tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Hebt der untere Rücken ab: Knie beugen oder Arme neben den Körper.'] },
+  lsit: { also: 'Hüftbeuger, Trizeps, Schultern',
+    steps: ['Hände neben die Hüfte auf Parallettes, Dip-Barren oder den Boden.', 'Arme strecken und die Schultern aktiv nach unten drücken.',
+      'Gestreckte Beine waagerecht nach vorn heben und halten.'],
+    tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Vorstufe: Knie angewinkelt (Tuck L-Sit), dann ein Bein gestreckt.', 'Knie durchgestreckt, Fußspitzen lang.'] },
+  dragonFlag: { also: 'Hüftbeuger, Lat, Rumpf',
+    steps: ['Auf die Bank legen, hinter dem Kopf festhalten.', 'Körper gestreckt bis über die Schultern heben – nur die oberen Schulterblätter liegen auf.',
+      'Gerade wie ein Brett langsam absenken, ohne in der Hüfte einzuknicken.', 'Kurz vor der Bank wieder hochheben.'],
+    tips: ['Anfangs nur langsam absenken (negativ) oder mit angewinkelten Knien.', 'Last liegt auf dem oberen Rücken, nicht auf dem Nacken.'] },
+  frontLever: { also: 'Rumpf, hintere Schulter, Bizeps',
+    steps: ['An die Stange hängen, Schultern aktiv nach unten ziehen.', 'Knie zur Brust ziehen (Tuck).', 'Mit gestreckten Armen den Körper nach hinten kippen, bis der Rücken waagerecht ist.',
+      'Position halten.'],
+    tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Stufen: Tuck → Advanced Tuck → ein Bein → gegrätscht → gestreckt.', 'Arme bleiben gestreckt.'] },
+  backLever: { also: 'Brust, Bizeps, Rumpf',
+    steps: ['An Stange oder Ringen hängen, Knie anziehen.', 'Rückwärts durch die Arme drehen (Skin the Cat), bis der Körper hinter den Armen hängt.',
+      'Körper mit Bauch zum Boden waagerecht ausrichten und halten.'],
+    tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Belastet die Schultern stark – langsam steigern, vorher Skin the Cat üben.', 'Arme gestreckt lassen.'] },
+  planche: { also: 'Brust, Trizeps, Rumpf, Handgelenke',
+    steps: ['Hände schulterbreit auf Boden oder Parallettes, Finger leicht nach außen.', 'Arme gestreckt, Schultern weit vor die Hände lehnen.',
+      'Knie zur Brust ziehen, bis die Füße abheben, und die Position halten.'],
+    tips: ['Halteübung: statt Wiederholungen die Sekunden eintragen.', 'Stufen: Planche Lean → Tuck → Advanced Tuck → gegrätscht → gestreckt.', 'Handgelenke vorher gut aufwärmen.'] },
+  skierg: { also: 'Trizeps, Bauch, Beine',
+    steps: ['Vor das Gerät stellen, Griffe über dem Kopf fassen.', 'Arme kraftvoll nach unten ziehen und dabei in Hüfte und Knien leicht einknicken.',
+      'Hände enden neben den Oberschenkeln.', 'Aufrichten, Arme wieder nach oben führen.'],
+    tips: ['Kraft kommt aus Rumpf und Beinen, nicht nur aus den Armen.', 'Gleichmäßiger Rhythmus.', 'Wdh.: z. B. Minuten oder 100-m-Abschnitte eintragen.'] },
+  sledPull: { also: 'Bizeps, Unterarme, Beine, Rumpf',
+    steps: ['Seil vor dem Körper fassen, tiefer stabiler Stand, Oberkörper leicht zurück.', 'Seil Hand über Hand zu dir ziehen.',
+      'Den Schlitten mit gleichmäßigen, langen Zügen heranholen.'],
+    tips: ['Kraft aus Beinen und Rücken, nicht nur aus den Armen.', 'Rücken gerade, nicht rund.', 'Gewicht = Schlitten, Wdh. = Bahnen.'] },
+  sideKick: { also: 'kleiner Gesäßmuskel, Abduktoren',
+    steps: ['Fußmanschette am Arbeitsbein, Kabel kommt von der Gegenseite vor dem Standbein vorbei.', 'Am Gerät festhalten, leicht nach vorn neigen.',
+      'Bein seitlich nach außen und etwas nach hinten führen.', 'Langsam zurück, ohne das Gewicht abzulegen.'],
+    tips: ['Becken bleibt gerade, nicht mitdrehen.', 'Bewegung aus der Hüfte, kein Schwung.'] },
+});
+
+// Übungen: [Muster, Besonderheit, Gerät]
+Object.assign(LIB_EX, {
+  // Calisthenics – Drücken
+  'Archer-Liegestütze': ['pushup', 'Hände sehr breit: Ein Arm beugt, der andere bleibt gestreckt zur Seite – Vorstufe zur einarmigen Liegestütze.', 'none'],
+  'Pseudo-Planche-Liegestütze': ['pushup', 'Hände neben der Hüfte, Schultern weit vor den Händen – viel vordere Schulter, Vorstufe zur Planche.', 'none'],
+  'Einarmige Liegestütze': ['pushup', 'Füße breit, eine Hand unter der Brust – sehr anspruchsvoll, braucht viel Rumpfspannung.', 'none'],
+  'Klatsch-Liegestütze': ['pushup', 'Explosiv hochdrücken, in der Luft klatschen und weich landen – für Schnellkraft.', 'none'],
+  'Handstand-Liegestütze an der Wand': ['hspu', 'Schulterdrücken mit dem ganzen Körpergewicht – Vorstufe: Pike-Liegestütze.', 'none'],
+  'Ring-Dips': ['dips', 'An Turnringen: Die Ringe wackeln – deutlich schwerer als am Barren, viel Stabilität.', 'none'],
+  'Dips an der geraden Stange (Straight Bar Dips)': ['dips', 'Stütz an einer Stange vor dem Körper – wichtig für den Muscle-up.', 'none'],
+  // Ziehen
+  'Archer-Klimmzüge': ['pullup', 'Sehr breiter Griff: Zu einer Hand ziehen, der andere Arm bleibt fast gestreckt – Vorstufe zum einarmigen Klimmzug.', 'none'],
+  'Einarmige Klimmzüge': ['pullup', 'Die Königsdisziplin – anfangs mit Hilfe (Handtuch, Band oder zweite Hand am Handgelenk).', 'none'],
+  'Negative Klimmzüge': ['pullup', 'Hochspringen, oben halten und in 3–5 Sekunden absenken – der beste Weg zum ersten Klimmzug.', 'none'],
+  'Schulterblatt-Klimmzüge (Scapula Pulls)': ['pullup', 'Arme gestreckt, nur die Schulterblätter nach unten ziehen – Grundlage für saubere Klimmzüge.', 'none'],
+  'Muscle-ups': ['muscleUp', 'Klimmzug und Dip in einer Bewegung – über die Stange hinaus.', 'none'],
+  'Ring-Rudern': ['invRow', 'An Turnringen oder Schlingen: Je flacher der Körper, desto schwerer.', 'none'],
+  'Toter Hang (Dead Hang)': ['pullup', 'Einfach hängen – trainiert Griffkraft und dehnt die Schultern.', 'none'],
+  // Beine
+  'Shrimp Squats': ['lunge', 'Einbeinige Kniebeuge: Hinteres Bein hinter dem Körper halten, Knie tippt am Boden auf.', 'none'],
+  'Sprung-Kniebeugen (Jump Squats)': ['squat', 'Aus der Kniebeuge explosiv hochspringen – Schnellkraft für die Beine.', 'none'],
+  'Wandsitzen (Wall Sit)': ['wallSit', 'Halteübung an der Wand – Oberschenkel waagerecht.', 'none'],
+  // Rumpf
+  'Hollow Body Hold': ['hollow', 'Die Grundspannung für fast alle Calisthenics-Skills.', 'none'],
+  'L-Sit': ['lsit', 'Stütz mit waagerecht gestreckten Beinen – Bauch, Hüftbeuger und Trizeps.', 'none'],
+  'Toes to Bar': ['hangraise', 'Im Hang die Füße bis an die Stange heben.', 'none'],
+  'Dragon Flag': ['dragonFlag', 'Körper gestreckt wie ein Brett von den Schultern aus absenken – sehr anspruchsvoll.', 'none'],
+  'Scheibenwischer (Windshield Wipers)': ['legraiseLying', 'Rückenlage, Beine senkrecht – langsam zur einen und zur anderen Seite kippen. Schräge Bauchmuskeln.', 'none'],
+  // Skills
+  'Handstand an der Wand': ['hspu', 'Halten im Handstand mit den Füßen an der Wand – Kraft und Gleichgewicht über Kopf.', 'none'],
+  'Front Lever (Tuck)': ['frontLever', 'Waagerecht unter der Stange, Rücken zum Boden – gehockt als erste Stufe.', 'none'],
+  'Back Lever (Tuck)': ['backLever', 'Waagerecht hinter den Armen, Bauch zum Boden – gehockt als erste Stufe.', 'none'],
+  'Planche (Tuck)': ['planche', 'Nur auf den Händen, Körper in der Luft – gehockt als erste Stufe.', 'none'],
+  // Hyrox
+  'SkiErg': ['skierg', 'Hyrox-Station 1: 1.000 m. Zieh-Ausdauer für Arme, Rumpf und Beine.'],
+  'Schlitten ziehen (Sled Pull)': ['sledPull', 'Hyrox-Station 3: 50 m am Seil. Gewicht inkl. Schlitten: Frauen 78 kg (Pro 103 kg), Männer 103 kg (Pro 153 kg).'],
+  'Burpee-Weitsprünge (Burpee Broad Jumps)': ['burpee', 'Hyrox-Station 4: 80 m. Brust zum Boden, dann mit beiden Füßen nach vorn springen.', 'none'],
+  'Sandsack-Ausfallschritte (Sandbag Lunges)': ['lunge', 'Hyrox-Station 7: 100 m mit dem Sandsack auf den Schultern, hinteres Knie berührt jedes Mal den Boden. Frauen 10 kg (Pro 20 kg), Männer 20 kg (Pro 30 kg).'],
+  'Wall Balls': ['thruster', 'Hyrox-Station 8: 100 Wdh. Frauen 4 kg auf 2,70 m (Pro 6 kg), Männer 6 kg auf 3 m (Pro 9 kg).'],
+  'Laufen': ['run', 'Bei Hyrox 8 × 1 km – vor jeder Station. Wdh.: z. B. Minuten oder Kilometer eintragen.', 'none'],
+  // Gesäß
+  'Gesäß-Kickbacks Kabelzug seitlich': ['sideKick', 'Fußmanschette am unteren Kabelzug, das Bein geht seitlich nach außen und leicht nach hinten – betont den seitlichen Po (mittlerer und kleiner Gesäßmuskel).'],
+});
+// bisherige Einträge mit Hyrox-Bezug ergänzen
+LIB_EX['Schlitten schieben'][1] = 'Kraft und Ausdauer, schonend für die Gelenke. Hyrox-Station 2: 50 m (4 × 12,5 m). Gewicht inkl. Schlitten: Frauen 102 kg (Pro 152 kg), Männer 152 kg (Pro 202 kg).';
+LIB_EX['Rudergerät'][1] = 'Ganzkörper-Ausdauer. Hyrox-Station 5: 1.000 m.';
+LIB_EX['Farmer\'s Walk'][1] = 'Trainiert Griffkraft, Rumpf und Haltung. Hyrox-Station 6: 200 m mit zwei Kettlebells – Frauen 2 × 16 kg (Pro 2 × 24 kg), Männer 2 × 24 kg (Pro 2 × 32 kg).';
+
+// Abwandlungen der Figuren
+Object.assign(LIB_MOD, {
+  'Ring-Dips': { props: RINGS(100, 78), set: { vb: TOPV } },
+  'Dips an der geraden Stange (Straight Bar Dips)': { props: [['l', 82, 78, 152, 78, 4], ['l', 148, 78, 148, 148, 4]], pose: { torso: -70 } },
+  'Schulterblatt-Klimmzüge (Scapula Pulls)': { poses: [
+    { root: 'ha', at: [104, 30], ua: -80, fa: -84, th: 96, sn: 100, lift: 6 },
+    { root: 'ha', at: [104, 30], ua: -80, fa: -84, th: 96, sn: 100 }] },
+  'Toter Hang (Dead Hang)': { poses: [
+    { root: 'ha', at: [104, 30], ua: -80, fa: -84, th: 95, sn: 98 },
+    { root: 'ha', at: [104, 30], ua: -80, fa: -84, th: 93, sn: 96 }] },
+  'Ring-Rudern': { props: RINGS(74, 78), set: { vb: TOPV } },
+  'Shrimp Squats': { gear: [], pose: { ua: 0, fa: 0 } },
+  'Sprung-Kniebeugen (Jump Squats)': { pattern: 'bwSquat' },
+  'Toes to Bar': { each: [{}, { torso: -58, th: -66, sn: -74 }] },
+  'Handstand an der Wand': { poses: [
+    { root: 'ha', at: [96, 145], ua: 90, fa: 90, torso: 90, th: -96, sn: -96, fo: 180 },
+    { root: 'ha', at: [96, 145], ua: 90, fa: 90, torso: 90, th: -94, sn: -94, fo: 180 }] },
+  'Sandsack-Ausfallschritte (Sandbag Lunges)': { gear: [{ at: 'sh', type: 'plate', off: [-3, -6], r: 8, fixed: true }],
+    pose: { ua: 150, fa: -60, ua2: 150, fa2: -60 } },
+  'Wall Balls': { gear: [{ at: 'ha', type: 'plate', r: 8, fixed: true }], addProps: [WALL(172), ['r', 160, -6, 12, 4, 1]] },
 });
 
 /* ---------- Nachschlagen ---------- */

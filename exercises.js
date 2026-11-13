@@ -246,7 +246,7 @@ const EXERCISE_LIST = [
   ['Glute Bridge', A, 'gesaess'],
   ['Gesäß-Kickbacks Kabelzug', A, 'gesaess'],
   ['Gesäß-Kickbacks Kabelzug diagonal', A, 'gesaess'],   // v218 (User)
-  ['Gesäß-Kickbacks Kabelzug überkreuzt', A, 'gesaess'],  // v218 (User)
+  ['Gesäß-Kickbacks Kabelzug seitlich', A, 'gesaess'],   // v222 (User, statt „überkreuzt“)
   ['Gesäßmaschine (Glute Kickback)', A, 'gesaess'],
   ['Abduktoren Maschine', A, 'abduktoren'],
   ['Abduktoren Kabelzug', A, 'abduktoren'],
@@ -306,6 +306,42 @@ const EXERCISE_LIST = [
   ['Thruster', G, 'ganzkoerper'],
   ['Schlitten schieben', N, 'ganzkoerper'],
 
+  // Calisthenics (v222) – Eigengewicht, Steigerung über die Wdh.; Halteübungen: Sekunden als Wdh.
+  ['Archer-Liegestütze', N, 'brust'],
+  ['Pseudo-Planche-Liegestütze', N, 'brust'],
+  ['Einarmige Liegestütze', N, 'brust'],
+  ['Klatsch-Liegestütze', N, 'brust'],
+  ['Ring-Dips', N, 'brust'],
+  ['Dips an der geraden Stange (Straight Bar Dips)', N, 'brust'],
+  ['Handstand-Liegestütze an der Wand', N, 'schulter_vorne'],
+  ['Handstand an der Wand', A, 'schulter_vorne'],
+  ['Planche (Tuck)', A, 'schulter_vorne'],
+  ['Archer-Klimmzüge', N, 'lat'],
+  ['Einarmige Klimmzüge', N, 'lat'],
+  ['Negative Klimmzüge', N, 'lat'],
+  ['Schulterblatt-Klimmzüge (Scapula Pulls)', A, 'lat'],
+  ['Muscle-ups', N, 'lat'],
+  ['Ring-Rudern', N, 'lat'],
+  ['Front Lever (Tuck)', A, 'lat'],
+  ['Back Lever (Tuck)', A, 'lat'],
+  ['Toter Hang (Dead Hang)', A, 'unterarme'],
+  ['Shrimp Squats', N, 'quadrizeps'],
+  ['Sprung-Kniebeugen (Jump Squats)', N, 'quadrizeps'],
+  ['Wandsitzen (Wall Sit)', A, 'quadrizeps'],
+  ['Hollow Body Hold', A, 'bauch'],
+  ['L-Sit', A, 'bauch'],
+  ['Toes to Bar', A, 'bauch'],
+  ['Dragon Flag', A, 'bauch'],
+  ['Scheibenwischer (Windshield Wipers)', A, 'bauch'],
+
+  // Hyrox (v222) – Stationen; Schlitten schieben, Rudergerät und Farmer's Walk stehen schon oben
+  ['SkiErg', N, 'ausdauer'],
+  ['Schlitten ziehen (Sled Pull)', N, 'ganzkoerper'],
+  ['Burpee-Weitsprünge (Burpee Broad Jumps)', N, 'ganzkoerper'],
+  ['Sandsack-Ausfallschritte (Sandbag Lunges)', N, 'quadrizeps'],
+  ['Wall Balls', N, 'ganzkoerper'],
+  ['Laufen', N, 'ausdauer'],
+
   // Ausdauer (bei „Wdh.“ z. B. Minuten eintragen)
   ['Laufband', N, 'ausdauer'],
   ['Crosstrainer', N, 'ausdauer'],
@@ -316,6 +352,57 @@ const EXERCISE_LIST = [
 ];
 
 const EXERCISES = EXERCISE_LIST.map(([name]) => name);
+
+/* Sportarten (v222, User 2026-11-12): eigene Abschnitte in der Übungsbibliothek. Die Übungen stehen zusätzlich bei ihrer
+   Muskelgruppe. SPORT_NEW = nur für diese Sportarten aufgenommen – der Plan-Assistent wählt sie nicht von selbst aus. */
+const EX_SPORTS = {
+  cali: {
+    label: 'Calisthenics', icon: '🤸',
+    hint: 'Training mit dem eigenen Körpergewicht – von den Grundübungen bis zu Skills wie Muscle-up, Handstand und Front Lever. '
+      + 'Gesteigert wird über die Wiederholungen bzw. die schwerere Variante. Halteübungen: statt Wiederholungen die Sekunden eintragen.',
+    parts: [
+      ['Drücken', ['Liegestütze', 'Liegestütze erhöht', 'Liegestütze eng', 'Diamant-Liegestütze', 'Liegestütze Füße erhöht', 'Archer-Liegestütze',
+        'Pseudo-Planche-Liegestütze', 'Klatsch-Liegestütze', 'Einarmige Liegestütze', 'Pike-Liegestütze', 'Handstand-Liegestütze an der Wand',
+        'Bankdips', 'Dips (Brust)', 'Dips (Trizeps)', 'Dips an der geraden Stange (Straight Bar Dips)', 'Ring-Dips']],
+      ['Ziehen', ['Toter Hang (Dead Hang)', 'Schulterblatt-Klimmzüge (Scapula Pulls)', 'Rudern umgekehrt (Tisch oder Stange)', 'Ring-Rudern',
+        'Klimmzüge mit Band (unterstützt)', 'Negative Klimmzüge', 'Klimmzüge', 'Klimmzüge Untergriff (Chin-ups)', 'Klimmzüge breit',
+        'Archer-Klimmzüge', 'Einarmige Klimmzüge', 'Muscle-ups']],
+      ['Beine', ['Kniebeugen Eigengewicht', 'Sprung-Kniebeugen (Jump Squats)', 'Ausfallschritte Eigengewicht', 'Bulgarian Split Squats ohne Gewicht',
+        'Wandsitzen (Wall Sit)', 'Shrimp Squats', 'Einbeinige Kniebeugen (Pistol Squats)', 'Nordic Hamstring Curls', 'Sissy Squats', 'Glute Bridge einbeinig']],
+      ['Rumpf', ['Plank (Unterarmstütz)', 'Seitstütz', 'Hollow Body Hold', 'Knieheben hängend', 'Beinheben hängend', 'Toes to Bar', 'L-Sit',
+        'Scheibenwischer (Windshield Wipers)', 'Bauchroller (Ab Wheel)', 'Dragon Flag']],
+      ['Skills', ['Handstand an der Wand', 'Planche (Tuck)', 'Front Lever (Tuck)', 'Back Lever (Tuck)']],
+    ],
+  },
+  hyrox: {
+    label: 'Hyrox', icon: '🏁',
+    hint: 'Wettkampf: 8 × (1 km Laufen + 1 Station). Bei den Stationen stehen Strecke und Gewichte je Klasse (Open bzw. Pro, Frauen und Männer). '
+      + 'Die Regeln können sich je Saison ändern – maßgeblich ist das offizielle Regelwerk. Eintragen: Gewicht wie angegeben, '
+      + 'als Wdh. z. B. Bahnen, Schritte, Würfe oder Minuten.',
+    parts: [
+      ['Die Stationen (Reihenfolge im Wettkampf)', ['Laufen', 'SkiErg', 'Schlitten schieben', 'Schlitten ziehen (Sled Pull)',
+        'Burpee-Weitsprünge (Burpee Broad Jumps)', 'Rudergerät', "Farmer's Walk", 'Sandsack-Ausfallschritte (Sandbag Lunges)', 'Wall Balls']],
+      ['Dazu passend', ['Kettlebell Swings', 'Thruster', 'Burpees', 'Ausfallschritte Kurzhantel', 'Goblet Squats', 'Seilspringen']],
+    ],
+  },
+};
+// Weitere Suchbegriffe (v222): englische bzw. gängige Namen, damit z. B. „sled push“ oder „pull-ups“ die Übung findet
+const EX_ALIAS = {
+  'Schlitten schieben': 'sled push', 'Schlitten ziehen (Sled Pull)': 'rope', 'Rudergerät': 'rowing row erg', "Farmer's Walk": 'farmers carry kettlebell',
+  'Laufen': 'running run', 'Laufband': 'treadmill running', 'Wall Balls': 'wallball', 'SkiErg': 'ski erg',
+  'Rudern umgekehrt (Tisch oder Stange)': 'australian pull-ups inverted row', 'Kniebeugen Eigengewicht': 'air squats',
+  'Liegestütze': 'push-ups pushups', 'Klimmzüge': 'pull-ups pullups', 'Knieheben hängend': 'hanging knee raises',
+  'Beinheben hängend': 'hanging leg raises', 'Plank (Unterarmstütz)': 'planke', 'Seitstütz': 'side plank',
+  'Handstand-Liegestütze an der Wand': 'hspu handstand push-ups', 'Toter Hang (Dead Hang)': 'hängen',
+  'Bulgarian Split Squats ohne Gewicht': 'split squats', 'Burpees': 'burpee',
+};
+const exSearchText = name => EX_ALIAS[name] ? `${name} ${EX_ALIAS[name]}` : name;
+const SPORT_NEW = new Set(['Archer-Liegestütze', 'Pseudo-Planche-Liegestütze', 'Einarmige Liegestütze', 'Klatsch-Liegestütze', 'Ring-Dips',
+  'Dips an der geraden Stange (Straight Bar Dips)', 'Handstand-Liegestütze an der Wand', 'Handstand an der Wand', 'Planche (Tuck)', 'Archer-Klimmzüge',
+  'Einarmige Klimmzüge', 'Negative Klimmzüge', 'Schulterblatt-Klimmzüge (Scapula Pulls)', 'Muscle-ups', 'Ring-Rudern', 'Front Lever (Tuck)',
+  'Back Lever (Tuck)', 'Toter Hang (Dead Hang)', 'Shrimp Squats', 'Sprung-Kniebeugen (Jump Squats)', 'Wandsitzen (Wall Sit)', 'Hollow Body Hold',
+  'L-Sit', 'Toes to Bar', 'Dragon Flag', 'Scheibenwischer (Windshield Wipers)', 'SkiErg', 'Schlitten ziehen (Sled Pull)',
+  'Burpee-Weitsprünge (Burpee Broad Jumps)', 'Sandsack-Ausfallschritte (Sandbag Lunges)', 'Wall Balls', 'Laufen'].map(n => n.toLowerCase()));
 
 // „Nur Maschinentraining“: Geräte mit geführter Bewegung, Kabelzüge und Multipresse – keine Lang- und Kurzhanteln
 // („Wadenheben stehend“ fehlt bewusst, das geht auch frei)
@@ -365,6 +452,13 @@ const HOME_EX = {
   'Copenhagen Plank': [], 'Wadenheben an der Treppe': [], 'Wadenheben einbeinig': ['db'],
   'Crunches': [], 'Sit-ups': [], 'Beinheben liegend': [], 'Plank (Unterarmstütz)': [], 'Seitstütz': [], 'Dead Bug': [],
   'Beinheben hängend': ['bar'], 'Knieheben hängend': ['bar'], 'Russian Twists': ['db|kb'],
+  // Calisthenics (v222)
+  'Archer-Liegestütze': [], 'Pseudo-Planche-Liegestütze': [], 'Einarmige Liegestütze': [], 'Klatsch-Liegestütze': [],
+  'Handstand-Liegestütze an der Wand': [], 'Handstand an der Wand': [], 'Planche (Tuck)': [], 'Archer-Klimmzüge': ['bar'],
+  'Einarmige Klimmzüge': ['bar'], 'Negative Klimmzüge': ['bar'], 'Schulterblatt-Klimmzüge (Scapula Pulls)': ['bar'], 'Muscle-ups': ['bar'],
+  'Front Lever (Tuck)': ['bar'], 'Back Lever (Tuck)': ['bar'], 'Toter Hang (Dead Hang)': ['bar'], 'Toes to Bar': ['bar'],
+  'Shrimp Squats': [], 'Sprung-Kniebeugen (Jump Squats)': [], 'Wandsitzen (Wall Sit)': [], 'Hollow Body Hold': [], 'L-Sit': [],
+  'Scheibenwischer (Windshield Wipers)': [], 'Dragon Flag': ['bench'], 'Burpee-Weitsprünge (Burpee Broad Jumps)': [], 'Laufen': [],
 };
 const HOME_INDEX = new Map(Object.entries(HOME_EX).map(([n, needs]) => [n.toLowerCase(), needs]));
 // Heim-Ausrüstung (data.home): Kurzhantel-/Kettlebell-Gewichte, Bänder (Stufen 1–4), Türanker, Stange, Bank 0/1/2, Dips

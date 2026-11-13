@@ -8,7 +8,7 @@ const LEGAL = {
   name: '',      // Vor- und Nachname
   street: '',    // Straße und Hausnummer (ladungsfähige Anschrift)
   city: '',      // PLZ und Ort
-  email: '',     // Kontakt-E-Mail (auch für Feedback)
+  email: 'lockyourgains@gmail.com',  // Kontakt-E-Mail (auch für Feedback) – eigene App-Adresse (2026-11-12)
 };
 const LEGAL_STAND = 'November 2026';
 const legalReady = () => !!(LEGAL.name && LEGAL.street && LEGAL.city && LEGAL.email);
@@ -26,7 +26,7 @@ const healthListHtml = () => `<ul class="about-list">${HEALTH_POINTS.map(p => `<
 function aboutDatenschutz() {
   const who = legalReady()
     ? `${esc(LEGAL.name)}, ${esc(LEGAL.street)}, ${esc(LEGAL.city)}, E-Mail: <a href="mailto:${esc(LEGAL.email)}">${esc(LEGAL.email)}</a>`
-    : 'siehe Impressum';
+    : LEGAL.email ? `Kontakt: <a href="mailto:${esc(LEGAL.email)}">${esc(LEGAL.email)}</a>` : 'siehe Impressum';
   return `<div class="about-text">
     <p><b>Kurz gesagt:</b> Kein Konto, keine Werbung, kein Tracking, keine Cookies. Deine Trainings-, Körper- und Ernährungsdaten
       bleiben auf deinem Gerät – wir bekommen sie nicht zu sehen.</p>
@@ -57,6 +57,13 @@ function aboutDatenschutz() {
     <p>Tritt in der App ein Fehler auf, merkt sie sich die letzten Fehler auf deinem Gerät: Fehlertext, betroffene Ansicht, App-Version und
       Zeitpunkt – keine Trainings- oder Gesundheitsdaten. Das Protokoll verlässt dein Gerät nur, wenn du es unter „Optionen“ →
       „Fehlerprotokoll“ selbst teilst; dann kommen Gerätetyp und Browser dazu. Dort kannst du es auch jederzeit löschen.</p>
+    <h3>Feedback per E-Mail</h3>
+    <p>Schreibst du uns über „Feedback geben“, öffnet die App nur dein eigenes Mailprogramm mit einer vorausgefüllten Nachricht – gesendet
+      wird erst, wenn du selbst auf Senden tippst. Vorausgefüllt sind App-Version, Modus und Gerätetyp, auf Wunsch das Fehlerprotokoll;
+      Trainings-, Körper- oder Ernährungsdaten sind nicht dabei. Deine E-Mail-Adresse und den Inhalt nutzen wir nur, um deine Nachricht zu
+      bearbeiten und zu beantworten (Art. 6 Abs. 1 lit. f DSGVO), und löschen sie, wenn sie dafür nicht mehr gebraucht werden. Das Postfach
+      liegt bei Google (Gmail); dabei können Daten in die USA übertragen werden. Mehr dazu:
+      <a href="https://policies.google.com/privacy?hl=de" target="_blank" rel="noopener">Datenschutzerklärung von Google</a>.</p>
     <h3>Löschen</h3>
     <p>Unter „Optionen“ → „Alles zurücksetzen“ löschst du alle Daten der App. Auch das Löschen der Website-Daten im Browser oder das
       Entfernen der App vom Home-Bildschirm löscht sie.</p>
@@ -84,7 +91,29 @@ function aboutFeedback() {
   if (!LEGAL.email) return '';
   return `<div class="card"><h2>💬 Feedback</h2>
     <p class="hint">Etwas unklar, ein Fehler oder eine Idee? Schreib uns – jede Rückmeldung hilft, die App besser zu machen.</p>
-    <button class="btn primary" data-action="about-feedback">Feedback schreiben</button></div>`;
+    <button class="btn primary" data-action="about-feedback">Feedback schreiben</button>
+    <p class="hint fb-addr">Öffnet dein Mailprogramm. Klappt das nicht, schreib direkt an <b>${esc(LEGAL.email)}</b>.</p></div>`;
+}
+// Feedback-Mail (v221): Betreff, Version, Modus, Gerät; Fehlerprotokoll nur auf Wunsch. Gesendet wird erst im Mailprogramm.
+async function feedbackMail(beta = false) {
+  if (!LEGAL.email) return;
+  const errs = errLoad().length;
+  let log = false;
+  if (errs) {
+    const msg = `Fehlerprotokoll mitschicken?\n\nDie App hat ${errs === 1 ? '1 Fehler' : `${errs} Fehler`} notiert. Das Protokoll enthält nur Fehlertexte, Ansicht, App-Version und Zeitpunkt – keine Trainings- oder Gesundheitsdaten. Es hilft uns, Fehler zu finden.`;
+    if (window.confirm !== NATIVE_CONFIRM) log = window.confirm(msg);
+    else {
+      const v = await uiDialog({ msg, confirm: true, choices: [{ label: 'Abbrechen', value: null }, { label: 'Ohne', value: 'no' }, { label: 'Mitschicken', value: 'yes', primary: true }] });
+      if (!v) return;
+      log = v === 'yes';
+    }
+  }
+  const rep = log ? errReport() : '';
+  const body = `\n\n\n---\n${APP_NAME}${beta || IS_BETA ? ' Beta' : ''} · Version ${APP_V} · Modus ${APP_MODES[appMode()].label} · ${deviceText()}`
+    + (rep ? `\n\n${rep.length > 1500 ? rep.slice(0, 1500) + '\n…' : rep}` : '');
+  const subject = `${beta || IS_BETA ? 'Beta-Rückmeldung' : 'Feedback'} zu ${APP_NAME}`;
+  location.href = `mailto:${LEGAL.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  toast(`Öffnet dein Mailprogramm – sonst schreib an ${LEGAL.email}`);
 }
 
 function renderAbout() {
@@ -120,13 +149,5 @@ views.about = { title: 'Über die App', tab: 'data', back: () => ['opt', { sec: 
 
 Object.assign(actions, {
   'about': () => go('about'),
-  'about-feedback': () => {
-    const v = document.getElementById('app-version');
-    const body = `
-
----
-${v && v.textContent ? v.textContent : 'App-Version ?'} · Modus: ${APP_MODES[appMode()].label}
-Gerät: ${navigator.userAgent}`;
-    location.href = `mailto:${LEGAL.email}?subject=${encodeURIComponent('Feedback zu LockYourGains')}&body=${encodeURIComponent(body)}`;
-  },
+  'about-feedback': () => feedbackMail(),
 });

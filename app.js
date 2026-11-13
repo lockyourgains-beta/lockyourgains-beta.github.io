@@ -1351,7 +1351,7 @@ const ASSIST = /curls|bizeps|seitheben|frontheben|trizeps|kickbacks|stirndrucken
 
 // Eigengewichtsübungen: Steigerung nur über die Wdh. (kg-Spalte = Körpergewicht), kein automatisches Aufwärmen.
 // ex.bwLoad = true: Gewichtsprogression trotzdem an (z. B. mit Zusatzgewicht) – dann wie eine normale Übung.
-const BODYWEIGHT = /^(klimmzuge(?!.*(zusatzgewicht|assist))|dips \((brust|trizeps)\)|bankdips|liegestutze|hyperextensions \(|sissy squats|nordic|crunches( schragbank)?$|sit-ups|beinheben|knieheben|plank|seitstutz|bauchroller|burpees|glute bridge|pike-liegestutze|diamant-liegestutze|rudern umgekehrt|kniebeugen eigengewicht|einbeinige kniebeugen|bulgarian split squats ohne|ausfallschritte eigengewicht|beincurls am boden|hip thrust am sofa|seitliches beinheben|clamshells|copenhagen|wadenheben an der treppe|dead bug|superman|y-t-w)/;
+const BODYWEIGHT = /^(klimmzuge(?!.*(zusatzgewicht|assist))|dips \((brust|trizeps)\)|bankdips|liegestutze|hyperextensions \(|sissy squats|nordic|crunches( schragbank)?$|sit-ups|beinheben|knieheben|plank|seitstutz|bauchroller|burpees|glute bridge|pike-liegestutze|diamant-liegestutze|rudern umgekehrt|kniebeugen eigengewicht|einbeinige kniebeugen|bulgarian split squats ohne|ausfallschritte eigengewicht|beincurls am boden|hip thrust am sofa|seitliches beinheben|clamshells|copenhagen|wadenheben an der treppe|dead bug|superman|y-t-w|archer-|pseudo-planche|einarmige (liegestutze|klimmzuge)|klatsch-|handstand|ring-|dips an der geraden|planche|negative klimmzuge|schulterblatt-klimmzuge|muscle-ups|front lever|back lever|toter hang|shrimp|sprung-kniebeugen|wandsitzen|hollow|l-sit|toes to bar|dragon flag|scheibenwischer|burpee-weitsprunge)/;  // v222: Calisthenics
 // Bandübungen laufen wie Eigengewicht (ohne kg, Steigerung über die Wdh.), dazu die Bandstufe (siehe bandShift)
 const isBodyweightName = name => BODYWEIGHT.test(norm(String(name || '').trim())) || isBandName(name);
 const isBodyweight = ex => !!ex && !ex.bwLoad && isBodyweightName(ex.name);
@@ -5465,7 +5465,8 @@ function libRow(name) {
 function libResults() {
   const q = norm(libQuery.trim());
   if (!q) return '';
-  const hits = EXERCISE_LIST.filter(([n]) => norm(n).includes(q)).slice(0, 40);
+  const qw = q.split(/[^a-z0-9]+/).filter(Boolean);  // v222: auch englische Begriffe, jedes Wort für sich
+  const hits = EXERCISE_LIST.filter(([n]) => { const t = norm(exSearchText(n)); return t.includes(q) || (qw.length > 1 && qw.every(w => t.includes(w))); }).slice(0, 40);
   return hits.length ? hits.map(([n]) => libRow(n)).join('') : '<p class="hint">Keine Übung gefunden.</p>';
 }
 
@@ -5483,6 +5484,17 @@ function renderLibrary() {
     h += `<details class="award-cat lib-group" ${open ? 'open' : ''}>
       <summary data-action="lib-toggle" data-g="own">★ Eigene Übungen <small class="hint">(${data.customExercises.length})</small></summary>
       ${open ? data.customExercises.map(c => libRow(c.name)).join('') : ''}</details>`;
+  }
+  // Sportarten (v222): Calisthenics und Hyrox mit Unterabschnitten
+  for (const [k, sp] of Object.entries(typeof EX_SPORTS !== 'undefined' ? EX_SPORTS : {})) {
+    const names = sp.parts.flatMap(([, list]) => list).filter(n => EXERCISE_KINDS.has(nameKey(n)));
+    const open = libOpenGroups.has('sp-' + k);
+    h += `<details class="award-cat lib-group lib-sport" ${open ? 'open' : ''}>
+      <summary data-action="lib-toggle" data-g="sp-${k}">${sp.icon} ${sp.label} <small class="hint">(${names.length})</small></summary>
+      ${open ? `<p class="hint lib-sport-hint">${esc(sp.hint)}</p>` + sp.parts.map(([title, list]) => {
+        const ok = list.filter(n => EXERCISE_KINDS.has(nameKey(n)));
+        return ok.length ? `<h3 class="lib-sub">${esc(title)}</h3>${ok.map(n => libRow(n)).join('')}` : '';
+      }).join('') : ''}</details>`;
   }
   for (const g of Object.keys(MUSCLES)) {
     const list = EXERCISE_LIST.filter(e => e[2] === g);
@@ -6148,7 +6160,7 @@ const OPT_SECS = {
     sub: () => `${data.sessions.length} Trainings · ${data.lastExport ? `letzte Sicherung vor ${daysSinceISO(data.lastExport)} Tag${daysSinceISO(data.lastExport) === 1 ? '' : 'en'}` : 'noch nie gesichert'}`,
     warn: () => backupDue() && data.sessions.length >= 2 },
   info: { icon: 'ℹ️', title: 'Hilfe & Info', render: () => infoSecHtml(),
-    sub: () => { const n = errLoad().length; return `Was ist neu · Fehlerprotokoll${n ? ` (${n})` : ''} · Über die App`; } },
+    sub: () => { const n = errLoad().length; return `Feedback · Was ist neu · Fehlerprotokoll${n ? ` (${n})` : ''} · Über die App`; } },
 };
 function renderData() {
   const rows = Object.entries(OPT_SECS).map(([k, s]) => `<button class="btn nav opt-row ${s.warn && s.warn() ? 'warn' : ''}" data-action="opt-open" data-sec="${k}">
@@ -6159,8 +6171,10 @@ views.opt = { title: p => (OPT_SECS[p.sec] || { title: 'Optionen' }).title, tab:
   render: p => OPT_SECS[p.sec] ? OPT_SECS[p.sec].render() : '<p class="hint">Bereich nicht gefunden.</p>',
   after: () => { showAppVersion(); storageInfoFill(); persistFill(); } };
 function infoSecHtml() {
-  return `${whatsNewOptionsCard()}${errCard()}
-    <button class="btn nav about-btn" data-action="about">ℹ️ Über die App<small>Gesundheitshinweis, Datenschutz, Rechte${typeof legalReady === 'function' && legalReady() ? ', Impressum, Feedback' : ''}</small></button>
+  const mail = typeof LEGAL !== 'undefined' && LEGAL.email;
+  return `${mail ? `<button class="btn nav fb-btn" data-action="about-feedback">💬 Feedback geben<small>Fehler, Ideen oder Fragen – per E-Mail an ${esc(LEGAL.email)}</small></button>` : ''}
+    ${whatsNewOptionsCard()}${errCard()}
+    <button class="btn nav about-btn" data-action="about">ℹ️ Über die App<small>Gesundheitshinweis, Datenschutz, Rechte${typeof legalReady === 'function' && legalReady() ? ', Impressum' : ''}</small></button>
     <p class="hint app-version" id="app-version"></p>`;
 }
 function dataSecHtml() {
@@ -6196,6 +6210,17 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 222, date: '2026-11-13', items: [
+    ['🤸 Übungsbibliothek: neuer Bereich Calisthenics – vom Toten Hang bis zu Muscle-up, Handstand, Front Lever und Planche, mit Figuren und ausführlicher Anleitung.'],
+    ['🏁 Neuer Bereich Hyrox: alle Stationen in Wettkampf-Reihenfolge mit Strecken und Gewichten je Klasse, dazu passende Übungen.'],
+    ['Gesäß-Kickbacks Kabelzug „überkreuzt“ ersetzt durch „seitlich“.'],
+  ] },
+  { v: 221, date: '2026-11-12', items: [
+    ['💬 Feedback geben: unter Optionen → Hilfe & Info. Öffnet dein Mailprogramm mit vorausgefüllter Nachricht an lockyourgains@gmail.com – auf Wunsch mit Fehlerprotokoll, nie mit deinen Trainingsdaten.'],
+  ] },
+  { v: 220, date: '2026-11-12', items: [
+    ['Neues App-Symbol: ein Handy mit Hantel und steigender Verlaufskurve – in der Farbe deiner Farbwelt. Das Handy übernimmt Symbol und Farbe, wenn du die App zum Home-Bildschirm hinzufügst (z. B. beim Umzug auf die neue Adresse); danach bleibt es so, auch wenn du die Farbe änderst.'],
+  ] },
   { v: 219, date: '2026-11-12', items: [
     ['✏️ Übung umbenennen: Die App fragt jetzt, ob deine bisherigen Daten (Gewichte, Rekorde, Diagramme) auf den neuen Namen übertragen werden sollen – oder ob sie als neue Übung beginnt. Danach bestätigt sie „Übung X in Y umbenannt“.'],
     ['Hinweise und Rückfragen erscheinen jetzt in einem eigenen Fenster im Stil der App statt als System-Meldung.'],
@@ -7284,9 +7309,10 @@ function suggestions(query, pool) {
     seen.add(k);
     const n = norm(name);
     if (n === q) continue;
-    const words = n.split(/[^a-z0-9]+/);
+    const words = norm(typeof exSearchText === 'function' ? exSearchText(name) : name).split(/[^a-z0-9]+/);
     // Jedes eingetippte Wort muss ein Wortanfang sein (ab 3 Buchstaben auch Wortteil)
-    const match = qWords.every(qw => words.some(w => w.startsWith(qw)) || (qw.length >= 3 && n.includes(qw)));
+    const full = words.join(' ');
+    const match = qWords.every(qw => words.some(w => w.startsWith(qw)) || (qw.length >= 3 && full.includes(qw)));
     if (match) hits.push({ name, own: own.has(k), start: n.startsWith(q) });
   }
   hits.sort((a, b) => (b.own - a.own) || (b.start - a.start) || a.name.localeCompare(b.name, 'de'));
@@ -8715,6 +8741,17 @@ const profileColor = () => {
 const THEME_MODES = { '': 'Automatisch', light: 'Hell', dark: 'Dunkel' };
 
 // Farbe und Hell/Dunkel: data-accent bzw. data-theme am html-Element (ohne data-theme folgt die App dem Handy)
+/* App-Symbol in der Farbwelt (v220, User 2026-11-12): Das Handy übernimmt Symbol und Manifest beim Hinzufügen zum
+   Home-Bildschirm – deshalb zeigen die Verweise immer auf die gerade gewählte Farbwelt (Ordner icons/). Später ändert sich
+   das Symbol auf dem Home-Bildschirm nicht mehr mit (das erlauben iPhone und Android nicht). */
+function iconSync() {
+  const k = PROFILE_COLORS[profileColor()] ? profileColor() : 'blue';
+  const set = (sel, href) => { const el = document.querySelector(sel); if (el && el.getAttribute('href') !== href) el.setAttribute('href', href); };
+  set('link[rel="manifest"]', `icons/manifest${IS_BETA ? '-beta' : ''}-${k}.json`);
+  set('link[rel="apple-touch-icon"]', `icons/apple-touch-icon-${k}.png`);
+  set('link[rel="icon"]', `icons/icon-${k}-192.png`);
+}
+
 function applyTheme() {
   const root = document.documentElement;
   root.dataset.accent = profileColor();
@@ -8723,6 +8760,7 @@ function applyTheme() {
   const size = data.profile && data.profile.size;  // Textgröße (v207): '' | 'l' | 'xl'
   if (size === 'l' || size === 'xl') root.dataset.size = size; else delete root.dataset.size;
   plainSync();
+  iconSync();
   // Statusleiste des Handys in der Hintergrundfarbe der Farbwelt einfärben
   const [light, dark] = plainOn() ? ['#f4f4f5', '#0e0e10'] : PROFILE_COLORS[profileColor()].bg;  // Schlicht: neutral
   document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
@@ -8922,10 +8960,19 @@ function introHtml() {
     </div>`;
 }
 
+// App-Symbol (v219): Handy mit Hantel und steigender Verlaufskurve – weiß, Hantel und Kurve in der Akzentfarbe
+function appLogoSvg() {
+  const db = '<g transform="translate(50 33) scale(1.05)"><rect x="-8" y="-1.7" width="16" height="3.4" rx="1"/><rect x="-9.5" y="-7" width="4" height="14" rx="1.3"/>'
+    + '<rect x="5.5" y="-7" width="4" height="14" rx="1.3"/><rect x="-12.5" y="-4.5" width="2.6" height="9" rx="1"/><rect x="9.9" y="-4.5" width="2.6" height="9" rx="1"/></g>';
+  return `<svg class="app-logo" viewBox="0 0 100 100"><rect class="al-phone" x="28" y="12" width="44" height="76" rx="10"/>
+    <g class="al-ink"><rect x="44" y="17.5" width="12" height="3" rx="1.5" opacity=".35"/>${db}
+    <circle cx="36" cy="74" r="3.5"/><circle cx="45" cy="64" r="3.5"/><circle cx="53" cy="68" r="3.5"/><circle cx="64" cy="52" r="4.5"/></g>
+    <path class="al-line" d="M36 74L45 64L53 68L64 52"/></svg>`;
+}
+
 function welcomeHtml() {
   if (welc.step === 0) return introHtml();
-  const icon = `<div class="welcome-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4.5" y="6.5" width="3.5" height="11" rx="1.2"/>
-        <rect x="16" y="6.5" width="3.5" height="11" rx="1.2"/><path d="M8 12h8M2 9.5v5M22 9.5v5"/></svg></div>`;
+  const icon = `<div class="welcome-icon" aria-hidden="true">${appLogoSvg()}</div>`;
   const two = welcomeNeedsPhase();  // gibt es einen zweiten Schritt?
   const dots = (welc.step === 1 ? two : welcomeNeedsProfile() || welc.fresh)
     ? `<p class="welcome-step">Schritt ${welc.step} von 2</p>` : '';
@@ -9360,6 +9407,7 @@ function channelInit() {
   document.title = APP_NAME + ' Beta';
   const m = document.querySelector('link[rel="manifest"]');
   if (m) m.href = 'manifest-beta.json';
+  try { iconSync(); } catch (e) { /* Daten noch nicht geladen – applyTheme holt es nach */ }
   const a = document.querySelector('meta[name="apple-mobile-web-app-title"]');
   if (a) a.content = 'Gains Beta';
   const hd = document.querySelector('header');
@@ -9386,6 +9434,7 @@ function moveCard() {
       Fotos sichern). Lösch die alte App erst, wenn drüben alles da ist.</p></div>`;
 }
 actions['beta-feedback'] = async () => {
+  if (typeof LEGAL !== 'undefined' && LEGAL.email) { feedbackMail(true); return; }
   const text = `Rückmeldung zur ${APP_NAME} Beta (Version ${APP_V} · ${deviceText()} · Modus ${appMode()}):
 
 `;

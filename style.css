@@ -1211,6 +1211,10 @@ button.pill:active { transform: scale(.95); }
   box-shadow: var(--shadow-accent);
 }
 .welcome-icon svg { width: 46px; height: 46px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.welcome-icon svg.app-logo { width: 68px; height: 68px; stroke: none; }
+.app-logo .al-phone { fill: #fff; }
+.app-logo .al-ink { fill: var(--accent); }
+.app-logo .al-line { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 .welcome-card h2 { margin: 14px 0 10px; font-size: 25px; line-height: 1.2; }
 .welcome-card p { margin: 0 0 16px; font-size: 17.5px; line-height: 1.5; }
 .welcome-tips {
@@ -3102,3 +3106,8 @@ header .beta-badge { flex: none; margin-left: 6px; padding: 3px 8px; border-radi
 [data-look="plain"] .max-mini, [data-look="plain"] .trh-where { letter-spacing: .02em; }
 [data-look="plain"] .lbl .inp { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; text-transform: none; letter-spacing: 0; font-size: 20px; font-weight: 400; }
 [data-look="plain"] .auto-info { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); border-radius: 4px; }
+
+/* ---------- v222: Sportarten in der Übungsbibliothek ---------- */
+.lib-sport-hint { margin: 4px 4px 10px; font-size: 15px; line-height: 1.45; }
+.lib-sub { margin: 14px 4px 6px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+[data-look="plain"] .lib-sub { font-family: var(--f-mono); font-weight: 400; letter-spacing: .07em; }
