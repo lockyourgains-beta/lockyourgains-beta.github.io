@@ -370,7 +370,7 @@ const EXERCISES = EXERCISE_LIST.map(([name]) => name);
 const EX_SPORTS = {
   cali: {
     label: 'Calisthenics', icon: '🤸',
-    hint: 'Training mit dem eigenen Körpergewicht – von den Grundübungen bis zu Skills wie Muscle-up, Handstand und Front Lever. '
+    hint: 'Training mit dem eigenen Körpergewicht, von den Grundübungen bis zu Skills wie Muscle-up, Handstand und Front Lever. '
       + 'Gesteigert wird über die Wiederholungen bzw. die schwerere Variante. Halteübungen: statt Wiederholungen die Sekunden eintragen.',
     parts: [
       ['Drücken', ['Liegestütze', 'Liegestütze erhöht', 'Liegestütze eng', 'Diamant-Liegestütze', 'Liegestütze Füße erhöht', 'Archer-Liegestütze',
@@ -390,7 +390,7 @@ const EX_SPORTS = {
   hyrox: {
     label: 'Hyrox', icon: '🏁',
     hint: 'Wettkampf: 8 × (1 km Laufen + 1 Station). Bei den Stationen stehen Strecke und Gewichte je Klasse (Open bzw. Pro, Frauen und Männer). '
-      + 'Die Regeln können sich je Saison ändern – maßgeblich ist das offizielle Regelwerk. Eintragen: Gewicht wie angegeben, '
+      + 'Die Regeln können sich je Saison ändern. Maßgeblich ist das offizielle Regelwerk. Eintragen: Gewicht wie angegeben, '
       + 'als Wdh. z. B. Bahnen, Schritte, Würfe oder Minuten.',
     parts: [
       ['Die Stationen (Reihenfolge im Wettkampf)', ['Laufen', 'SkiErg', 'Schlitten schieben', 'Schlitten ziehen (Sled Pull)',
@@ -524,8 +524,8 @@ const TEMPLATE_LOWER = [
   'Abduktoren Maschine',
 ];
 const TEMPLATE_DAYS = [
-  { name: 'Oberkörper – niedrige Wdh.', type: 'upper-heavy', exercises: TEMPLATE_UPPER },
-  { name: 'Unterkörper – niedrige Wdh.', type: 'lower-heavy', exercises: TEMPLATE_LOWER },
-  { name: 'Oberkörper – hohe Wdh.', type: 'upper-light', exercises: TEMPLATE_UPPER },
-  { name: 'Unterkörper – hohe Wdh.', type: 'lower-light', exercises: TEMPLATE_LOWER },
+  { name: 'Oberkörper (niedrige Wdh.)', type: 'upper-heavy', exercises: TEMPLATE_UPPER },
+  { name: 'Unterkörper (niedrige Wdh.)', type: 'lower-heavy', exercises: TEMPLATE_LOWER },
+  { name: 'Oberkörper (hohe Wdh.)', type: 'upper-light', exercises: TEMPLATE_UPPER },
+  { name: 'Unterkörper (hohe Wdh.)', type: 'lower-light', exercises: TEMPLATE_LOWER },
 ];

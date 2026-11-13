@@ -603,7 +603,7 @@ function foodReopen(date) {
   data.foodLog = data.foodLog.filter(e => !(e.date === date && e.key === FOOD_FILL));
   return true;
 }
-const foodReopenToast = () => toast('Tag wieder geöffnet – schließ ihn am Ende neu ab');
+const foodReopenToast = () => toast('Tag wieder geöffnet. Schließ ihn am Ende neu ab');
 
 // Rest bis zum Tagesziel (null ohne Ziel oder wenn nichts fehlt)
 function foodRest(date) {
@@ -652,7 +652,7 @@ function foodOpenCard() {
   const miss = foodUsualMissing(d);
   return `<div class="card food-opencard">
       <p><b>📋 ${label} ist noch nicht abgeschlossen</b></p>
-      <p class="hint nut-small">Eingetragen: ${nutKcal(t.kcal)} kcal.${miss.length ? ` ${miss.join(' und ')} ${miss.length > 1 ? 'sind' : 'ist'} leer – sonst trägst du ${miss.length > 1 ? 'sie' : 'es'} fast immer ein.` : ''}
+      <p class="hint nut-small">Eingetragen: ${nutKcal(t.kcal)} kcal.${miss.length ? ` ${miss.join(' und ')} ${miss.length > 1 ? 'sind' : 'ist'} leer, sonst trägst du ${miss.length > 1 ? 'sie' : 'es'} fast immer ein.` : ''}
         Erst abgeschlossene Tage zählen für den gemessenen Bedarf.${open.length > 1 ? ` Noch ${open.length - 1} weitere${open.length > 2 ? '' : 'r'} Tag${open.length > 2 ? 'e' : ''} offen.` : ''}</p>
       <button class="btn primary" data-action="food-close" data-date="${d}" data-fill="0">✔ Alles eingetragen</button>
       ${rest ? `<button class="btn" data-action="food-close" data-date="${d}" data-fill="1">➕ Rest mit Tagesziel auffüllen (+${nutKcal(rest.kcal)} kcal)</button>` : ''}
@@ -678,7 +678,7 @@ function foodCloseHtml(date, list) {
   const c = foodGoal(date);
   return `<div class="card food-close">
       <p><b>Hast du ${date === todayISO() ? 'heute' : 'an diesem Tag'} alles eingetragen?</b></p>
-      ${miss.length ? `<p class="food-miss">⚠️ ${miss.join(' und ')} ${miss.length > 1 ? 'sind' : 'ist'} leer – sonst trägst du ${miss.length > 1 ? 'sie' : 'es'} fast immer ein.</p>` : ''}
+      ${miss.length ? `<p class="food-miss">⚠️ ${miss.join(' und ')} ${miss.length > 1 ? 'sind' : 'ist'} leer, sonst trägst du ${miss.length > 1 ? 'sie' : 'es'} fast immer ein.</p>` : ''}
       <p class="hint nut-small">Eingetragen: ${nutKcal(foodTotals(real).kcal)} kcal${c ? ` · Tagesziel ${nutKcal(c.kcal)} kcal` : ''}.</p>
       ${real.length ? '<button class="btn primary" data-action="food-close" data-fill="0">✔ Ja, alles eingetragen</button>' : ''}
       ${rest ? `<button class="btn" data-action="food-close" data-fill="1">➕ Rest mit Tagesziel auffüllen (+${nutKcal(rest.kcal)} kcal)</button>
@@ -726,11 +726,11 @@ function foodFsHtml(t, c) {
     <details class="prog-help food-fs-help"><summary>ⓘ Grobe Richtwerte</summary>
       <p><b>Ballaststoffe:</b> Empfohlen sind mindestens 30 g am Tag; wer viel isst, orientiert sich grob an 10 g je 1.000 kcal${kcal > 3000
         ? ` (bei deinen rund ${fmtNum(kcal)} kcal also etwa ${Math.round(kcal / 100)} g)` : ''}. Viele kommen nur auf
-        etwa 20 g. Gute Quellen: Vollkorn, Haferflocken, Hülsenfrüchte, Gemüse, Obst, Nüsse und Samen. Mehr ist meist gut –
-        langsam steigern und genug trinken, sonst kann es anfangs zwicken.</p>
+        etwa 20 g. Gute Quellen: Vollkorn, Haferflocken, Hülsenfrüchte, Gemüse, Obst, Nüsse und Samen. Mehr ist meist gut.
+        Langsam steigern und genug trinken, sonst kann es anfangs zwicken.</p>
       <p><b>Zucker:</b> Gezählt ist der gesamte Zucker, auch der aus Obst, Gemüse und Milch. Die Empfehlung, höchstens etwa 10 %
         der Kalorien als Zucker zu essen${kcal ? ` (bei dir rund ${Math.round(kcal / 40)} g)` : ' (bei 2.000 kcal rund 50 g)'},
-        gilt nur für <i>zugesetzten</i> Zucker – dazu zählen auch Honig, Sirup und Fruchtsaft. Den kann die App nicht getrennt
+        gilt nur für <i>zugesetzten</i> Zucker. Dazu zählen auch Honig, Sirup und Fruchtsaft. Den kann die App nicht getrennt
         ausweisen. Faustregel: Kommt der Zucker vor allem aus Obst und Milchprodukten, ist das unbedenklich; aus Süßigkeiten,
         Limo und Saft lohnt es sich, ihn im Blick zu behalten.</p>
       <p class="hint">Das sind keine Ziele, nur Anhaltspunkte. Die Werte sind Durchschnittswerte.</p>
@@ -781,11 +781,11 @@ function renderFood(p) {
     const [kc, pr, ca, fa] = fill.per;
     h += `<div class="card food-meal food-fill">
         <div class="food-meal-head"><b>➕ Aufgefüllt bis zum Tagesziel</b><span class="hint">${nutKcal(kc)} kcal</span></div>
-        <p class="hint nut-small">Nicht erfasst – geschätzt: Eiweiß ${pr} g · Kohlenhydrate ${ca} g · Fett ${fa} g</p></div>`;
+        <p class="hint nut-small">Nicht erfasst, geschätzt: Eiweiß ${pr} g · Kohlenhydrate ${ca} g · Fett ${fa} g</p></div>`;
   }
   h += foodCloseHtml(date, list);
   return h + `<p class="hint explain nut-small">Die Tagessumme zählt automatisch für „Heute gegessen“, die letzten 14 Tage und den gemessenen
-    Bedarf. Werte der Grundliste sind Durchschnittswerte – bei Markenprodukten ist der Barcode genauer.</p>`;
+    Bedarf. Werte der Grundliste sind Durchschnittswerte. Bei Markenprodukten ist der Barcode genauer.</p>`;
 }
 
 /* ----- Hinzufügen: Suche ----- */
@@ -889,7 +889,7 @@ function foodResults() {
     h += `<p class="hint">Open Food Facts ist gerade nicht erreichbar. Prüfe die Internetverbindung oder versuch es gleich noch einmal.</p>
       <button class="btn outline" data-action="food-online">Nochmal versuchen</button>`;
   } else {
-    h += on.hits.length ? on.hits.map(foodHit).join('') : '<p class="hint">Online nichts gefunden – leg das Lebensmittel einfach selbst an.</p>';
+    h += on.hits.length ? on.hits.map(foodHit).join('') : '<p class="hint">Online nichts gefunden. Leg das Lebensmittel einfach selbst an.</p>';
   }
   return h;
 }
@@ -1080,7 +1080,7 @@ async function foodScanStart() {
     foodScanClose();
     if (!wasOpen) return;
     alert(/NotAllowed|Permission/i.test(e && e.name + e.message)
-      ? 'Die App darf die Kamera nicht benutzen. Du kannst den Zugriff in den Einstellungen erlauben – oder die Barcode-Nummer eintippen.'
+      ? 'Die App darf die Kamera nicht benutzen. Du kannst den Zugriff in den Einstellungen erlauben oder die Barcode-Nummer eintippen.'
       : 'Die Kamera konnte nicht gestartet werden. Du kannst die Barcode-Nummer stattdessen eintippen.');
     foodCodePrompt();
   }
@@ -1169,7 +1169,7 @@ function renderFoodOwn() {
   return `<div class="card food-form">
       <label class="lbl">Name<input class="inp" type="text" data-field="food-form" data-k="name" autocomplete="off" value="${esc(f.name)}" placeholder="z. B. Proteinbrot"></label>
       <label class="lbl">Marke <small class="hint">(freiwillig)</small><input class="inp" type="text" data-field="food-form" data-k="brand" autocomplete="off" value="${esc(f.brand)}"></label>
-      ${f.code ? `<p class="hint nut-small">Barcode ${esc(f.code)} – beim nächsten Scan erkennt die App das Produkt.</p>` : ''}
+      ${f.code ? `<p class="hint nut-small">Barcode ${esc(f.code)}: Beim nächsten Scan erkennt die App das Produkt.</p>` : ''}
       <p class="food-sec">Nährwerte pro 100 g <small>(stehen auf der Verpackung)</small></p>
       <label class="row"><span>Kalorien (kcal)</span>${inp('kcal', 'kcal')}</label>
       <label class="row"><span>Eiweiß (g)</span>${inp('p', 'g')}</label>
@@ -1268,7 +1268,7 @@ Object.assign(actions, {
     foodCloseDay(date, fill);
     foodCloseAsk = null;
     saveData();
-    toast(fill ? 'Tag abgeschlossen – Rest aufgefüllt ✔' : 'Tag abgeschlossen ✔');
+    toast(fill ? 'Tag abgeschlossen, Rest aufgefüllt ✔' : 'Tag abgeschlossen ✔');
     render();
   },
   'food-reopen': () => {
@@ -1290,7 +1290,7 @@ Object.assign(actions, {
     if (!name || !name.trim()) return;
     data.foodMeals.push({ id: uid(), name: name.trim(), items });
     saveData();
-    toast(`„${name.trim()}“ gespeichert – beim Hinzufügen ganz oben`);
+    toast(`„${name.trim()}“ gespeichert, beim Hinzufügen ganz oben`);
   },
   'food-meal-add': el => {
     const m = data.foodMeals.find(x => x.id === el.dataset.id);
@@ -1426,7 +1426,7 @@ function foodTopCard() {
   return `<div class="card food-top">
       <button class="food-top-main" data-action="food-open"><span class="food-top-ic" aria-hidden="true">🍎</span>
         <span class="food-top-txt"><b>Ernährungstagebuch</b><small>${v ? `Heute ${nutKcal(v.kcal)}${c ? ` von ${nutKcal(c.kcal)}` : ''} kcal · Eiweiß ${v.p != null ? Math.round(v.p) : '–'} g`
-          : 'Heute noch nichts eingetragen – antippen zum Eintragen'}</small></span><span class="food-top-chev" aria-hidden="true">›</span></button>
+          : 'Heute noch nichts eingetragen. Antippen zum Eintragen'}</small></span><span class="food-top-chev" aria-hidden="true">›</span></button>
       <div class="row food-top-btns"><button class="btn" data-action="food-cal">📅 Kalender</button>
         <button class="btn" data-action="food-stats">📊 Woche & Monat</button></div>
     </div>`;

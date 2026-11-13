@@ -96,10 +96,10 @@ function renderCardio() {
         <h2>Ins Tagesziel einrechnen?</h2>
         <div class="seg two"><button class="${on ? 'on' : ''}" data-action="cardio-add" data-v="1">Ja</button>
           <button class="${on ? '' : 'on'}" data-action="cardio-add" data-v="0">Nein</button></div>
-        <p class="hint nut-small"><b>Ja:</b> An Tagen mit Cardio erhöht sich dein Tagesziel um den Verbrauch – vor allem als Kohlenhydrate,
+        <p class="hint nut-small"><b>Ja:</b> An Tagen mit Cardio erhöht sich dein Tagesziel um den Verbrauch, vor allem als Kohlenhydrate,
           die du zum Auftanken brauchst. <b>Nein</b> ist sinnvoll, wenn du dein Cardio schon bei der Aktivität in deinen Angaben
           berücksichtigt hast (sonst zählt es doppelt) oder wenn du in der Diät bewusst etwas mehr Defizit möchtest.
-          Fitness-Uhren schätzen oft eher zu hoch – lieber vorsichtig eintragen.</p>
+          Fitness-Uhren schätzen oft eher zu hoch. Lieber vorsichtig eintragen.</p>
       </div>`;
   }
   // Einträge
@@ -109,7 +109,7 @@ function renderCardio() {
   } else {
     h += '<p class="hint">Noch keine Cardio-Einheiten eingetragen.</p>';
   }
-  return h + `<p class="hint nut-small explain">Die Kalorien sind Schätzwerte aus Aktivität, Anstrengung, Dauer und Körpergewicht (MET-Werte) – gezählt wird nur,
+  return h + `<p class="hint nut-small explain">Die Kalorien sind Schätzwerte aus Aktivität, Anstrengung, Dauer und Körpergewicht (MET-Werte). Gezählt wird nur,
     was du zusätzlich zum Ruhezustand verbrauchst. Cardio hat keinen Einfluss auf deinen Trainingsplan.</p>`;
 }
 
@@ -141,7 +141,7 @@ function cardioBars() {
     return { from, v: cardioSum(data.cardio.filter(c => c.date >= from && c.date <= to), k) };
   });
   if (k === 'km' && !data.cardio.some(c => c.km != null)) {
-    return '<p class="hint">Noch keine Strecken eingetragen – beim Eintragen gibt es dafür das Feld „Strecke (km)“.</p>';
+    return '<p class="hint">Noch keine Strecken eingetragen. Beim Eintragen gibt es dafür das Feld „Strecke (km)“.</p>';
   }
   const max = Math.max(...weeks.map(w => w.v));
   if (!max) return '<p class="hint">In den letzten 12 Wochen keine Einheiten.</p>';
@@ -227,9 +227,9 @@ Object.assign(actions, {
     const min = parseNum(f.min);
     if (!min || min <= 0 || min > 600) { alert('Bitte eine Dauer zwischen 1 und 600 Minuten eintragen.'); return; }
     const ownK = String(f.kcal).trim() === '' ? null : parseNum(f.kcal);
-    if (ownK != null && (ownK < 0 || ownK > 5000)) { alert('Bitte einen Kalorienwert zwischen 0 und 5.000 eintragen – oder das Feld leer lassen.'); return; }
+    if (ownK != null && (ownK < 0 || ownK > 5000)) { alert('Bitte einen Kalorienwert zwischen 0 und 5.000 eintragen oder das Feld leer lassen.'); return; }
     const km = String(f.km || '').trim() === '' ? null : parseNum(f.km);
-    if (km != null && (!(km > 0) || km > 500)) { alert('Bitte eine Strecke zwischen 0,1 und 500 km eintragen – oder das Feld leer lassen.'); return; }
+    if (km != null && (!(km > 0) || km > 500)) { alert('Bitte eine Strecke zwischen 0,1 und 500 km eintragen oder das Feld leer lassen.'); return; }
     const entry = { id: f.id || uid(), date: f.date || todayISO(), type: f.type, level: f.level, min: Math.round(min),
       kcal: ownK != null ? Math.round(ownK) : cardioEstimate(f.type, f.level, min), own: ownK != null };
     if (km != null) entry.km = round1(km);
@@ -237,7 +237,7 @@ Object.assign(actions, {
     if (i >= 0) data.cardio[i] = entry; else data.cardio.push(entry);
     saveData();
     const added = data.nutrition && data.nutrition.cardioAdd && entry.date === todayISO();
-    toast(`${CARDIO_TYPES[entry.type].icon} Eingetragen: ${entry.min} min${entry.km ? ` · ${fmtNum(entry.km)} km` : ''} · ca. ${deNum(entry.kcal)} kcal${added ? ' – Tagesziel erhöht' : ''}`);
+    toast(`${CARDIO_TYPES[entry.type].icon} Eingetragen: ${entry.min} min${entry.km ? ` · ${fmtNum(entry.km)} km` : ''} · ca. ${deNum(entry.kcal)} kcal${added ? ', Tagesziel erhöht' : ''}`);
     cardioForm = cardioFormFresh();
     cardioForm.type = entry.type;
     render();

@@ -28,13 +28,13 @@ const MICRO_OK = 0.8;  // unter diesem Anteil bekannter Kalorien gilt ein Wert a
 // Was der Nährstoff macht und wo er drinsteckt (kurz, allgemein gehalten)
 const MICRO_INFO = {
   vitA: 'Für Sehen, Haut und Abwehr. In Leber, Milchprodukten, Eiern und als Beta-Carotin in Karotten, Süßkartoffeln, Spinat und Grünkohl.',
-  vitD: 'Für Knochen, Muskeln und Abwehr. Der Körper bildet es vor allem selbst mit Sonnenlicht auf der Haut – über das Essen kommen meist nur wenige µg. Der Richtwert gilt nur, wenn die eigene Bildung fehlt (z. B. im Winter). Gute Quellen: fetter Fisch, Eier, Pilze.',
+  vitD: 'Für Knochen, Muskeln und Abwehr. Der Körper bildet es vor allem selbst mit Sonnenlicht auf der Haut. Über das Essen kommen meist nur wenige µg. Der Richtwert gilt nur, wenn die eigene Bildung fehlt (z. B. im Winter). Gute Quellen: fetter Fisch, Eier, Pilze.',
   vitE: 'Schützt Zellen vor Schäden. In Pflanzenölen (z. B. Weizenkeim-, Sonnenblumen-, Rapsöl), Nüssen und Samen.',
   vitK: 'Für Blutgerinnung und Knochen. In grünem Blattgemüse, Kohl, Kräutern und fermentierten Lebensmitteln.',
   b1: 'Für den Energiestoffwechsel und die Nerven. In Vollkorn, Hülsenfrüchten, Schweinefleisch und Nüssen.',
   b2: 'Für den Energiestoffwechsel. In Milchprodukten, Fleisch, Fisch, Eiern und Vollkorn.',
   nia: 'Für den Energiestoffwechsel. In Fleisch, Fisch, Erdnüssen und Vollkorn; der Körper bildet es auch aus Eiweiß.',
-  b6: 'Für den Eiweißstoffwechsel – wer viel Eiweiß isst, braucht etwas mehr. In Fleisch, Fisch, Kartoffeln, Bananen, Vollkorn und Hülsenfrüchten.',
+  b6: 'Für den Eiweißstoffwechsel. Wer viel Eiweiß isst, braucht etwas mehr. In Fleisch, Fisch, Kartoffeln, Bananen, Vollkorn und Hülsenfrüchten.',
   fol: 'Für Zellteilung und Blutbildung. In grünem Gemüse, Hülsenfrüchten, Vollkorn und Eiern. Gezählt in Folat-Äquivalenten: Folsäure aus Präparaten zählt laut DGE doppelt (400 µg Folsäure = 800 µg Folat-Äquivalente).',
   pant: 'Für den Energiestoffwechsel. Steckt in fast allen Lebensmitteln, z. B. Fleisch, Vollkorn, Eiern und Hülsenfrüchten.',
   biot: 'Für den Stoffwechsel, Haut und Haare. In Eiern, Nüssen, Haferflocken und Hülsenfrüchten.',
@@ -43,16 +43,16 @@ const MICRO_INFO = {
   ca: 'Für Knochen, Zähne und Muskeln. In Milchprodukten, Käse, calciumreichem Mineralwasser, grünem Gemüse und angereicherten Pflanzendrinks.',
   mg: 'Für Muskeln, Nerven und Energiestoffwechsel. In Vollkorn, Nüssen, Samen, Hülsenfrüchten und manchen Mineralwässern.',
   k: 'Für Muskeln, Nerven und den Blutdruck. In Obst, Gemüse, Kartoffeln, Hülsenfrüchten und Nüssen.',
-  na: 'Für den Wasserhaushalt. Kommt vor allem über Salz – meist mehr als nötig; Brot, Käse, Wurst und Fertiggerichte liefern viel.',
-  p: 'Für Knochen und Energiestoffwechsel. In Milchprodukten, Fleisch, Fisch, Vollkorn und Hülsenfrüchten – meist reichlich.',
+  na: 'Für den Wasserhaushalt. Kommt vor allem über Salz, meist mehr als nötig; Brot, Käse, Wurst und Fertiggerichte liefern viel.',
+  p: 'Für Knochen und Energiestoffwechsel. In Milchprodukten, Fleisch, Fisch, Vollkorn und Hülsenfrüchten, meist reichlich.',
   fe: 'Für den Sauerstofftransport im Blut. In Fleisch (gut verwertbar), Hülsenfrüchten, Vollkorn und Haferflocken. Vitamin C zur Mahlzeit verbessert die Aufnahme aus Pflanzen, Kaffee und Tee kurz davor oder danach verschlechtern sie.',
   zn: 'Für Abwehr, Wundheilung und Stoffwechsel. In Fleisch, Käse, Haferflocken, Vollkorn und Nüssen. Der Richtwert gilt für eine mittlere Phytatzufuhr (Vollkorn, Hülsenfrüchte).',
-  jod: 'Für die Schilddrüse. In Seefisch, Milchprodukten und Jodsalz – die Werte der Datenbank enthalten Jodsalz nur, wo es üblich ist. Das ist der Nährstoff mit den meisten Lücken.',
+  jod: 'Für die Schilddrüse. In Seefisch, Milchprodukten und Jodsalz. Die Werte der Datenbank enthalten Jodsalz nur, wo es üblich ist. Das ist der Nährstoff mit den meisten Lücken.',
   cu: 'Für Blutbildung und Bindegewebe. In Nüssen, Vollkorn, Hülsenfrüchten und Kakao.',
   mn: 'Für Knochen und Stoffwechsel. In Vollkorn, Haferflocken, Nüssen und Tee.',
   ala: 'Pflanzliche Omega-3-Fettsäure. In Leinöl, Rapsöl, Walnüssen, Lein- und Chiasamen. Richtwert: 0,5 % der Kalorien.',
   epa: 'Omega-3-Fettsäuren aus Fisch, vor allem aus fettem Seefisch wie Lachs, Hering und Makrele. Für Erwachsene nennt die DGE keinen eigenen Richtwert; in der Schwangerschaft und Stillzeit gelten im Schnitt mindestens 200 mg DHA am Tag.',
-  la: 'Omega-6-Fettsäure. In Sonnenblumen-, Distel- und Maiskeimöl, Nüssen und Samen – meist reichlich vorhanden. Richtwert: 2,5 % der Kalorien.',
+  la: 'Omega-6-Fettsäure. In Sonnenblumen-, Distel- und Maiskeimöl, Nüssen und Samen, meist reichlich vorhanden. Richtwert: 2,5 % der Kalorien.',
   sat: 'Vor allem in Butter, Sahne, Käse, Wurst, fettem Fleisch, Kokos- und Palmfett. Die DGE nennt keinen Zahlenwert, rät aber, weniger davon zu essen und eher Pflanzenöle zu nehmen.',
   chol: 'In tierischen Lebensmitteln wie Eiern, Innereien, Butter und fettem Fleisch. Der Körper bildet Cholesterin auch selbst; die DGE nennt für die Zufuhr keinen Richtwert.',
   salt: 'Kochsalz (Natriumchlorid). Brot, Käse, Wurst, Fertiggerichte und Soßen liefern das meiste. Orientierung der DGE: höchstens etwa 6 g am Tag.',
@@ -60,9 +60,9 @@ const MICRO_INFO = {
 
 // Hinweise speziell für Frauen (nur angezeigt, wenn im Profil „Frau“ gewählt ist)
 const MICRO_WOMEN = {
-  fe: 'Frauen mit Periode verlieren regelmäßig Eisen und haben deshalb einen höheren Richtwert (16 statt 11 mg). Ohne Periode – z. B. bei durchgehender Pilleneinnahme oder nach den Wechseljahren – gelten 11 bzw. 14 mg. Bei starken Blutungen oder ständiger Müdigkeit lohnt es sich, den Eisenwert ärztlich prüfen zu lassen.',
-  fol: 'Wichtig bei Kinderwunsch: Die DGE empfiehlt Frauen, die schwanger werden wollen oder könnten, zusätzlich zum Essen täglich 400 µg Folsäure als Präparat – mindestens 4 Wochen vor einer Schwangerschaft bis zum Ende des ersten Drittels. Das bitte mit Ärztin oder Arzt absprechen.',
-  ca: 'Calcium und Vitamin D sind für die Knochen besonders wichtig – vor allem bei längeren Diäten, sehr wenig Kalorien und nach den Wechseljahren, wenn die Knochendichte schneller abnimmt. Krafttraining hilft den Knochen zusätzlich.',
+  fe: 'Frauen mit Periode verlieren regelmäßig Eisen und haben deshalb einen höheren Richtwert (16 statt 11 mg). Ohne Periode (z. B. bei durchgehender Pilleneinnahme oder nach den Wechseljahren) gelten 11 bzw. 14 mg. Bei starken Blutungen oder ständiger Müdigkeit lohnt es sich, den Eisenwert ärztlich prüfen zu lassen.',
+  fol: 'Wichtig bei Kinderwunsch: Die DGE empfiehlt Frauen, die schwanger werden wollen oder könnten, zusätzlich zum Essen täglich 400 µg Folsäure als Präparat, mindestens 4 Wochen vor einer Schwangerschaft bis zum Ende des ersten Drittels. Das bitte mit Ärztin oder Arzt absprechen.',
+  ca: 'Calcium und Vitamin D sind für die Knochen besonders wichtig, vor allem bei längeren Diäten, sehr wenig Kalorien und nach den Wechseljahren, wenn die Knochendichte schneller abnimmt. Krafttraining hilft den Knochen zusätzlich.',
   vitD: 'Zusammen mit Calcium wichtig für die Knochen, gerade nach den Wechseljahren.',
   jod: 'In Schwangerschaft und Stillzeit steigt der Bedarf deutlich; ob eine Ergänzung sinnvoll ist, klärt die Frauenarztpraxis.',
   b12: 'Bei veganer Ernährung, in Schwangerschaft und Stillzeit besonders wichtig.',
@@ -183,7 +183,7 @@ function microRow(k, s, c) {
         <small class="mic-ref">${microRefText(r, u)}${pct != null && r.max == null ? ` · ${Math.round(pct)} %` : ''}</small></summary>
       <div class="mic-info"><p>${MICRO_INFO[k]}</p>
         ${top.length ? `<p class="hint nut-small"><b>Bei dir vor allem aus:</b> ${top.map(([nm, x]) => `${esc(nm)} (${microFmt(x / n)} ${u})`).join(' · ')}</p>` : ''}
-        ${gap ? `<p class="hint nut-small">Für ${Math.round((1 - s.kc[k] / s.kcal) * 100)} % deiner Kalorien kennt die App diesen Wert nicht (z. B. gescannte Produkte) – die Zahl ist eher zu niedrig.</p>` : ''}
+        ${gap ? `<p class="hint nut-small">Für ${Math.round((1 - s.kc[k] / s.kcal) * 100)} % deiner Kalorien kennt die App diesen Wert nicht (z. B. gescannte Produkte), die Zahl ist eher zu niedrig.</p>` : ''}
         ${women ? `<p class="mic-women">♀ ${women}</p>` : ''}</div>
     </details>`;
 }
@@ -209,18 +209,18 @@ function renderMicro(p) {
   h += `<div class="card mic-cov"><p>${microRange === 'week' ? `Durchschnitt aus <b>${s.days} Tag${s.days === 1 ? '' : 'en'}</b> mit Einträgen` : 'Summe dieses Tages'}
       · Mikros bekannt für <b>${Math.round(cover * 100)} %</b> deiner Kalorien${s.supp ? ` · ${s.supp} × Nahrungsergänzung eingerechnet` : ''}.</p>
     ${cover < MICRO_OK ? '<p class="hint nut-small">Ein Teil deiner Einträge hat keine Angaben dazu (z. B. gescannte Markenprodukte oder „Aufgefüllt“). Die Werte sind deshalb eher zu niedrig.</p>' : ''}
-    ${microRange === 'day' ? '<p class="hint nut-small">Mikros schwanken von Tag zu Tag stark – aussagekräftiger ist der Durchschnitt über 7 Tage.</p>' : ''}</div>`;
+    ${microRange === 'day' ? '<p class="hint nut-small">Mikros schwanken von Tag zu Tag stark. Aussagekräftiger ist der Durchschnitt über 7 Tage.</p>' : ''}</div>`;
   for (const [g, title] of Object.entries(MICRO_GROUPS)) {
     h += `<h2 class="mic-h">${title}</h2><div class="card mic-list">${MICROS.filter(m => m[3] === g).map(([k]) => microRow(k, s, c)).join('')}</div>`;
   }
   return h + `<details class="card nut-help"><summary>So sind die Werte zu verstehen</summary>
       <p>Die Richtwerte sind die Referenzwerte der Deutschen Gesellschaft für Ernährung (DGE), passend zu ${c.f ? 'Frauen' : 'Männern'}
-        ${['von 19 bis 24', 'von 25 bis 50', 'von 51 bis 64', 'ab 65'][c.ai]} Jahren${(data.nutrition || {}).age != null ? '' : ' (Alter nicht eingetragen – angenommen 25 bis 50)'}.
-        Sie sind so bemessen, dass fast alle gesunden Menschen damit gut versorgt sind – wer darunter liegt, hat deshalb nicht automatisch zu wenig.</p>
+        ${['von 19 bis 24', 'von 25 bis 50', 'von 51 bis 64', 'ab 65'][c.ai]} Jahren${(data.nutrition || {}).age != null ? '' : ' (Alter nicht eingetragen, angenommen 25 bis 50)'}.
+        Sie sind so bemessen, dass fast alle gesunden Menschen damit gut versorgt sind. Wer darunter liegt, hat deshalb nicht automatisch zu wenig.</p>
       <p>Die Lebensmittelwerte sind Durchschnittswerte (Bundeslebensmittelschlüssel des Max Rubner-Instituts). Wie viel der Körper davon
-        wirklich aufnimmt, hängt von vielem ab. <b>Ob dir etwas fehlt, kann nur ein Bluttest zeigen</b> – die App hält nur fest, was du gegessen hast.</p>
-      <p>In Schwangerschaft und Stillzeit gelten andere Werte – bitte mit Ärztin, Arzt oder Hebamme besprechen.</p>
-      <p class="hint nut-small">Nahrungsergänzung trägst du beim Hinzufügen über „💊 Ergänzung“ ein – sie zählt dann hier mit.</p></details>`;
+        wirklich aufnimmt, hängt von vielem ab. <b>Ob dir etwas fehlt, kann nur ein Bluttest zeigen</b>. Die App hält nur fest, was du gegessen hast.</p>
+      <p>In Schwangerschaft und Stillzeit gelten andere Werte. Bitte mit Ärztin, Arzt oder Hebamme besprechen.</p>
+      <p class="hint nut-small">Nahrungsergänzung trägst du beim Hinzufügen über „💊 Ergänzung“ ein. Sie zählt dann hier mit.</p></details>`;
 }
 
 views.micro = { title: 'Vitamine & Mineralstoffe', tab: 'nutrition', back: p => ['food', { date: p.date }], render: renderMicro };
@@ -230,7 +230,7 @@ actions['micro-range'] = el => { microRange = el.dataset.r; render(); };
 // Knopf im Tagebuch (unter Ballaststoffe/Zucker)
 function microBtnHtml() {
   if (!feat('nut-micro')) return '';
-  return '<button class="btn nav mic-btn" data-action="micro-open">🔬 Vitamine & Mineralstoffe<small>Mikronährstoffe ansehen – mit Richtwerten der DGE</small></button>';
+  return '<button class="btn nav mic-btn" data-action="micro-open">🔬 Vitamine & Mineralstoffe<small>Mikronährstoffe ansehen, mit Richtwerten der DGE</small></button>';
 }
 
 /* ----- Open Food Facts: Mikros aus den Nährwerten (Werte dort in Gramm) ----- */
@@ -271,7 +271,7 @@ const micInput = (form, field, k) => {
 function microFormHtml(form) {
   const filled = MICROS.some(([k]) => form['m_' + k]);
   return `<details class="mic-form"${filled ? ' open' : ''}><summary>Vitamine und Mineralstoffe pro 100 g <small class="hint">freiwillig</small></summary>
-    <p class="hint nut-small">Nur eintragen, was auf der Packung steht – leere Felder gelten als unbekannt.</p>
+    <p class="hint nut-small">Nur eintragen, was auf der Packung steht. Leere Felder gelten als unbekannt.</p>
     ${MICROS.map(([k]) => micInput(form, 'food-form', k)).join('')}</details>`;
 }
 // Formularwerte -> food.mic (factor: 1 bei je 100 g, 100 bei je Stück; Folsäure zählt laut DGE doppelt als Folat-Äquivalent)
@@ -309,17 +309,17 @@ function renderSuppOwn() {
   return `<div class="card food-form">
       <label class="lbl">Name<input class="inp" type="text" data-field="supp-form" data-k="name" autocomplete="off" value="${esc(f.name)}" placeholder="z. B. Vitamin D3 1000 I.E."></label>
       <label class="lbl">Marke <small class="hint">(freiwillig)</small><input class="inp" type="text" data-field="supp-form" data-k="brand" autocomplete="off" value="${esc(f.brand)}"></label>
-      ${f.code ? `<p class="hint nut-small">Barcode ${esc(f.code)} – beim nächsten Scan erkennt die App das Präparat.</p>`
+      ${f.code ? `<p class="hint nut-small">Barcode ${esc(f.code)}: Beim nächsten Scan erkennt die App das Präparat.</p>`
         : '<button class="btn" data-action="supp-scan">📷 Barcode scannen</button>'}
       <p class="food-sec">Gehalt je Stück <small>(Tablette, Kapsel, Messlöffel …)</small></p>
-      <p class="hint nut-small">Steht auf der Packung meist als „pro Tagesdosis“ – dann durch die Zahl der Stück teilen. Vitamin D in I.E.:
+      <p class="hint nut-small">Steht auf der Packung meist als „pro Tagesdosis“. Dann durch die Zahl der Stück teilen. Vitamin D in I.E.:
         40 I.E. = 1 µg (1.000 I.E. = 25 µg).</p>
       ${SUPP_MAIN.map(k => micInput(f, 'supp-form', k)).join('')}
       <details class="mic-form"${restFilled ? ' open' : ''}><summary>Weitere Nährstoffe</summary>${rest.map(k => micInput(f, 'supp-form', k)).join('')}</details>
     </div>
     <button class="btn primary" data-action="supp-save">✔ Speichern</button>
     ${f.key && data.foods[f.key] ? '<button class="btn danger" data-action="supp-del">Präparat löschen</button>' : ''}
-    <p class="hint nut-small">Die App rechnet die Werte nur mit – ob und wie viel du ergänzen solltest, klärst du am besten ärztlich.</p>`;
+    <p class="hint nut-small">Die App rechnet die Werte nur mit. Ob und wie viel du ergänzen solltest, klärst du am besten ärztlich.</p>`;
 }
 views.suppown = { title: () => suppForm && suppForm.key ? 'Präparat ändern' : 'Nahrungsergänzung', tab: 'nutrition',
   back: p => p.id || p.key ? ['foodamt', p] : ['foodadd', { date: p.date, meal: p.meal }], render: renderSuppOwn };
@@ -383,7 +383,7 @@ async function suppByCode(code) {
     ...(mic ? microToForm(Object.fromEntries(Object.entries(mic).map(([k, v]) => [k, v * 100])), 100, false) : {}) };
   if (mic && mic.fol != null) suppForm.m_fol = fmtNum(Math.round(mic.fol * 1000) / 1000);  // Folsäure wie auf der Packung
   render();
-  alert(mic ? 'Werte aus Open Food Facts übernommen. Bitte kurz mit der Packung vergleichen – die Angaben dort stammen von Freiwilligen.'
+  alert(mic ? 'Werte aus Open Food Facts übernommen. Bitte kurz mit der Packung vergleichen. Die Angaben dort stammen von Freiwilligen.'
     : pr ? `„${name || 'Das Präparat'}“ ist in Open Food Facts ohne Nährstoffangaben je Portion. Bitte die Werte von der Packung abtragen.`
-      : 'Dieses Präparat ist in Open Food Facts nicht eingetragen. Bitte die Werte von der Packung abtragen – beim nächsten Scan kennt die App es.');
+      : 'Dieses Präparat ist in Open Food Facts nicht eingetragen. Bitte die Werte von der Packung abtragen. Beim nächsten Scan kennt die App es.');
 }

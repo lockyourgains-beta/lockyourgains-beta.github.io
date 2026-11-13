@@ -257,7 +257,7 @@ function trainingProgress() {
     weeks[w] = (weeks[w] || 0) + 1;
     if (weeks[w] === 4) c.fullWeeks++;
     c.streak = Math.max(c.streak, streakEnding(weeks, w));
-    if (s.deload) deloadWeeks.add(w);
+    if (s.deload && !s.light) deloadWeeks.add(w);
     c.cycles = deloadWeeks.size;
     while (bi < body.length && body[bi].date.slice(0, 10) <= s.date.slice(0, 10)) bodyKg = body[bi++].kg;
 
@@ -319,14 +319,14 @@ function renderAwards() {
   const { done, next } = achievementProgress();
   const open = next.sort((x, y) => y.value / y.goal - x.value / x.goal);
   let h = `<div class="stats one"><div class="stat"><span>Freigeschaltet</span><b>${done.length} Erfolge</b>
-    <small>Jede Serie geht endlos weiter – nach jeder Stufe wartet die nächste.</small></div></div>`;
+    <small>Jede Serie geht endlos weiter. Nach jeder Stufe wartet die nächste.</small></div></div>`;
   h += '<h2>Als Nächstes</h2>' + open.slice(0, 6).map(a => awardCard(a, true)).join('');
   if (open.length > 6) {
     h += `<details class="award-cat"><summary>Alle nächsten Ziele (${open.length})</summary>
       ${open.slice(6).map(a => awardCard(a, true)).join('')}</details>`;
   }
   h += '<h2>Freigeschaltet</h2>';
-  if (!done.length) h += '<p class="hint">Noch keine – speichere dein erstes Training!</p>';
+  if (!done.length) h += '<p class="hint">Noch keine. Speichere dein erstes Training!</p>';
   for (const cat of AWARD_CATS) {
     const list = done.filter(a => a.cat === cat).sort((x, y) => y.date.localeCompare(x.date));
     if (!list.length) continue;
@@ -523,7 +523,7 @@ function drawChart() {
 
   area.innerHTML = svg;
   if (!vis.length) {
-    area.insertAdjacentHTML('beforeend', '<p class="chart-note">Keine Einträge in diesem Zeitraum – mit ‹ › oder Wischen verschieben.</p>');
+    area.insertAdjacentHTML('beforeend', '<p class="chart-note">Keine Einträge in diesem Zeitraum. Mit ‹ › oder Wischen verschieben.</p>');
   }
   if (sel) area.appendChild(tooltip(sel, unit, X(sel.t), Y(sel.v), W, H));
 
@@ -670,7 +670,7 @@ function stepsList() {
 function healthCard() {
   return `<div class="card health">
     <button class="btn primary" data-action="health-paste">❤️ Aus Health einfügen</button>
-    <p class="hint explain">Übernimmt Schritte, Gewicht und – wenn eingerichtet – Kalorien, Eiweiß, Kohlenhydrate und Fett, die dein Kurzbefehl in die Zwischenablage kopiert hat.</p>
+    <p class="hint explain">Übernimmt Schritte, Gewicht und (wenn eingerichtet) Kalorien, Eiweiß, Kohlenhydrate und Fett, die dein Kurzbefehl in die Zwischenablage kopiert hat.</p>
     ${healthPasteBox()}
     ${healthGuide()}
   </div>`;
@@ -685,22 +685,22 @@ const healthPasteBox = () => !chartState.pasteBox ? '' : `<textarea class="inp c
 // Zwischenablage kopiert, und eine Automation, die ihn jeden Tag von selbst ausführt
 const healthGuide = () => `<details class="health-guide">
     <summary>📲 So richtest du den Kurzbefehl ein (iPhone)</summary>
-    <p><b>0. Nur für Ernährungswerte: Ernährungs-App mit Health verbinden</b> – Wenn du deine Mahlzeiten in einer App wie
+    <p><b>0. Nur für Ernährungswerte: Ernährungs-App mit Health verbinden</b>: Wenn du deine Mahlzeiten in einer App wie
       Yazio, MyFitnessPal, FDDB, Lifesum oder Cronometer einträgst: In deren Einstellungen die Verbindung zu
       <b>Apple Health</b> einschalten und erlauben, dass sie <b>Ernährungsdaten schreiben</b> darf (Energie, Protein,
       Kohlenhydrate, Fett). Prüfen kannst du das in der Health-App unter „Durchsuchen“ → „Ernährung“: Dort sollten die Werte
       vom heutigen Tag auftauchen.</p>
-    <p><b>1. Kurzbefehl erstellen</b> – App „Kurzbefehle“ öffnen, unten „Kurzbefehle“, oben rechts <b>+</b>. Name z. B. „Gainslocker Health“.
+    <p><b>1. Kurzbefehl erstellen</b>: App „Kurzbefehle“ öffnen, unten „Kurzbefehle“, oben rechts <b>+</b>. Name z. B. „Gainslocker Health“.
       Dann diese Aktionen der Reihe nach hinzufügen (oben ins Suchfeld eintippen):</p>
     <ol>
       <li><b>Health-Samples suchen</b>: Typ „Schritte“, Startdatum „ist heute“.</li>
       <li><b>Statistiken berechnen</b>: „Summe“ von den Health-Samples aus Schritt 1.</li>
       <li><b>Health-Samples suchen</b>: Typ „Gewicht“, sortiert nach „Startdatum“, „Neueste zuerst“, Limit „1“.</li>
     </ol>
-    <p><i>Optional für die Ernährung – je zwei Aktionen pro Wert:</i></p>
+    <p><i>Optional für die Ernährung, je zwei Aktionen pro Wert:</i></p>
     <ol start="4">
       <li><b>Health-Samples suchen</b>: Typ „Nahrungsenergie“ (heißt je nach iOS-Version auch „Aufgenommene Energie“ oder
-        „Energie“ unter Ernährung), Startdatum „ist heute“ – dann <b>Statistiken berechnen</b>: „Summe“.</li>
+        „Energie“ unter Ernährung), Startdatum „ist heute“, dann <b>Statistiken berechnen</b>: „Summe“.</li>
       <li>Dasselbe für <b>„Protein“</b>: Health-Samples suchen (ist heute) + Statistiken berechnen (Summe).</li>
       <li>Dasselbe für <b>„Kohlenhydrate“</b>.</li>
       <li>Dasselbe für <b>„Fett gesamt“</b>.</li>
@@ -715,22 +715,22 @@ const healthGuide = () => `<details class="health-guide">
         Ergibt z. B. „Datum: 29.10.2026 Schritte: 8432 Gewicht: 88,4 kg Kalorien: 1850 Eiweiß: 165 Kohlenhydrate: 170 Fett: 60“.
         Ohne Ernährungs-App lässt du einfach alles ab „Kalorien“ weg.</li>
       <li><b>In Zwischenablage kopieren</b> (kopiert den Text).</li>
-      <li>Optional <b>Mitteilung anzeigen</b>: „Health-Daten bereit – Gainslocker öffnen und einfügen“.</li>
+      <li>Optional <b>Mitteilung anzeigen</b>: „Health-Daten bereit, Gainslocker öffnen und einfügen“.</li>
     </ol>
     <p>Einmal auf ▶︎ tippen und den Zugriff auf alle abgefragten Health-Daten erlauben.</p>
-    <p><b>2. Täglich automatisch ausführen</b> – in „Kurzbefehle“ unten „Automation“, <b>+</b>, „Tageszeit“ wählen und „Täglich“.
+    <p><b>2. Täglich automatisch ausführen</b>: in „Kurzbefehle“ unten „Automation“, <b>+</b>, „Tageszeit“ wählen und „Täglich“.
       Mit Ernährungswerten am besten <b>spät am Abend</b> (z. B. 22:00 Uhr), wenn alle Mahlzeiten eingetragen sind. „Sofort
       ausführen“ einstellen, dann „Weiter“ und den Kurzbefehl „Gainslocker Health“ auswählen.</p>
-    <p><b>3. In die App übernehmen</b> – Gainslocker öffnen und im Reiter Ernährung auf „❤️ Aus Health“ tippen (ggf. „Einsetzen“ erlauben).</p>
+    <p><b>3. In die App übernehmen</b>: Gainslocker öffnen und im Reiter Ernährung auf „❤️ Aus Health“ tippen (ggf. „Einsetzen“ erlauben).</p>
     <p><b>Gut zu wissen:</b></p>
     <ul>
-      <li>Du kannst den Kurzbefehl so oft ausführen und einfügen, wie du willst – die Werte eines Tages werden jedes Mal
+      <li>Du kannst den Kurzbefehl so oft ausführen und einfügen, wie du willst. Die Werte eines Tages werden jedes Mal
         <b>überschrieben</b>, nicht doppelt gezählt. Hast du nach der Automation noch etwas gegessen: einfach noch einmal ausführen.</li>
       <li>Kommen die Kalorien in <b>kJ</b> statt kcal an, stell in der Health-App bei „Nahrungsenergie“ die Einheit auf kcal um.</li>
-      <li>Schreiben <b>zwei</b> Ernährungs-Apps nach Health, zählt Health beide zusammen – dann nur eine davon verbinden.</li>
+      <li>Schreiben <b>zwei</b> Ernährungs-Apps nach Health, zählt Health beide zusammen. Dann nur eine davon verbinden.</li>
     </ul>
     <p class="hint explain">Ganz ohne Tippen geht es leider nicht: Das iPhone lässt Web-Apps nicht selbst auf Health zugreifen. Der
-      Kurzbefehl legt die Daten jeden Tag bereit – am besten am selben Abend einfügen, bevor du etwas anderes kopierst.</p>
+      Kurzbefehl legt die Daten jeden Tag bereit, am besten am selben Abend einfügen, bevor du etwas anderes kopierst.</p>
   </details>`;
 
 // Datum (JJJJ-MM-TT oder TT.MM.JJ[JJ]), Schritte und Gewicht aus dem Text lesen
@@ -854,7 +854,7 @@ function measBtnHtml() {
 function renderMeasures() {
   if (!measForm) measForm = { date: todayISO(), v: {} };
   const last = lastMeasures();
-  let h = `<p class="hint explain">Miss immer an derselben Stelle, am besten morgens – das Maßband liegt an, schnürt aber nicht ein.
+  let h = `<p class="hint explain">Miss immer an derselben Stelle, am besten morgens. Das Maßband liegt an, schnürt aber nicht ein.
       Trag nur ein, was du messen möchtest.</p>
     <div class="card meas-form">${MEASURES.map(([k, l]) => `<label class="row"><span>${l}${last[k] ? `<small>zuletzt ${fmtNum(last[k].v)} cm</small>` : ''}</span>
         <input class="inp kg" type="text" inputmode="decimal" autocomplete="off" placeholder="cm" data-field="meas-in" data-k="${k}" value="${esc(measForm.v[k] || '')}"></label>`).join('')}
@@ -988,7 +988,7 @@ function renderCharts() {
   if (s.mode === 'cardio') return h + renderCardioStats();  // cardio.js
 
   if (s.mode === 'steps') {
-    h += (feat('nut-health') ? `<p class="hint explain">❤️ Schritte aus Apple Health holst du im Reiter <b>Ernährung</b> mit „Aus Health“ –
+    h += (feat('nut-health') ? `<p class="hint explain">❤️ Schritte aus Apple Health holst du im Reiter <b>Ernährung</b> mit „Aus Health“,
       zusammen mit Gewicht und Kalorien.</p>` : '') + `<div class="card">
       <label class="row"><span>Schritte</span>
         <input class="inp kg" id="steps-n" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="8500"></label>
@@ -1204,7 +1204,7 @@ function reviewTeaser(r) {
 function reviewStartCard() {
   if (!hasActivePlan() || ownPlan()) return '';
   const ci = cycleInfo(), cs = ci.cycleStart;
-  if (!ci.deload || data.reviewHidden === cs || data.sessions.some(s => s.cycleStart === cs && s.deload)) return '';
+  if (!ci.deload || data.reviewHidden === cs || data.sessions.some(s => s.cycleStart === cs && s.deload && !s.light)) return '';
   const r = cycleReview(cs);
   if (!r || r.trainings < 2) return '';
   return `<div class="card review-card"><p class="review-kicker">🏁 Zyklus ${r.no} geschafft!</p>
@@ -1227,7 +1227,7 @@ function renderCycleReview({ cs }) {
     <div class="review-tiles">
       ${tile('⭐', r.pbs, r.pbs === 1 ? 'Bestleistung' : 'Bestleistungen')}
       ${r.avgGain != null ? tile('📈', reviewPct(r.avgGain), 'stärker im Schnitt') : ''}
-      ${r.kg >= 100 ? tile('🏗️', `${reviewTons(r.kg)} t`, cars >= 1 ? `bewegt – so viel wie ${cars} Auto${cars === 1 ? '' : 's'}` : 'bewegt') : ''}
+      ${r.kg >= 100 ? tile('🏗️', `${reviewTons(r.kg)} t`, cars >= 1 ? `bewegt, so viel wie ${cars} Auto${cars === 1 ? '' : 's'}` : 'bewegt') : ''}
       ${tile('🔁', deNum(r.sets), `Sätze · ${deNum(r.reps)} Wdh.`)}
     </div>`;
   const top = r.gains.filter(g => g.pct >= 1).slice(0, 5);
@@ -1236,23 +1236,23 @@ function renderCycleReview({ cs }) {
     ? `<ul class="review-list">${top.map(g => `<li><span>${esc(g.name)}</span><b class="up">${reviewPct(g.pct)}</b></li>`).join('')}</ul>
        <p class="hint">${simple ? 'Geschätzte Kraft vom ersten bis zum letzten Training der Übung im Zyklus.'
          : 'Geschätztes „Max. bei 10 Wdh.“ (frisch, mit Tank) vom ersten bis zum letzten Training der Übung im Zyklus.'}</p>`
-    : `<p class="hint">Deine Kraft ist in diesem Zyklus stabil geblieben${cut ? ' – im Kaloriendefizit ist genau das ein Erfolg' : ''}.</p>`}</div>`;
+    : `<p class="hint">Deine Kraft ist in diesem Zyklus stabil geblieben${cut ? '. Im Kaloriendefizit ist genau das ein Erfolg' : ''}.</p>`}</div>`;
   if (r.pbEx.size) {
     const pb = [...r.pbEx].sort((a, b) => b[1] - a[1]).slice(0, 5);
     h += `<div class="card"><h2>⭐ Bestleistungen</h2><ul class="review-list">${pb.map(([n, c]) =>
       `<li><span>${esc(n)}</span><b>${c}× ★</b></li>`).join('')}</ul>
-      <p class="hint">Wie oft du bei der Übung eine neue Bestleistung geschafft hast – je Training einmal gezählt.</p></div>`;
+      <p class="hint">Wie oft du bei der Übung eine neue Bestleistung geschafft hast, je Training einmal gezählt.</p></div>`;
   }
   const more = [];
-  if (r.setsFirst && r.setsLast && r.setsLast > r.setsFirst) more.push(`Sätze pro Woche: <b>${r.setsFirst} → ${r.setsLast}</b> – dein Trainingsreiz ist gewachsen.`);
+  if (r.setsFirst && r.setsLast && r.setsLast > r.setsFirst) more.push(`Sätze pro Woche: <b>${r.setsFirst} → ${r.setsLast}</b>. Dein Trainingsreiz ist gewachsen.`);
   if (r.vsPrev != null && Math.abs(r.vsPrev) >= 1) {
     more.push(`Pro Woche hast du <b>${fmtNum(round1(Math.abs(r.vsPrev)))} % ${r.vsPrev > 0 ? 'mehr' : 'weniger'}</b> Gewicht bewegt als im Zyklus davor.`);
   }
   if (more.length) h += `<div class="card"><h2>🔍 Im Vergleich</h2>${more.map(t => `<p>${t}</p>`).join('')}</div>`;
   if (typeof photoReviewCard === 'function') h += photoReviewCard();  // nur wenn Fotos „eingerichtet“ sind (v213)
   const ci = hasActivePlan() ? cycleInfo() : null;
-  if (ci && ci.deload && ci.cycleStart === cs && !data.sessions.some(s => s.cycleStart === cs && s.deload)) {
-    h += `<div class="card deload-note"><p><b>😮‍💨 Jetzt kommt die Deload-Woche.</b> Halbe Sätze und etwas leichter – dein Körper
+  if (ci && ci.deload && ci.cycleStart === cs && !data.sessions.some(s => s.cycleStart === cs && s.deload && !s.light)) {
+    h += `<div class="card deload-note"><p><b>😮‍💨 Jetzt kommt die Deload-Woche.</b> Halbe Sätze und etwas leichter. Dein Körper
       verarbeitet jetzt den Trainingsreiz, danach geht es stärker in den nächsten Zyklus. Beim ersten Deload-Training fragt dich die
       App kurz, wie sich der Zyklus angefühlt hat.</p></div>
       <button class="btn primary" data-action="tab" data-tab="start">Zum Training</button>`;

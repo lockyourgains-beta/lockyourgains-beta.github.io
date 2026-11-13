@@ -6,6 +6,8 @@
    - Schwerpunkt nach Priorität (Skills / Kraft & Muskeln / Beides) oder komplett selbst zusammengestellt.
    - Wdh.: +1 je Satz pro Woche bis zum oberen Ende bzw. Stufenziel; nicht geschafft → gleich bleiben.
    - Haltezeiten: +5 s je Satz pro Woche bis zum Stufenziel; nicht geschafft → gleich bleiben.
+   - v232: zweimal hintereinander deutlich verfehlt (mind. 20 % darunter) → nächstes Ziel = das Beste dieser beiden Trainings
+     (Haltezeiten auf 5 s abgerundet). Sonst klebt z. B. nach einem Stufenwechsel ein zu hoher Startwert fest.
    - Stufenwechsel nur nach Rückfrage, sobald das Stufenziel in 2 Trainings geschafft ist; „Später“ = frühestens nach 2 Wochen wieder.
    - Erfolge je erreichter Stufe und je kompletter Leiter (charts.js).
    Technik: Der Plan ist ein eigener Plan (own, ohne Zyklen) mit plan.cali; Übungen tragen ex.cali = { lad, step }.
@@ -75,6 +77,16 @@ function caliHistory(name) {
   }
   return out;
 }
+// Satz i eines früheren Trainings: { planned, done } (done = null, wenn der Satz nicht eingetragen wurde)
+function caliSetOf(h, i) {
+  const j = Math.min(i, h.sets.length - 1), s = h.sets[j] || {};
+  const done = s.reps != null && s.reps !== '' && !s.outlier ? Number(s.reps) : null;
+  const planned = Number((h.planned[Math.min(i, h.planned.length - 1)] || {}).reps) || Number(s.reps) || 0;
+  return { planned, done: done != null && isFinite(done) ? done : null };
+}
+// Deutlich verfehlt (v232, User 2026-11-13 nach Simulation sim9): mindestens 20 % unter dem Ziel
+const CALI_MISS = 0.8;
+const caliClearMiss = x => !!x && x.done != null && x.planned > 0 && x.done < x.planned * CALI_MISS - 1e-9;
 function caliApply(en, ex) {
   const plan = activePlan();
   if (!ex || !ex.cali || !plan || !plan.cali) return;
@@ -91,10 +103,13 @@ function caliApply(en, ex) {
     let v;
     if (thisWeek) v = Number((thisWeek.planned[Math.min(i, thisWeek.planned.length - 1)] || {}).reps) || null;
     else if (hist.length) {
-      const h = hist[0], j = Math.min(i, h.sets.length - 1);
-      const planned = Number((h.planned[Math.min(i, h.planned.length - 1)] || {}).reps) || Number(h.sets[j].reps) || 0;
-      const done = Number(h.sets[j] && h.sets[j].reps) || 0;
-      v = done >= planned ? Math.min(cap, planned + inc) : planned;
+      const a = caliSetOf(hist[0], i), b = hist[1] ? caliSetOf(hist[1], i) : null;
+      v = a.done >= a.planned ? Math.min(cap, a.planned + inc) : a.planned;
+      // v232: zweimal hintereinander deutlich verfehlt → das Beste der beiden Trainings wird das neue Ziel (nie höher als bisher)
+      if (caliClearMiss(a) && caliClearMiss(b)) {
+        const best = Math.max(a.done, b.done);
+        v = Math.min(a.planned, hold ? Math.max(5, Math.floor(best / 5) * 5) : Math.max(1, best));
+      }
     }
     if (!v) v = caliStart(ex, g, range);
     en.sets[i] = { ...en.sets[i], weight: '', reps: String(v) };
@@ -201,12 +216,12 @@ function renderCali() {
       <p class="lbl">Tage pro Woche</p><div class="variants">${[2, 3, 4].map(n => chip('cali-days', n, String(n), f.days === n)).join('')}</div>
     </div>
     <div class="card"><h2>Kraft</h2><p class="hint">Diese Leitern kommen an jedem Tag dran (Ganzkörper).</p>${CALI_LADDERS.filter(l => l.kind === 'strength').map(ladRow).join('')}</div>
-    <div class="card"><h2>Skills</h2><p class="hint">Werden reihum auf die Tage verteilt – immer am Anfang, wenn du frisch bist.</p>${CALI_LADDERS.filter(l => l.kind === 'skill').map(ladRow).join('')}</div>
+    <div class="card"><h2>Skills</h2><p class="hint">Werden reihum auf die Tage verteilt, immer am Anfang, wenn du frisch bist.</p>${CALI_LADDERS.filter(l => l.kind === 'skill').map(ladRow).join('')}</div>
     <div class="card cali-rules"><h2>So steigert die App</h2><ul>
       <li>Wiederholungen: +1 je Satz pro Woche, bis das Stufenziel bzw. das obere Ende erreicht ist.</li>
       <li>Haltezeiten: +5 Sekunden je Satz pro Woche.</li>
       <li>Nicht geschafft? Dann bleibt das Ziel gleich.</li>
-      <li>Stufenziel zweimal geschafft: Die App fragt, ob du zur nächsten Stufe wechseln willst – nur mit deinem Okay.</li></ul></div>
+      <li>Stufenziel zweimal geschafft: Die App fragt, ob du zur nächsten Stufe wechseln willst, nur mit deinem Okay.</li></ul></div>
     <button class="btn primary" data-action="cali-create">Plan erstellen</button>`;
 }
 
@@ -240,7 +255,7 @@ function caliStageSeries(lad, i) {
     id: 'cl-' + lad.id + '-' + i, cat: 'Calisthenics', goals: [1],
     names: [last ? `${lad.title}-Leiter komplett` : `${shortName(nm)}: ${caliGoalText(g)}`], icons: [last ? '👑' : '🤸'],
     name: () => `${lad.title}: Stufe ${i + 1}`,
-    desc: () => `${lad.title}-Leiter, Stufe ${i + 1} von ${lad.steps.length}: ${nm} – ${caliGoalText(g)} geschafft${last ? ' – die ganze Leiter!' : ''}`,
+    desc: () => `${lad.title}-Leiter, Stufe ${i + 1} von ${lad.steps.length}: ${nm}, ${caliGoalText(g)} geschafft${last ? '. Die ganze Leiter!' : ''}`,
     value: c => (c.caliMet || {})[key] || 0, fmt: v => v ? 'geschafft' : 'offen',
   };
 }
@@ -268,7 +283,7 @@ Object.assign(actions, {
     const days = caliBuildDays(f);
     if (!days.some(d => d.exercises.length)) { alert('Bitte wähle mindestens eine Leiter aus (bei nur Skills: mindestens 1 Skill pro Tag).'); return; }
     if (draft && !askOk(`Es läuft noch ein Training (${draft.dayName}). Trotzdem den neuen Plan aktiv setzen?`)) return;
-    const plan = newPlan(`Calisthenics – ${CALI_PRIOS[f.prio].label}`, days);
+    const plan = newPlan(`Calisthenics (${CALI_PRIOS[f.prio].label})`, days);
     Object.assign(plan, { own: true, progression: { volume: false, load: false }, cali: { prio: f.prio, range: [...f.range], skills: f.skills }, equip: 'cali' });
     data.plans.push(plan);
     data.activePlanId = plan.id;

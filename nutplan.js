@@ -244,7 +244,7 @@ function renderNutPlan() {
     return `<div class="card">
         <h2>📋 ${esc(pl.name)}</h2>
         <p class="hint nut-small">Importiert am ${fmtDate(pl.importedAt + 'T12:00:00')} · ${NP_ASSIGN[pl.assign]}. Solange der Plan aktiv ist,
-          kommt dein Tagesziel aus ihm – die App schlägt keine eigenen Änderungen vor, sondern gibt nur Hinweise.</p>
+          kommt dein Tagesziel aus ihm. Die App schlägt keine eigenen Änderungen vor, sondern gibt nur Hinweise.</p>
       </div>
       ${pl.days.map(d => `<div class="card np-day ${d === today ? 'now' : ''}">
         <p><b>${esc(d.label)}</b>${d === today ? ' <span class="badge">heute</span>' : ''}</p>
@@ -254,11 +254,11 @@ function renderNutPlan() {
           .map(([k, [icon, label]]) => `<p class="np-meal"><b>${icon} ${label}</b><br>${d.meals[k].map(i => `${esc(i.name)}${i.g ? ` · ${fmtNum(i.g)} g` : ''} · ${nutKcal(i.kcal)} kcal`).join('<br>')}</p>`).join('')}</details>` : ''}
       </div>`).join('')}
       <button class="btn" data-action="np-pick">📄 Neuen Plan importieren</button>
-      <button class="btn danger" data-action="np-end">Plan beenden – wieder die Berechnung der App</button>`;
+      <button class="btn danger" data-action="np-end">Plan beenden, wieder die Berechnung der App</button>`;
   }
   return `<div class="card wiz-q">
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">📋</span><h2>Ernährungsplan übernehmen</h2></div>
-      <p class="hint wiz-q-explain explain">Du hast einen festen Ernährungsplan, z. B. von deinem Ernährungsberater oder Trainer? Übernimm ihn einmal –
+      <p class="hint wiz-q-explain explain">Du hast einen festen Ernährungsplan, z. B. von deinem Ernährungsberater oder Trainer? Übernimm ihn einmal,
         dann zeigt die App an jedem Tag automatisch die Ziele aus deinem Plan. Enthält er auch die Lebensmittel, kannst du im Tagebuch
         jede Mahlzeit mit einem Tipp „wie geplant“ eintragen.</p>
       <button class="btn primary" data-action="np-pick">📄 Datei wählen (Excel oder CSV)</button>
@@ -266,7 +266,7 @@ function renderNutPlan() {
       ${npPasteOpen ? `<textarea class="inp comment" id="np-paste" rows="6" placeholder="In Excel oder Google Sheets die Zellen markieren (mit Überschriften), kopieren und hier einfügen"></textarea>
         <button class="btn primary" data-action="np-paste-go">Übernehmen</button>` : ''}
       <p class="hint nut-small explain"><b>Google Sheets:</b> Datei → Herunterladen → Microsoft Excel (.xlsx) bzw. am Handy „Teilen und exportieren →
-        Kopie senden“ – oder einfach die Zellen kopieren und oben einfügen. Die Datei wird nur auf deinem Handy gelesen, nichts wird hochgeladen.</p>
+        Kopie senden“ oder einfach die Zellen kopieren und oben einfügen. Die Datei wird nur auf deinem Handy gelesen, nichts wird hochgeladen.</p>
     </div>
     <div class="card">
       <h2>Vorlagen</h2>
@@ -294,16 +294,16 @@ function npMappingHtml() {
         `<option value="${i}" ${im.si === i ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label>` : ''}
       <div class="table-wrap"><table class="rir np-prev">${preview.map((r, ri) => `<tr>${Array.from({ length: cols }, (_, i) =>
         `<${ri === 0 ? 'th' : 'td'}>${esc(r[i] || '')}</${ri === 0 ? 'th' : 'td'}>`).join('')}</tr>`).join('')}</table></div>
-      <p class="hint nut-small">Die App hat die Spalten anhand der Überschriften erraten – prüf kurz, ob es passt. Nicht vorhandene Spalten bleiben auf „–“.</p>
+      <p class="hint nut-small">Die App hat die Spalten anhand der Überschriften erraten. Prüf kurz, ob es passt. Nicht vorhandene Spalten bleiben auf „–“.</p>
       ${NP_ROLES.map(([k, l]) => `<label class="row"><span>${l}</span>${sel(k)}</label>`).join('')}
       <label class="row"><span>Kopfzeile ist Zeile</span><input class="inp kg" type="text" inputmode="numeric" data-field="np-head" value="${im.head + 1}"></label>
     </div>
     <div class="card">
       <h2>Welcher Tag gilt wann?</h2>
       <div class="variants np-assign">${Object.entries(NP_ASSIGN).map(([k, l]) => `<button class="vchip ${im.assign === k ? 'on' : ''}" data-action="np-assign" data-k="${k}">${l}</button>`).join('')}</div>
-      <p class="hint nut-small">${{ weekday: 'Die Tage heißen wie Wochentage (Montag, Di …) – jeder Wochentag bekommt seine Werte.',
+      <p class="hint nut-small">${{ weekday: 'Die Tage heißen wie Wochentage (Montag, Di …), jeder Wochentag bekommt seine Werte.',
         daytype: 'Es gibt Trainings- und Ruhetage: An Tagen, an denen du trainierst, gelten die Werte des Trainingstags (umstellbar auf der Ernährungsseite).',
-        rotation: 'Die Tage wechseln sich der Reihe nach ab, beginnend heute mit dem ersten.', same: 'Ein Tag – gilt jeden Tag.' }[im.assign]}</p>
+        rotation: 'Die Tage wechseln sich der Reihe nach ab, beginnend heute mit dem ersten.', same: 'Ein Tag, gilt jeden Tag.' }[im.assign]}</p>
       <label class="lbl">Name des Plans<input class="inp" type="text" data-field="np-name" value="${esc(im.name)}"></label>
     </div>
     <div class="card">
@@ -311,8 +311,8 @@ function npMappingHtml() {
       ${days.length ? days.map(d => `<p class="np-sum"><b>${esc(d.label)}</b>${im.assign === 'weekday' && d.weekday == null ? ' <small class="hint">(kein Wochentag erkannt)</small>' : ''}
         ${im.assign === 'daytype' && !d.kind ? ' <small class="hint">(Training/Ruhe nicht erkannt)</small>' : ''}<br>
         ${nutKcal(d.kcal)} kcal · Eiweiß ${d.p} g · KH ${d.c} g · Fett ${d.f} g${Object.keys(d.meals).length ? ` · ${Object.values(d.meals).flat().length} Einträge in ${Object.keys(d.meals).length} Mahlzeiten` : ''}</p>`).join('')
-        : '<p class="hint">Noch keine Werte erkannt – ordne mindestens Kalorien oder Eiweiß, Kohlenhydrate und Fett zu.</p>'}
-      ${unknown.length ? `<p class="food-miss">Ohne Nährwerte und nicht in der Grundliste: ${unknown.slice(0, 6).map(esc).join(', ')}${unknown.length > 6 ? ' …' : ''} – zählen mit 0 kcal.</p>` : ''}
+        : '<p class="hint">Noch keine Werte erkannt. Ordne mindestens Kalorien oder Eiweiß, Kohlenhydrate und Fett zu.</p>'}
+      ${unknown.length ? `<p class="food-miss">Ohne Nährwerte und nicht in der Grundliste: ${unknown.slice(0, 6).map(esc).join(', ')}${unknown.length > 6 ? ' …' : ''}: zählen mit 0 kcal.</p>` : ''}
     </div>
     <button class="btn primary" data-action="np-save" ${days.length ? '' : 'disabled'}>✔ Plan übernehmen</button>
     <button class="btn center" data-action="np-cancel">Abbrechen</button>`;
@@ -353,7 +353,7 @@ Object.assign(actions, {
         if (!f) return;
         try {
           if (/\.xlsx$/i.test(f.name)) npStart(await npParseXlsx(await f.arrayBuffer()), f.name);
-          else if (/\.xls$|\.numbers$|\.ods$/i.test(f.name)) alert('Bitte die Datei als .xlsx (Excel) oder .csv speichern – dieses Format kann die App nicht lesen.');
+          else if (/\.xls$|\.numbers$|\.ods$/i.test(f.name)) alert('Bitte die Datei als .xlsx (Excel) oder .csv speichern. Dieses Format kann die App nicht lesen.');
           else npStart([{ name: f.name, rows: npParseDelimited(await f.text()) }], f.name);
         } catch (e) {
           alert(`Die Datei konnte nicht gelesen werden (${e.message}). Speichere sie als .csv oder kopiere die Zellen und füge sie ein.`);

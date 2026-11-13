@@ -165,9 +165,9 @@ function renderPhotos() {
   let h = '';
   if (!phCache.length) {
     h += `<div class="card ph-intro"><h2>📷 Sieh deine Veränderung</h2>
-      <p>Die Waage zeigt nur eine Zahl. Fotos zeigen, was sich wirklich tut – mehr Muskeln, weniger Bauch –, auch wenn das Gewicht gleich bleibt.
+      <p>Die Waage zeigt nur eine Zahl. Fotos zeigen, was sich wirklich tut (mehr Muskeln, weniger Bauch), auch wenn das Gewicht gleich bleibt.
         Am besten alle 4 bis 8 Wochen, z. B. am Ende jedes Zyklus.</p>
-      <p class="hint">Die Fotos bleiben nur auf deinem Handy. Sie kommen nicht in die normale Sicherung – dafür gibt es unten einen eigenen Knopf.</p></div>`;
+      <p class="hint">Die Fotos bleiben nur auf deinem Handy. Sie kommen nicht in die normale Sicherung. Dafür gibt es unten einen eigenen Knopf.</p></div>`;
   }
   h += `<div class="card ph-add"><h2>Fotos ${day === todayISO() ? 'von heute' : `vom ${dayText(day)}`}</h2>
     <div class="ph-slots">${Object.entries(POSES).map(([k, l]) => {
@@ -176,7 +176,7 @@ function renderPhotos() {
     }).join('')}</div>
     <label class="row ph-date"><span>Datum<small>für ältere Fotos aus deiner Galerie</small></span>
       <input class="inp date" type="date" data-field="ph-date" value="${day}" max="${todayISO()}"></label>
-    <p class="hint explain">Jede Ansicht ist freiwillig. Tippe auf ＋ – dann kannst du ein Foto aufnehmen oder aus deiner Galerie wählen.</p>
+    <p class="hint explain">Jede Ansicht ist freiwillig. Tippe auf ＋, dann kannst du ein Foto aufnehmen oder aus deiner Galerie wählen.</p>
   </div>`;
   if (dates.length >= 2) {
     const a = dates.includes(phCmp.a) ? phCmp.a : dates[dates.length - 1];
@@ -202,13 +202,13 @@ function renderPhotos() {
   if (dates.length) {
     h += `<h2>Alle Fotos</h2><div class="ph-days">${dates.map(d => `<div class="card ph-day"><p><b>${dayText(d)}</b>${phInfo(d) ? ` <small>${phInfo(d)}</small>` : ''}</p>
       <div class="ph-row">${Object.keys(POSES).map(k => phCache.find(p => p.date === d && p.pose === k)).filter(Boolean).map(p => phThumb(p)).join('')}</div></div>`).join('')}</div>
-      ${cfg.blur ? '<p class="hint">Vorschaubilder sind unscharf – einmal antippen zeigt sie, zweimal öffnet das Foto.</p>' : ''}`;
+      ${cfg.blur ? '<p class="hint">Vorschaubilder sind unscharf. Einmal antippen zeigt sie, zweimal öffnet das Foto.</p>' : ''}`;
   }
   h += `<div class="card"><h2>Einstellungen und Sicherung</h2>
     <div class="row"><span>Vorschaubilder unscharf<small>falls jemand anderes auf dein Handy schaut</small></span>
       <div class="seg two small"><button class="${cfg.blur ? 'on' : ''}" data-action="ph-blur" data-v="1">Ja</button>
         <button class="${cfg.blur ? '' : 'on'}" data-action="ph-blur" data-v="0">Nein</button></div></div>
-    <p class="hint">Deine Fotos sind <b>nicht</b> in der normalen Sicherung. Sichere sie hier als eigene Datei – oder speichere einzelne Fotos
+    <p class="hint">Deine Fotos sind <b>nicht</b> in der normalen Sicherung. Sichere sie hier als eigene Datei oder speichere einzelne Fotos
       über „In Fotos speichern“ in deiner Galerie.</p>
     ${phZip ? `<button class="btn primary" data-action="ph-zip-send">📤 Foto-Sicherung speichern (${mbText(phZip.size)})</button>`
       : `<button class="btn" data-action="ph-export" ${phCache.length ? '' : 'disabled'}>💾 Fotos sichern</button>`}
@@ -218,9 +218,9 @@ function renderPhotos() {
     <ul><li><b>Gleiche Zeit:</b> morgens, nach dem Aufstehen und vor dem Frühstück.</li>
       <li><b>Gleiches Licht:</b> am besten derselbe Raum, Licht von vorne oder oben, keine Gegenlicht-Fenster.</li>
       <li><b>Gleicher Abstand und gleiche Höhe:</b> Handy auf Brusthöhe abstellen (Selbstauslöser) oder vor dem Spiegel immer an derselben Stelle stehen.</li>
-      <li><b>Gleiche Haltung:</b> locker stehen, Arme leicht vom Körper, nicht anspannen – oder immer gleich anspannen.</li>
+      <li><b>Gleiche Haltung:</b> locker stehen, Arme leicht vom Körper, nicht anspannen oder immer gleich anspannen.</li>
       <li><b>Gleiche Kleidung:</b> z. B. immer dieselbe Sporthose.</li>
-      <li><b>Geduld:</b> Von Woche zu Woche sieht man kaum etwas – vergleiche lieber über 2 bis 3 Monate.</li></ul></details>`;
+      <li><b>Geduld:</b> Von Woche zu Woche sieht man kaum etwas. Vergleiche lieber über 2 bis 3 Monate.</li></ul></details>`;
   return h;
 }
 
@@ -408,7 +408,7 @@ function renderVideos({ name }) {
   const list = vidCache.list;
   let h = `<p class="sub">${esc(name)}</p>
     <div class="card vid-add"><h2>🎥 Technik checken</h2>
-      <p>Film einen Satz und schau ihn dir in Zeitlupe an – oder vergleiche ihn mit deinem letzten Video.</p>
+      <p>Film einen Satz und schau ihn dir in Zeitlupe an oder vergleiche ihn mit deinem letzten Video.</p>
       <p class="hint"><b>Am sichersten:</b> mit der normalen Kamera-App filmen und hier auswählen. Dann liegt das Video schon in deinen Fotos
         und geht nicht verloren.</p>
       <button class="btn primary" data-action="vid-pick" data-cam="0">🎞 Video aus deinen Fotos wählen</button>
@@ -425,7 +425,7 @@ function renderVideos({ name }) {
         <button class="btn danger outline" data-action="vid-del" data-id="${v.id}" aria-label="Video löschen">✕</button></div>
     </div>`).join('')}
     ${list.length >= 2 ? `<button class="btn" data-action="vid-open" data-id="${list[1].id}" data-cmp="${list[0].id}">⇆ Beide nebeneinander vergleichen</button>` : ''}
-    <p class="hint">Die App behält die letzten ${VID_KEEP} Videos je Übung – ein neues ersetzt das älteste. Videos sind nicht in der
+    <p class="hint">Die App behält die letzten ${VID_KEEP} Videos je Übung, ein neues ersetzt das älteste. Videos sind nicht in der
       normalen Sicherung.</p>`;
   return h;
 }
@@ -454,7 +454,7 @@ function renderVideo({ name, id, cmp }) {
     <div class="row vid-tools"><button class="btn${vidState.draw ? ' primary' : ''}" data-action="vid-line">✏️ ${vidState.draw ? 'Jetzt ins Video tippen …' : 'Linie zeichnen'}</button>
       <button class="btn" data-action="vid-lines-clear">Linien löschen</button></div>
     <p class="hint explain">Tipp aufs Video zum Abspielen oder Anhalten. ‹ und › gehen ein einzelnes Bild zurück oder vor.
-      <b>Linie:</b> Knopf antippen, dann Anfang und Ende ins Video tippen – z. B. senkrecht neben die Hantel, um zu sehen, ob sie gerade
+      <b>Linie:</b> Knopf antippen, dann Anfang und Ende ins Video tippen, z. B. senkrecht neben die Hantel, um zu sehen, ob sie gerade
       läuft, oder waagerecht auf Kniehöhe, um die Tiefe der Kniebeuge zu prüfen.</p>`;
 }
 
@@ -525,7 +525,7 @@ async function vidAdd(name, file, cam) {
     size: file.size, saved: !cam, src: cam ? 'camera' : 'pick', lines: [] });
   vidCache = null;
   render();
-  toast(cam ? 'Video gespeichert – denk an „In Fotos speichern“' : 'Video übernommen ✔');
+  toast(cam ? 'Video gespeichert. Denk an „In Fotos speichern“' : 'Video übernommen ✔');
 }
 actions['vid-open-list'] = el => go('videos', { name: el.dataset.name, from: current.view === 'training' ? 'training' : 'exercise' });
 actions['vid-pick'] = el => { const name = current.params.name, cam = el.dataset.cam === '1'; mediaPick('video/*', cam, f => vidAdd(name, f, cam)); };
@@ -542,7 +542,7 @@ actions['vid-save'] = el => {
 };
 actions['vid-del'] = el => {
   const v = vidRec(el.dataset.id);
-  if (!v || !askOk(`Video vom ${fmtDate(v.date)} löschen?${vidSafe(v) ? '' : '\n\nEs ist nur in der App gespeichert – danach ist es weg.'}`)) return;
+  if (!v || !askOk(`Video vom ${fmtDate(v.date)} löschen?${vidSafe(v) ? '' : '\n\nEs ist nur in der App gespeichert, danach ist es weg.'}`)) return;
   mDel('videos', v.id).then(() => { vidCache.list = vidCache.list.filter(x => x.id !== v.id); render(); }).catch(mediaFail);
 };
 actions['vid-play'] = el => { const v = vidEl(el.dataset.id); if (v) { if (v.paused) v.play().catch(() => {}); else v.pause(); } };
@@ -582,7 +582,7 @@ fields['vid-seek'] = el => { const v = vidEl(el.dataset.id); if (v && v.duration
 function renderVideoHelp() {
   return `<div class="card about-sec vid-help">
     <h2>Warum speichern?</h2>
-    <p>Videos in der App liegen nur im Speicher dieser App – <b>nicht</b> in deiner Galerie und <b>nicht</b> in der Sicherungsdatei.
+    <p>Videos in der App liegen nur im Speicher dieser App, <b>nicht</b> in deiner Galerie und <b>nicht</b> in der Sicherungsdatei.
       Sie sind weg, wenn du die Website-Daten im Browser löschst, die App vom Home-Bildschirm entfernst oder das Handy wechselst.
       Außerdem behält die App nur die letzten ${VID_KEEP} Videos je Übung. Was du behalten willst, gehört deshalb in deine Fotos.</p>
 
@@ -590,37 +590,37 @@ function renderVideoHelp() {
     <ol><li>Film den Satz mit der <b>normalen Kamera-App</b> deines Handys.</li>
       <li>Das Video liegt damit automatisch in deinen Fotos (iPhone: App „Fotos“, Android: „Galerie“ oder „Google Fotos“).</li>
       <li>In der App bei der Übung „🎥 Video“ → <b>„Video aus deinen Fotos wählen“</b>.</li></ol>
-    <p>So musst du an nichts weiter denken – die App arbeitet mit einer Kopie, das Original bleibt in deiner Galerie.</p>
+    <p>So musst du an nichts weiter denken. Die App arbeitet mit einer Kopie, das Original bleibt in deiner Galerie.</p>
 
     <h2>Direkt in der App aufgenommen?</h2>
     <p>Dann liegt das Video zunächst nur in der App (Hinweis „⚠ nur in der App gespeichert“). So kommt es in deine Fotos:</p>
     <h3>iPhone</h3>
-    <ol><li>„📥 In Fotos speichern“ antippen – das Teilen-Menü öffnet sich.</li>
+    <ol><li>„📥 In Fotos speichern“ antippen, das Teilen-Menü öffnet sich.</li>
       <li>Nach unten wischen und <b>„Video sichern“</b> wählen. Das Video landet in der App „Fotos“.</li>
       <li>Alternativ „In Dateien sichern“, z. B. in iCloud Drive.</li></ol>
-    <p class="hint">Beim ersten Mal fragt das iPhone, ob die App Fotos hinzufügen darf – mit „Erlauben“ bestätigen.</p>
+    <p class="hint">Beim ersten Mal fragt das iPhone, ob die App Fotos hinzufügen darf. Mit „Erlauben“ bestätigen.</p>
     <h3>Android</h3>
-    <ol><li>„📥 In Fotos speichern“ antippen – je nach Handy öffnet sich das Teilen-Menü.</li>
+    <ol><li>„📥 In Fotos speichern“ antippen. Je nach Handy öffnet sich das Teilen-Menü.</li>
       <li>Dort deine Galerie-App, „Google Fotos“ oder „Dateien“/„In Downloads speichern“ wählen. Die Einträge heißen je nach Hersteller etwas anders.</li>
       <li>Öffnet sich kein Menü, speichert das Handy das Video direkt im Ordner <b>„Downloads“</b>. In der Galerie findest du es dann
         unter „Alben“ → „Download“.</li></ol>
     <p class="hint">Ist es gespeichert, steht beim Video „✔ auch in deinen Fotos“. Die App kann nicht prüfen, ob das Speichern im Menü
-      wirklich geklappt hat – schau im Zweifel kurz in deiner Galerie nach.</p>
+      wirklich geklappt hat. Schau im Zweifel kurz in deiner Galerie nach.</p>
 
     <h2>Tipps zum Filmen</h2>
-    <ul><li><b>Stabil abstellen:</b> z. B. an Flasche oder Tasche lehnen oder einen kleinen Ständer nutzen – nicht in der Hand halten.</li>
-      <li><b>Seitlich</b> auf Hüfthöhe für Kniebeugen, Kreuzheben, Bankdrücken und Rudern – so siehst du Tiefe, Rücken und den Weg der Hantel.</li>
+    <ul><li><b>Stabil abstellen:</b> z. B. an Flasche oder Tasche lehnen oder einen kleinen Ständer nutzen, nicht in der Hand halten.</li>
+      <li><b>Seitlich</b> auf Hüfthöhe für Kniebeugen, Kreuzheben, Bankdrücken und Rudern. So siehst du Tiefe, Rücken und den Weg der Hantel.</li>
       <li><b>Schräg von vorne</b> (etwa 45°), um zu sehen, ob die Knie nach innen fallen.</li>
       <li><b>Ganzer Körper und Hantel im Bild</b>, gutes Licht, kein helles Fenster im Hintergrund.</li>
-      <li><b>Immer von derselben Stelle</b> filmen – dann lassen sich zwei Videos gut vergleichen.</li>
+      <li><b>Immer von derselben Stelle</b> filmen, dann lassen sich zwei Videos gut vergleichen.</li>
       <li><b>Kurz halten:</b> ein Satz genügt. Ein Video mit 30 Sekunden hat je nach Handy 20 bis 60 MB.</li></ul>
 
     <h2>Rücksicht im Studio</h2>
-    <p>Andere Menschen dürfen ohne ihr Einverständnis nicht erkennbar gefilmt werden. Viele Studios haben eigene Regeln zum Filmen –
-      frag im Zweifel kurz nach und richte die Kamera so aus, dass nur du im Bild bist.</p>
+    <p>Andere Menschen dürfen ohne ihr Einverständnis nicht erkennbar gefilmt werden. Viele Studios haben eigene Regeln zum Filmen.
+      Frag im Zweifel kurz nach und richte die Kamera so aus, dass nur du im Bild bist.</p>
 
     <h2>Was die App nicht macht</h2>
-    <p>Die App bewertet deine Technik nicht automatisch – sie hilft dir nur beim genauen Hinsehen. Bist du unsicher, zeig das Video einer
+    <p>Die App bewertet deine Technik nicht automatisch, sie hilft dir nur beim genauen Hinsehen. Bist du unsicher, zeig das Video einer
       Trainerin oder einem Trainer.</p>
   </div>`;
 }

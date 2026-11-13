@@ -19,7 +19,7 @@ const HEALTH_POINTS = [
   'Lass dich vorher <b>ärztlich durchchecken</b>, wenn du Vorerkrankungen hast (z. B. Herz, Kreislauf, Blutdruck, Diabetes, Gelenke oder Rücken), schwanger bist, regelmäßig Medikamente nimmst oder lange keinen Sport gemacht hast.',
   'Hör sofort auf bei <b>Schmerzen, Schwindel, Atemnot oder Druck in der Brust</b>.',
   'Gewichte und Wiederholungen sind <b>Vorschläge</b>, berechnet aus deinen Eingaben. Du entscheidest selbst, was du dir zutraust. Achte auf saubere Technik und sichere schwere Übungen ab.',
-  'Die Ernährungswerte sind <b>Schätzungen</b>. Sie passen nicht bei Essstörungen, in Schwangerschaft und Stillzeit, für Kinder und Jugendliche oder bei Stoffwechselerkrankungen – dann bitte mit Ärztin, Arzt oder Ernährungsfachkraft absprechen.',
+  'Die Ernährungswerte sind <b>Schätzungen</b>. Sie passen nicht bei Essstörungen, in Schwangerschaft und Stillzeit, für Kinder und Jugendliche oder bei Stoffwechselerkrankungen. Dann bitte mit Ärztin, Arzt oder Ernährungsfachkraft absprechen.',
 ];
 const healthListHtml = () => `<ul class="about-list">${HEALTH_POINTS.map(p => `<li>${p}</li>`).join('')}</ul>`;
 
@@ -29,11 +29,11 @@ function aboutDatenschutz() {
     : LEGAL.email ? `Kontakt: <a href="mailto:${esc(LEGAL.email)}">${esc(LEGAL.email)}</a>` : 'siehe Impressum';
   return `<div class="about-text">
     <p><b>Kurz gesagt:</b> Kein Konto, keine Werbung, kein Tracking, keine Cookies. Deine Trainings-, Körper- und Ernährungsdaten
-      bleiben auf deinem Gerät – wir bekommen sie nicht zu sehen.</p>
+      bleiben auf deinem Gerät, wir bekommen sie nicht zu sehen.</p>
     <h3>Verantwortlich</h3>
     <p>${who}</p>
     <h3>Deine Daten bleiben auf deinem Gerät</h3>
-    <p>Alles, was du einträgst – Pläne, Trainings, Körpergewicht, Ernährung, Zykluskalender –, speichert die App nur im Speicher deines
+    <p>Alles, was du einträgst (Pläne, Trainings, Körpergewicht, Ernährung, Zykluskalender –, speichert die App nur im Speicher deines
       Browsers auf diesem Gerät. Es gibt keinen Server, an den diese Daten geschickt werden. Darunter sind auch Gesundheitsdaten;
       sie verlassen dein Gerät nur, wenn du selbst eine Sicherung exportierst und weitergibst.</p>
     <h3>Aufruf der App (Hosting)</h3>
@@ -43,22 +43,22 @@ function aboutDatenschutz() {
       (Art. 6 Abs. 1 lit. f DSGVO). Mehr dazu: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">Datenschutzerklärung von GitHub</a>.</p>
     <h3>Lebensmittel suchen und Barcode scannen</h3>
     <p>Nur wenn du im Ernährungstagebuch online nach Produkten suchst oder einen Barcode scannst, fragt die App die freie Datenbank
-      <b>Open Food Facts</b> (Open Food Facts, Frankreich) ab. Dabei werden der Barcode bzw. dein Suchbegriff und deine IP-Adresse übertragen –
+      <b>Open Food Facts</b> (Open Food Facts, Frankreich) ab. Dabei werden der Barcode bzw. dein Suchbegriff und deine IP-Adresse übertragen,
       sonst nichts. Mehr dazu: <a href="https://world.openfoodfacts.org/privacy" target="_blank" rel="noopener">Datenschutz bei Open Food Facts</a>.
       Die Kamera nutzt die App nur zum Scannen; das Bild wird auf deinem Gerät ausgewertet und weder gespeichert noch übertragen.</p>
     <h3>Fortschrittsfotos und Technik-Videos</h3>
     <p>Fotos und Videos, die du in der App aufnimmst oder auswählst, speichert die App nur auf deinem Gerät. Sie werden nicht übertragen und
       sind nicht in der normalen Sicherung. Fotos kannst du als eigene Datei sichern, Fotos und Videos über das Teilen-Menü in deiner Galerie
-      ablegen – wohin, bestimmst du. Die Kamera nutzt die App nur, wenn du selbst ein Foto oder Video aufnimmst.</p>
+      ablegen. Wohin, bestimmst du. Die Kamera nutzt die App nur, wenn du selbst ein Foto oder Video aufnimmst.</p>
     <h3>Sicherungen</h3>
-    <p>Eine Sicherung ist eine Datei, die du selbst speicherst oder teilst. Wohin sie geht, bestimmst du – wir haben keinen Zugriff darauf.
+    <p>Eine Sicherung ist eine Datei, die du selbst speicherst oder teilst. Wohin sie geht, bestimmst du, wir haben keinen Zugriff darauf.
       Auf Wunsch verschlüsselt die App die Sicherung mit einem Passwort (Einstellung unter „Deine Daten“); das Passwort wird nirgends gespeichert.</p>
     <h3>Fehlerprotokoll</h3>
     <p>Tritt in der App ein Fehler auf, merkt sie sich die letzten Fehler auf deinem Gerät: Fehlertext, betroffene Ansicht, App-Version und
-      Zeitpunkt – keine Trainings- oder Gesundheitsdaten. Das Protokoll verlässt dein Gerät nur, wenn du es unter „Optionen“ →
+      Zeitpunkt, keine Trainings- oder Gesundheitsdaten. Das Protokoll verlässt dein Gerät nur, wenn du es unter „Optionen“ →
       „Fehlerprotokoll“ selbst teilst; dann kommen Gerätetyp und Browser dazu. Dort kannst du es auch jederzeit löschen.</p>
     <h3>Feedback per E-Mail</h3>
-    <p>Schreibst du uns über „Feedback geben“, öffnet die App nur dein eigenes Mailprogramm mit einer vorausgefüllten Nachricht – gesendet
+    <p>Schreibst du uns über „Feedback geben“, öffnet die App nur dein eigenes Mailprogramm mit einer vorausgefüllten Nachricht, gesendet
       wird erst, wenn du selbst auf Senden tippst. Vorausgefüllt sind App-Version, Modus und Gerätetyp, auf Wunsch das Fehlerprotokoll;
       Trainings-, Körper- oder Ernährungsdaten sind nicht dabei. Deine E-Mail-Adresse und den Inhalt nutzen wir nur, um deine Nachricht zu
       bearbeiten und zu beantworten (Art. 6 Abs. 1 lit. f DSGVO), und löschen sie, wenn sie dafür nicht mehr gebraucht werden. Das Postfach
@@ -70,7 +70,7 @@ function aboutDatenschutz() {
     <h3>Deine Rechte</h3>
     <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch
       sowie auf Beschwerde bei einer Datenschutz-Aufsichtsbehörde. Da wir selbst keine Daten von dir speichern, wende dich bei Fragen zu
-      Hosting oder Lebensmittelsuche am besten direkt an GitHub bzw. Open Food Facts – oder schreib uns.</p>
+      Hosting oder Lebensmittelsuche am besten direkt an GitHub bzw. Open Food Facts oder schreib uns.</p>
     <p class="hint">Stand: ${LEGAL_STAND}</p>
   </div>`;
 }
@@ -90,7 +90,7 @@ function aboutImpressum() {
 function aboutFeedback() {
   if (!LEGAL.email) return '';
   return `<div class="card"><h2>💬 Feedback</h2>
-    <p class="hint">Etwas unklar, ein Fehler oder eine Idee? Schreib uns – jede Rückmeldung hilft, die App besser zu machen.</p>
+    <p class="hint">Etwas unklar, ein Fehler oder eine Idee? Schreib uns, jede Rückmeldung hilft, die App besser zu machen.</p>
     <button class="btn primary" data-action="about-feedback">Feedback schreiben</button>
     <p class="hint fb-addr">Öffnet dein Mailprogramm. Klappt das nicht, schreib direkt an <b>${esc(LEGAL.email)}</b>.</p></div>`;
 }
@@ -100,7 +100,7 @@ async function feedbackMail(beta = false) {
   const errs = errLoad().length;
   let log = false;
   if (errs) {
-    const msg = `Fehlerprotokoll mitschicken?\n\nDie App hat ${errs === 1 ? '1 Fehler' : `${errs} Fehler`} notiert. Das Protokoll enthält nur Fehlertexte, Ansicht, App-Version und Zeitpunkt – keine Trainings- oder Gesundheitsdaten. Es hilft uns, Fehler zu finden.`;
+    const msg = `Fehlerprotokoll mitschicken?\n\nDie App hat ${errs === 1 ? '1 Fehler' : `${errs} Fehler`} notiert. Das Protokoll enthält nur Fehlertexte, Ansicht, App-Version und Zeitpunkt, keine Trainings- oder Gesundheitsdaten. Es hilft uns, Fehler zu finden.`;
     if (window.confirm !== NATIVE_CONFIRM) log = window.confirm(msg);
     else {
       const v = await uiDialog({ msg, confirm: true, choices: [{ label: 'Abbrechen', value: null }, { label: 'Ohne', value: 'no' }, { label: 'Mitschicken', value: 'yes', primary: true }] });
@@ -113,13 +113,13 @@ async function feedbackMail(beta = false) {
     + (rep ? `\n\n${rep.length > 1500 ? rep.slice(0, 1500) + '\n…' : rep}` : '');
   const subject = `${beta || IS_BETA ? 'Beta-Rückmeldung' : 'Feedback'} zu ${APP_NAME}`;
   location.href = `mailto:${LEGAL.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  toast(`Öffnet dein Mailprogramm – sonst schreib an ${LEGAL.email}`);
+  toast(`Öffnet dein Mailprogramm. Sonst schreib an ${LEGAL.email}`);
 }
 
 function renderAbout() {
   return `<div class="card about-head"><h2>LockYourGains</h2>
       <p class="hint">Deine App fürs Krafttraining: Sie schlägt dir für jeden Satz Gewicht und Wiederholungen vor, lernt aus jedem Training
-        und plant Zyklen mit Erholungswochen. Ohne Konto, ohne Werbung – deine Daten bleiben auf deinem Gerät.</p>
+        und plant Zyklen mit Erholungswochen. Ohne Konto, ohne Werbung. Deine Daten bleiben auf deinem Gerät.</p>
       <p class="hint app-version" id="app-version"></p></div>
     ${aboutFeedback()}
     <details class="card about-sec" open><summary><b>⚕️ Gesundheitshinweis</b></summary>${healthListHtml()}</details>
@@ -132,15 +132,15 @@ function renderAbout() {
 // Urheberrecht (siehe LICENSE im Repository) und Pflichtangaben der fremden Bestandteile
 function aboutRights() {
   return `<div class="about-text">
-    <p>LockYourGains – Programm, Trainingslogik, Texte, Übungsbeschreibungen und Grafiken – ist urheberrechtlich geschützt.
+    <p>LockYourGains (Programm, Trainingslogik, Texte, Übungsbeschreibungen und Grafiken) ist urheberrechtlich geschützt.
       © 2026 Alex Hundt, alle Rechte vorbehalten. Du darfst die App für dein eigenes Training nutzen. Kopieren, Verändern,
       Weitergeben oder Veröffentlichen, auch in Teilen, ist ohne schriftliche Zustimmung nicht erlaubt.</p>
     <h3>Verwendete Daten und Software</h3>
-    <p><b>Bundeslebensmittelschlüssel (BLS) 4.0</b> – Durchschnittswerte für Lebensmittel, © Max Rubner-Institut.</p>
-    <p><b>Open Food Facts</b> – Produktdaten beim Barcode-Scan und bei der Produktsuche, unter der
+    <p><b>Bundeslebensmittelschlüssel (BLS) 4.0</b>: Durchschnittswerte für Lebensmittel, © Max Rubner-Institut.</p>
+    <p><b>Open Food Facts</b>: Produktdaten beim Barcode-Scan und bei der Produktsuche, unter der
       <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">Open Database License (ODbL)</a>,
       <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">openfoodfacts.org</a>.</p>
-    <p><b>ZXing</b> (@zxing/library) – Barcode-Erkennung, unter der
+    <p><b>ZXing</b> (@zxing/library): Barcode-Erkennung, unter der
       <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache License 2.0</a>.</p>
   </div>`;
 }

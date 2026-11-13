@@ -8,9 +8,9 @@
 const MC_PHASES = {
   mens: { label: 'Periode', icon: '🩸', text: 'Die Tage der Blutung. Viele fühlen sich am Anfang schlapper, danach steigt die Energie wieder.' },
   foll: { label: 'Follikelphase', icon: '🌱', text: 'Erste Zyklushälfte nach der Periode: Östrogen steigt, oft gute Energie und Leistungsfähigkeit.' },
-  ovu: { label: 'Eisprung (ca.)', icon: '✨', text: 'Etwa um diese Tage findet der Eisprung statt – rund 14 Tage vor der nächsten Periode.' },
+  ovu: { label: 'Eisprung (ca.)', icon: '✨', text: 'Etwa um diese Tage findet der Eisprung statt, rund 14 Tage vor der nächsten Periode.' },
   lut: { label: 'Lutealphase', icon: '🌙', text: 'Zweite Zyklushälfte: Progesteron steigt, die Körpertemperatur ist leicht erhöht. In den Tagen vor der Periode lagert der Körper oft Wasser ein.' },
-  late: { label: 'Periode noch nicht eingetragen', icon: '⏳', text: 'Laut Ø-Zykluslänge wäre die Periode schon fällig – trag ihren Beginn ein, sobald sie da ist.' },
+  late: { label: 'Periode noch nicht eingetragen', icon: '⏳', text: 'Laut Ø-Zykluslänge wäre die Periode schon fällig. Trag ihren Beginn ein, sobald sie da ist.' },
 };
 
 const mcCal = () => data.mcal || { on: false, starts: [], len: 28, period: 5 };
@@ -65,7 +65,7 @@ function mcCard() {
   const i = mcInfo();
   if (!i) {
     return `<div class="card mc-card"><p><b>🌸 Zykluskalender</b></p>
-      <p class="hint nut-small">Trag den ersten Tag deiner letzten Periode ein – dann rechnet die App Zyklustag und Phasen aus.</p>
+      <p class="hint nut-small">Trag den ersten Tag deiner letzten Periode ein. Dann rechnet die App Zyklustag und Phasen aus.</p>
       <button class="btn" data-action="mc-open">📅 Kalender öffnen</button></div>`;
   }
   const ph = MC_PHASES[i.phase];
@@ -74,7 +74,7 @@ function mcCard() {
   return `<div class="card mc-card mc-${i.phase}">
       <p><b>${ph.icon} Zyklustag ${i.day} · ${ph.label}</b></p>
       <p class="hint nut-small">${i.phase === 'late' ? ph.text : `Nächste Periode ca. am ${fmtDate(i.next + 'T12:00:00')}${inDays > 0 ? ` (in ${inDays} Tag${inDays === 1 ? '' : 'en'})` : ''}.`}
-        ${water ? '<br>💧 In diesen Tagen lagert der Körper oft 0,5–2 kg Wasser ein. Die App lässt deine Gewichtswerte von heute beim Gewichtsverlauf und beim gemessenen Bedarf weg – das ist kein Fett.' : ''}</p>
+        ${water ? '<br>💧 In diesen Tagen lagert der Körper oft 0,5–2 kg Wasser ein. Die App lässt deine Gewichtswerte von heute beim Gewichtsverlauf und beim gemessenen Bedarf weg. Das ist kein Fett.' : ''}</p>
       <div class="row"><button class="btn" data-action="mc-open">📅 Kalender</button>
         ${i.phase === 'mens' && i.day <= 1 ? '' : '<button class="btn" data-action="mc-today">🩸 Periode heute begonnen</button>'}</div>
     </div>`;
@@ -89,7 +89,7 @@ function mcOptionsCard() {
       <div class="seg two"><button class="${on ? 'on' : ''}" data-action="mc-onoff" data-v="1">An</button>
         <button class="${on ? '' : 'on'}" data-action="mc-onoff" data-v="0">Aus</button></div>
       <p class="hint nut-small explain">Freiwillig: Trägst du den Beginn deiner Periode ein, rechnet die App Zyklustag, Phasen und die nächste
-        Periode aus. In den Tagen vor und zu Beginn der Periode lagert der Körper oft Wasser ein – diese Gewichtswerte lässt die App dann
+        Periode aus. In den Tagen vor und zu Beginn der Periode lagert der Körper oft Wasser ein. Diese Gewichtswerte lässt die App dann
         beim Gewichtsverlauf und beim gemessenen Bedarf weg, damit die Kalorien-Empfehlungen nicht danebenliegen. Auf Wunsch passt sie auch
         dein Training an die Tage an, an denen du dich schwächer fühlst. Alles bleibt nur auf diesem Gerät.</p>
       ${on ? `<button class="btn" data-action="mc-open">📅 Kalender öffnen</button>${mcTrainEntryHtml()}` : ''}
@@ -168,68 +168,68 @@ function mcHelp() {
   const len = mcLength();
   const ovu = len - 14;
   return `<details class="card nut-help mc-help" ${none ? 'open' : ''}><summary>So funktioniert der Kalender</summary>
-      <p><b>Was du einträgst:</b> nur den <b>ersten Tag jeder Periode</b> – also den ersten Tag mit richtiger Blutung (leichte
+      <p><b>Was du einträgst:</b> nur den <b>ersten Tag jeder Periode</b>, also den ersten Tag mit richtiger Blutung (leichte
         Schmierblutung davor zählt noch nicht). Entweder im Kalender auf den Tag tippen oder einfach am selben Tag auf
         „🩸 Periode heute begonnen“. Vergessen? Kein Problem, du kannst jeden vergangenen Tag nachtragen. Ein falscher Eintrag
         verschwindet, wenn du ihn noch einmal antippst oder in der Liste „Eingetragene Perioden“ auf ✕ tippst.</p>
       <p><b>Was die App daraus rechnet:</b> Den Abstand von einem Periodenbeginn zum nächsten nennt man <b>Zykluslänge</b>. Sobald zwei
-        Perioden eingetragen sind, nimmt die App den Durchschnitt deiner letzten (bis zu sechs) Zyklen – bei dir gerade
+        Perioden eingetragen sind, nimmt die App den Durchschnitt deiner letzten (bis zu sechs) Zyklen, bei dir gerade
         <b>${len} Tage</b>${mcLengths().length ? '' : ' (noch die eingestellte Länge, weil erst eine Periode eingetragen ist)'}.
         Zyklen unter 18 oder über 45 Tagen lässt sie dabei weg, weil das meist ein vergessener oder doppelter Eintrag ist.
         Daraus ergeben sich der <b>Zyklustag</b> (Tag 1 = erster Periodentag), die <b>Phase</b> und die <b>nächste Periode</b>.</p>
       <p><b>Die Farben:</b> Rot = Periode (eingetragen bzw. aus der eingestellten Dauer), rot umrandet = erwartete Periode, grün =
         Follikelphase, lila = Tage um den Eisprung, gelb = Lutealphase. Blasse Tage in der Zukunft sind eine Vorhersage. Der Tag mit dem
         dunklen Rand ist ein eingetragener Periodenbeginn, der blaue Rahmen ist heute.</p>
-      <p><b>Einstellungen:</b> „Übliche Zykluslänge“ gilt nur, bis zwei Perioden eingetragen sind – danach rechnet die App mit deinem
+      <p><b>Einstellungen:</b> „Übliche Zykluslänge“ gilt nur, bis zwei Perioden eingetragen sind. Danach rechnet die App mit deinem
         echten Durchschnitt. „Dauer der Periode“ bestimmt, wie viele Tage ab Beginn als Periode markiert werden.</p>
     </details>
     <details class="card nut-help mc-help"><summary>Die Phasen ausführlich</summary>
       <p><b>🩸 Periode (Tag 1 bis ${mcCal().period}):</b> Die Gebärmutterschleimhaut wird abgestoßen, die Hormone Östrogen und Progesteron
         sind niedrig. Viele fühlen sich an den ersten ein, zwei Tagen schlapper oder haben Krämpfe, danach kommt die Energie meist
-        schnell zurück. Training ist in dieser Zeit grundsätzlich möglich – es gilt, was sich gut anfühlt.</p>
+        schnell zurück. Training ist in dieser Zeit grundsätzlich möglich. Es gilt, was sich gut anfühlt.</p>
       <p><b>🌱 Follikelphase (nach der Periode bis kurz vor dem Eisprung, bei dir etwa Tag ${mcCal().period + 1}–${ovu - 2}):</b> Im
         Eierstock reift ein Eibläschen (Follikel) heran, das Östrogen steigt. Viele erleben das als die Zeit mit der meisten Energie,
         guter Stimmung und guter Erholung. Diese Phase ist von Frau zu Frau und von Monat zu Monat unterschiedlich lang.</p>
-      <p><b>✨ Eisprung (etwa Tag ${ovu - 1}–${ovu + 1}):</b> Das Ei springt – meist rund 14 Tage <i>vor</i> der nächsten Periode, deshalb
+      <p><b>✨ Eisprung (etwa Tag ${ovu - 1}–${ovu + 1}):</b> Das Ei springt, meist rund 14 Tage <i>vor</i> der nächsten Periode, deshalb
         rechnet die App von der Zykluslänge aus rückwärts. Östrogen erreicht kurz davor seinen Höchstwert. Manche spüren um diese Tage
         ein leichtes Ziehen im Unterbauch.</p>
       <p><b>🌙 Lutealphase (nach dem Eisprung bis zur Periode, etwa Tag ${ovu + 2}–${len}):</b> Der Gelbkörper bildet Progesteron, die
         Körpertemperatur steigt leicht (etwa 0,3–0,5 °C) und der Grundumsatz ein wenig. Viele haben etwas mehr Hunger, Lust auf
         Süßes und in den letzten Tagen vor der Periode PMS-Beschwerden wie Spannungsgefühl, Gereiztheit oder Müdigkeit. Typisch ist
-        außerdem, dass der Körper <b>Wasser einlagert</b> – oft 0,5 bis 2 kg, die sich nach Beginn der Periode wieder verabschieden.</p>
+        außerdem, dass der Körper <b>Wasser einlagert</b>, oft 0,5 bis 2 kg, die sich nach Beginn der Periode wieder verabschieden.</p>
       <p>Alle Tage außer dem eingetragenen Periodenbeginn sind <b>Schätzungen</b>. Der echte Eisprung kann ein paar Tage früher oder
         später liegen, besonders bei unregelmäßigem Zyklus.</p>
     </details>
     <details class="card nut-help mc-help"><summary>Welchen Einfluss hat der Kalender auf die App?</summary>
-      <p><b>💧 Körpergewicht – Gewichtsverlauf und gemessener Bedarf:</b> Diese beiden Funktionen im Ernährungs-Reiter lesen aus deinem
+      <p><b>💧 Körpergewicht: Gewichtsverlauf und gemessener Bedarf:</b> Diese beiden Funktionen im Ernährungs-Reiter lesen aus deinem
         Gewichtsverlauf, ob dein Tagesziel passt. Die Wassereinlagerung vor der Periode sieht auf der Waage aber genauso aus wie
         zugenommenes Fett. Ohne Kalender würde die App dann denken, du nimmst zu langsam ab (oder zu schnell zu), und dir vorschlagen,
-        weniger zu essen – und nach der Periode, wenn das Wasser weg ist, wieder mehr. Das Tagesziel würde jeden Monat hin und her springen.</p>
+        weniger zu essen, und nach der Periode, wenn das Wasser weg ist, wieder mehr. Das Tagesziel würde jeden Monat hin und her springen.</p>
       <p>Deshalb lässt die App die Gewichtswerte an den <b>letzten 6 Tagen vor der Periode</b> und an den <b>ersten 2 Periodentagen</b>
-        weg${w ? ` – in deinem aktuellen Zyklus also voraussichtlich vom <b>${d(w.from)} bis ${d(w.to)}</b> sowie am <b>${d(w.p1)} und
+        weg${w ? `, in deinem aktuellen Zyklus also voraussichtlich vom <b>${d(w.from)} bis ${d(w.to)}</b> sowie am <b>${d(w.p1)} und
         ${d(w.p2)}</b>` : ''}. Kommt die Periode später als erwartet, zählen auch die Tage bis zu ihrem Beginn dazu. Du wiegst dich
         trotzdem ganz normal und trägst die Werte ein: Sie bleiben im Diagramm und in der Liste sichtbar und zählen auch für dein
-        aktuelles Gewicht – nur die beiden Auswertungen überspringen sie. An diesen Tagen erklärt ein 💧-Hinweis auf der
-        Zyklus-Karte, was los ist (nicht, wenn „Hinweise zur Ernährung“ ausgeschaltet sind – herausgerechnet wird trotzdem).</p>
+        aktuelles Gewicht, nur die beiden Auswertungen überspringen sie. An diesen Tagen erklärt ein 💧-Hinweis auf der
+        Zyklus-Karte, was los ist (nicht, wenn „Hinweise zur Ernährung“ ausgeschaltet sind, herausgerechnet wird trotzdem).</p>
       <p><b>Was sich nicht ändert:</b> Dein Tagesziel, die Makros und die Eiweiß-Empfehlung rechnet die App unabhängig vom Zyklus.
-        Etwas mehr Hunger in der Lutealphase ist normal – über die Woche gesehen gleicht sich das meist aus. Das Ernährungstagebuch,
+        Etwas mehr Hunger in der Lutealphase ist normal. Über die Woche gesehen gleicht sich das meist aus. Das Ernährungstagebuch,
         das Abschließen der Tage und alle anderen Funktionen laufen ganz normal.</p>
       <p><b>🏋️ Training:</b> Nur wenn du es unter „Zyklus und Training“ einstellst: An den Tagen, an denen du dich laut deiner Angabe
         schwächer fühlst, fragt die App vor dem Training kurz nach und macht die Vorgaben etwas leichter. Ein starrer Plan nach Phasen ist
-        das nicht – die App richtet sich nach dir und lernt aus deinen Werten. Ohne Einstellung bleibt dein Training wie geplant.</p>
+        das nicht. Die App richtet sich nach dir und lernt aus deinen Werten. Ohne Einstellung bleibt dein Training wie geplant.</p>
       <p><b>Ausschalten:</b> Schaltest du den Kalender in den Optionen aus, rechnet die App wieder mit allen Gewichtswerten und die
-        Zyklus-Karte verschwindet. Deine eingetragenen Perioden bleiben gespeichert – schaltest du ihn wieder ein, ist alles noch da.</p>
+        Zyklus-Karte verschwindet. Deine eingetragenen Perioden bleiben gespeichert. Schaltest du ihn wieder ein, ist alles noch da.</p>
     </details>
     <details class="card nut-help mc-help"><summary>Gut zu wissen</summary>
       <p><b>Unregelmäßiger Zyklus:</b> Schwankt deine Zykluslänge stark, sind Vorhersage und Phasen ungenauer. Trag den Beginn trotzdem
-        jedes Mal ein – die App rechnet immer vom zuletzt eingetragenen Tag aus, die Wassertage vor der Periode passen also spätestens
+        jedes Mal ein. Die App rechnet immer vom zuletzt eingetragenen Tag aus, die Wassertage vor der Periode passen also spätestens
         im Nachhinein. Stark wechselnde oder sehr lange Zyklen sind ein Grund, das einmal ärztlich abklären zu lassen.</p>
-      <p><b>Pille, Hormonspirale oder andere hormonelle Verhütung:</b> Dann gibt es keinen natürlichen Zyklus mit Eisprung – die Blutung
+      <p><b>Pille, Hormonspirale oder andere hormonelle Verhütung:</b> Dann gibt es keinen natürlichen Zyklus mit Eisprung. Die Blutung
         in der Pillenpause ist eine Abbruchblutung. Du kannst ihren Beginn trotzdem eintragen; die Phasen sind dann aber nur eine grobe
         Orientierung, und Wassereinlagerungen sind oft schwächer. Wenn du gar keine Blutung hast, lässt du den Kalender am besten aus.</p>
       <p><b>Wechseljahre, Schwangerschaft, Stillzeit:</b> In den Wechseljahren wird der Zyklus oft unregelmäßig, in Schwangerschaft und
-        Stillzeit gibt es keinen normalen Zyklus – dann ist der Kalender wenig hilfreich und kann ausgeschaltet bleiben.</p>
-      <p><b>Keine Verhütung:</b> Der Kalender schätzt nur – zur Verhütung oder zur Planung einer Schwangerschaft ist er nicht geeignet.
+        Stillzeit gibt es keinen normalen Zyklus, dann ist der Kalender wenig hilfreich und kann ausgeschaltet bleiben.</p>
+      <p><b>Keine Verhütung:</b> Der Kalender schätzt nur. Zur Verhütung oder zur Planung einer Schwangerschaft ist er nicht geeignet.
         Dafür gibt es spezielle Apps und Methoden, bei denen z. B. die Temperatur gemessen wird.</p>
       <p><b>Datenschutz:</b> Deine Einträge bleiben nur auf diesem Gerät und sind in deiner Sicherung enthalten. Die App schickt sie
         nirgendwohin.</p>
@@ -358,7 +358,7 @@ function renderMcCheck({ id, win }) {
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🌸</span><h2>Zyklustag ${i.day} · ${MC_WINDOWS[win].label}</h2></div>
       <p class="hint wiz-q-explain">${lvl ? `In diesen Tagen fühlst du dich laut deinen Angaben oft <b>${MC_LEVELS[lvl].short}</b>.`
         : 'Manche Frauen fühlen sich in diesen Tagen schwächer, andere merken nichts.'} Wie geht's dir heute? Die App passt die Vorgaben nur
-        für dieses Training an – dein „Max“ und die Steigerung der nächsten Woche bleiben davon unberührt.</p>
+        für dieses Training an. Dein „Max“ und die Steigerung der nächsten Woche bleiben davon unberührt.</p>
       ${[0, 1, 2, 3].map(opt).join('')}
     </div>`;
 }
@@ -367,15 +367,15 @@ function renderMcCheck({ id, win }) {
 function renderMcTrain() {
   const t = mcTrainEnsure();
   const ans = (k, label) => `<button class="${t.answer === k ? 'on' : ''}" data-action="mct-answer" data-k="${k}">${label}</button>`;
-  const winRow = w => `<div class="mct-win"><p><b>${MC_WINDOWS[w].icon} ${MC_WINDOWS[w].label}</b><small class="hint"> – ${MC_WINDOWS[w].text}</small></p>
+  const winRow = w => `<div class="mct-win"><p><b>${MC_WINDOWS[w].icon} ${MC_WINDOWS[w].label}</b><small class="hint">: ${MC_WINDOWS[w].text}</small></p>
       <div class="seg mct-seg">${[0, 1, 2, 3].map(l => `<button class="${(t.win[w] || 0) === l ? 'on' : ''}" data-action="mct-level" data-w="${w}" data-l="${l}">${['keine', 'etwas', 'spürbar', 'stark'][l]}</button>`).join('')}</div></div>`;
   return `<div class="card wiz-q">
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🏋️</span><h2>Zyklus und Training</h2></div>
       <p class="hint wiz-q-explain">Freiwillig: Erzähl der App, ob dein Zyklus dein Training spürbar beeinflusst. Dann macht sie die Vorgaben an
-        diesen Tagen etwas leichter – und lernt mit der Zeit aus deinen echten Werten, ob und wie stark du dort wirklich schwächer bist.</p>
+        diesen Tagen etwas leichter und lernt mit der Zeit aus deinen echten Werten, ob und wie stark du dort wirklich schwächer bist.</p>
       <p class="lbl">Gibt es Tage in deinem Zyklus, an denen du dich im Training deutlich schwächer fühlst?</p>
       <div class="seg three">${ans('yes', 'Ja')}${ans('no', 'Nein')}${ans('unknown', 'Weiß nicht')}</div>
-      ${t.answer === 'yes' ? `<p class="lbl">Wann – und wie stark?</p>${['pre', 'mens', 'ovu'].filter(w => w !== 'ovu' || !t.hormonal).map(winRow).join('')}
+      ${t.answer === 'yes' ? `<p class="lbl">Wann und wie stark?</p>${['pre', 'mens', 'ovu'].filter(w => w !== 'ovu' || !t.hormonal).map(winRow).join('')}
         <p class="hint nut-small"><b>Etwas</b> = 1 Wdh. weniger pro Satz · <b>spürbar</b> = 2 Wdh. weniger · <b>stark</b> = 2 Wdh. weniger und
           bei Übungen mit 3 oder mehr Sätzen 1 Satz weniger.</p>` : ''}
       ${t.answer === 'unknown' ? '<p class="hint nut-small">Kein Problem: An den typischen Tagen fragt die App kurz vor dem Training, wie es dir geht. So findest du es zusammen mit der App heraus.</p>' : ''}
@@ -383,7 +383,7 @@ function renderMcTrain() {
       <p class="lbl">Nimmst du hormonelle Verhütung (Pille, Hormonspirale, Implantat …)?</p>
       <div class="seg two"><button class="${t.hormonal ? 'on' : ''}" data-action="mct-horm" data-v="1">Ja</button>
         <button class="${t.hormonal ? '' : 'on'}" data-action="mct-horm" data-v="0">Nein</button></div>
-      ${t.hormonal ? '<p class="hint nut-small">Dann gibt es keinen natürlichen Eisprung – die App fragt nur nach den Tagen vor und zu Beginn der Blutung.</p>' : ''}
+      ${t.hormonal ? '<p class="hint nut-small">Dann gibt es keinen natürlichen Eisprung. Die App fragt nur nach den Tagen vor und zu Beginn der Blutung.</p>' : ''}
       <button class="btn primary" data-action="mct-save" ${t.answer ? '' : 'disabled'}>Speichern</button>
     </div>
     ${mcLearnCard(true)}
@@ -394,34 +394,34 @@ function renderMcTrain() {
 function mcTrainHelp() {
   return `<details class="card nut-help mc-help" open><summary>So funktioniert „Zyklus und Training“</summary>
       <p><b>Warum kein fester Phasenplan?</b> Oft liest man, Frauen sollten in der ersten Zyklushälfte schwer und in der zweiten leicht
-        trainieren. Die Forschung stützt das bisher kaum: Im Schnitt sind die Unterschiede zwischen den Phasen klein – und vor allem
+        trainieren. Die Forschung stützt das bisher kaum: Im Schnitt sind die Unterschiede zwischen den Phasen klein, und vor allem
         <b>von Frau zu Frau sehr verschieden</b>. Manche merken gar nichts, manche sind an zwei Tagen deutlich schwächer, bei manchen ist es
         jeden Monat anders. Ein starrer Plan würde viele Frauen unnötig bremsen. Deshalb richtet sich die App nach <b>dir</b>.</p>
       <p><b>1. Deine Angabe als Startpunkt.</b> Du sagst, in welchen Tagen du dich schwächer fühlst und wie stark. Die App kennt drei
         Zeitfenster: die <b>5 Tage vor der Periode</b> (hier haben viele PMS-Beschwerden), die <b>ersten 2 Periodentage</b> und die Tage
         <b>um den Eisprung</b>. Welche Tage das gerade sind, rechnet sie aus deinem Kalender aus.</p>
-      <p><b>2. An diesen Tagen fragt sie kurz nach.</b> Vor dem Training kommt die Frage „Wie geht's dir heute?“ – vorausgewählt ist deine
+      <p><b>2. An diesen Tagen fragt sie kurz nach.</b> Vor dem Training kommt die Frage „Wie geht's dir heute?“. Vorausgewählt ist deine
         Angabe, du kannst aber jedes Mal anders antworten. Je nach Antwort werden die Vorgaben leichter:</p>
       <ul class="about-list"><li><b>Etwas schwächer:</b> 1 Wiederholung weniger pro Satz</li>
         <li><b>Spürbar schwächer:</b> 2 Wiederholungen weniger pro Satz</li>
-        <li><b>Stark eingeschränkt:</b> 2 Wiederholungen weniger und bei Übungen mit 3 oder mehr Sätzen 1 Satz weniger – leichter, aber nicht
+        <li><b>Stark eingeschränkt:</b> 2 Wiederholungen weniger und bei Übungen mit 3 oder mehr Sätzen 1 Satz weniger: leichter, aber nicht
           so stark gekürzt, dass sich das Training nicht mehr lohnt</li></ul>
       <p>Wäre ein Satz dadurch zu kurz, nimmt die App stattdessen etwas weniger Gewicht.</p>
       <p><b>3. Ein schwacher Tag wirft dich nicht zurück.</b> An diesen Tagen kann dein „Max. bei 10 Wdh.“ steigen, aber nicht sinken. Und
-        das Training zählt für die Vorgaben der nächsten Woche so, als wäre es ein normaler Tag gewesen – die Woche nach der Periode wird
+        das Training zählt für die Vorgaben der nächsten Woche so, als wäre es ein normaler Tag gewesen. Die Woche nach der Periode wird
         also nicht unnötig leicht.</p>
       <p><b>4. Die App lernt mit.</b> Sie vergleicht, was du in jedem Zeitfenster tatsächlich schaffst, mit deiner Leistung an den übrigen
-        Tagen – unabhängig davon, wie leicht die Vorgabe war, denn sie rechnet mit Gewicht, Wiederholungen und dem, was noch im Tank war.
+        Tagen, unabhängig davon, wie leicht die Vorgabe war, denn sie rechnet mit Gewicht, Wiederholungen und dem, was noch im Tank war.
         Nach <b>${MC_LEARN_CYCLES} Zyklen</b> mit mindestens <b>${MC_LEARN_MIN} Trainings</b> in einem Zeitfenster sagt sie dir, was sie sieht,
         zum Beispiel: „In den Tagen vor deiner Periode schaffst du im Schnitt 5 % weniger.“ Passt das nicht zu deiner Einstellung, schlägt
-        sie eine andere Stufe vor – geändert wird aber nur, wenn du zustimmst.</p>
+        sie eine andere Stufe vor. Geändert wird aber nur, wenn du zustimmst.</p>
       <p><b>Hormonelle Verhütung:</b> Mit Pille, Hormonspirale oder Implantat gibt es keinen natürlichen Eisprung; die Blutung in der Pause ist
-        eine Abbruchblutung. Viele haben dann weniger Schwankungen – die Tage vor und zu Beginn der Blutung können trotzdem anstrengender sein,
+        eine Abbruchblutung. Viele haben dann weniger Schwankungen. Die Tage vor und zu Beginn der Blutung können trotzdem anstrengender sein,
         deshalb fragt die App nur nach diesen.</p>
       <p><b>Unregelmäßiger Zyklus:</b> Die Tage vor der Periode schätzt die App aus deiner Ø-Zykluslänge. Kommt die Periode später, gelten auch
         die überfälligen Tage als „vor der Periode“. Trag den Beginn jedes Mal ein, dann stimmt es im nächsten Zyklus wieder.</p>
-      <p><b>Wichtig:</b> Starke Schmerzen, sehr starke Blutungen oder Beschwerden, die dich jeden Monat ausbremsen, sind nicht „normal“ –
-        lass das ärztlich abklären. Und an Tagen, an denen gar nichts geht, ist eine Pause völlig in Ordnung.</p>
+      <p><b>Wichtig:</b> Starke Schmerzen, sehr starke Blutungen oder Beschwerden, die dich jeden Monat ausbremsen, sind nicht „normal“.
+        Lass das ärztlich abklären. Und an Tagen, an denen gar nichts geht, ist eine Pause völlig in Ordnung.</p>
       <p><b>Datenschutz:</b> Alles bleibt nur auf deinem Gerät.</p>
     </details>`;
 }
@@ -502,15 +502,15 @@ function mcLearnCard(full = false) {
   return sugHtml + `<div class="card"><h2>Was die App bisher gelernt hat</h2>${rows
     ? `<ul class="review-list">${rows}</ul><p class="hint nut-small">Leistung in diesem Zeitfenster im Vergleich zu deinen übrigen Trainings
         (aus Gewicht, Wdh. und Tank, unabhängig von der Vorgabe). Ein Vorschlag kommt ab ${MC_LEARN_CYCLES} Zyklen mit mindestens ${MC_LEARN_MIN} Trainings im Zeitfenster.</p>`
-    : '<p class="hint nut-small">Noch keine Daten – sobald du an den Tagen trainierst, sammelt die App Werte.</p>'}</div>`;
+    : '<p class="hint nut-small">Noch keine Daten. Sobald du an den Tagen trainierst, sammelt die App Werte.</p>'}</div>`;
 }
 
 // Kurzer Hinweis im Kalender / in den Optionen
 function mcTrainEntryHtml() {
   if (!mcOn()) return '';
   const t = mcTrain();
-  const sum = !t || !t.asked ? 'Noch nicht eingestellt – erzähl der App, ob dein Zyklus dein Training beeinflusst.'
-    : t.answer === 'no' ? 'Keine Anpassung – die App schaut im Hintergrund auf deine Werte.'
+  const sum = !t || !t.asked ? 'Noch nicht eingestellt. Erzähl der App, ob dein Zyklus dein Training beeinflusst.'
+    : t.answer === 'no' ? 'Keine Anpassung. Die App schaut im Hintergrund auf deine Werte.'
     : t.answer === 'unknown' ? 'Die App fragt an den typischen Tagen nach, wie es dir geht.'
     : ['pre', 'mens', 'ovu'].filter(w => t.win[w]).map(w => `${MC_WINDOWS[w].label}: ${MC_LEVELS[t.win[w]].short}`).join(' · ') || 'Keine Anpassung eingestellt.';
   return `<button class="btn nav" data-action="mct-open">🏋️ Zyklus und Training<small>${sum}</small></button>`;

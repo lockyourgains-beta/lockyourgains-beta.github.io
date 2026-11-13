@@ -12,48 +12,48 @@ const NUT_PHASES = {
   bulk: {
     label: 'Aufbau', icon: '💪', short: 'Muskeln aufbauen mit einem kleinen Kalorienüberschuss.',
     long: [
-      ['Worum geht es?', 'Du isst etwas mehr, als du verbrauchst. Der Überschuss liefert Energie und Baumaterial, damit aus deinem Training möglichst viel Muskulatur wird. Ein wenig Fett kommt dabei immer mit – ein kleiner Überschuss („Lean Bulk“) hält das gering.'],
+      ['Worum geht es?', 'Du isst etwas mehr, als du verbrauchst. Der Überschuss liefert Energie und Baumaterial, damit aus deinem Training möglichst viel Muskulatur wird. Ein wenig Fett kommt dabei immer mit. Ein kleiner Überschuss („Lean Bulk“) hält das gering.'],
       ['Für wen?', 'Wenn du eher schlank bist (Männer bis ca. 15–18 % Körperfett, Frauen bis ca. 25–28 %) und vor allem Muskeln und Kraft zulegen willst.'],
-      ['Kalorien', 'Standard: +200 bis +300 kcal über deinem Erhaltungsbedarf. Sehr ambitionierte Einsteiger mit viel Aufbaupotenzial: +300 bis +500 kcal. Mehr bringt keine zusätzlichen Muskeln – das Mehr landet vor allem auf den Hüften.'],
+      ['Kalorien', 'Standard: +200 bis +300 kcal über deinem Erhaltungsbedarf. Sehr ambitionierte Einsteiger mit viel Aufbaupotenzial: +300 bis +500 kcal. Mehr bringt keine zusätzlichen Muskeln, das Mehr landet vor allem auf den Hüften.'],
       ['Tempo', 'Richtwert: möglichst nicht mehr als 1 % deines Körpergewichts pro Monat zunehmen (bei 80 kg also höchstens ca. 0,8 kg). So kannst du den Aufbau lange durchziehen und musst hinterher nicht wieder so viel abnehmen.'],
       ['Dauer', 'Meist mehrere Monate (4–12). Fühlst du dich zu „weich“, folgt ein Minicut oder eine Diät.'],
-      ['Training', 'Die beste Phase für Kraftsteigerungen – die Steigerungslogik der App läuft voll.'],
+      ['Training', 'Die beste Phase für Kraftsteigerungen. Die Steigerungslogik der App läuft voll.'],
       ['Fortschritt erkennst du an', 'langsam steigendem Gewicht, steigenden Trainingsgewichten und einem Bauchumfang, der kaum zunimmt.'],
     ],
   },
   recomp: {
-    label: 'Body Recomposition', icon: '⚖️', short: 'Fett verlieren und gleichzeitig Muskeln aufbauen – rund um den Erhaltungsbedarf.',
+    label: 'Body Recomposition', icon: '⚖️', short: 'Fett verlieren und gleichzeitig Muskeln aufbauen, rund um den Erhaltungsbedarf.',
     long: [
       ['Worum geht es?', 'Du isst ungefähr so viel, wie du verbrauchst. Die Energie für neue Muskeln holt sich der Körper zum Teil aus den Fettreserven. Das Gewicht bleibt fast gleich, aber die Zusammensetzung ändert sich: weniger Fett, mehr Muskeln.'],
-      ['Für wen?', 'Klappt am besten bei Trainingsneulingen, Wiedereinsteigern nach einer Pause und bei etwas mehr Körperfett. Bei sehr erfahrenen und schlanken Sportlern geht es kaum noch voran – dann lieber Aufbau und Diät abwechseln.'],
+      ['Für wen?', 'Klappt am besten bei Trainingsneulingen, Wiedereinsteigern nach einer Pause und bei etwas mehr Körperfett. Bei sehr erfahrenen und schlanken Sportlern geht es kaum noch voran. Dann lieber Aufbau und Diät abwechseln.'],
       ['Kalorien', 'Erhaltungsbedarf oder leicht darunter (bis −300 kcal). Viel Eiweiß ist hier besonders wichtig.'],
-      ['Tempo', 'Langsam – die Waage bewegt sich kaum. Fortschritt siehst du am Spiegel, am Maßband (Bauch) und an steigenden Gewichten im Training.'],
+      ['Tempo', 'Langsam: Die Waage bewegt sich kaum. Fortschritt siehst du am Spiegel, am Maßband (Bauch) und an steigenden Gewichten im Training.'],
       ['Dauer', 'Offen, oft mehrere Monate.'],
-      ['Training', 'Ganz normal mit Steigerung – das Training ist hier der wichtigste Antrieb.'],
+      ['Training', 'Ganz normal mit Steigerung. Das Training ist hier der wichtigste Antrieb.'],
       ['Fortschritt erkennst du an', 'gleichbleibendem Gewicht bei schmalerer Taille und steigender Kraft.'],
     ],
   },
   diet: {
-    label: 'Diät', icon: '🔥', short: 'Körperfett abbauen mit einem moderaten Defizit – und dabei die Muskeln behalten.',
+    label: 'Diät', icon: '🔥', short: 'Körperfett abbauen mit einem moderaten Defizit und dabei die Muskeln behalten.',
     long: [
       ['Worum geht es?', 'Du isst bewusst weniger, als du verbrauchst, damit der Körper Fettreserven abbaut. Schweres Training und viel Eiweiß signalisieren ihm, die Muskeln zu behalten.'],
-      ['Für wen?', 'Wenn du Körperfett loswerden willst – z. B. Männer über ca. 20 %, Frauen über ca. 30 % – oder nach einer längeren Aufbauphase.'],
+      ['Für wen?', 'Wenn du Körperfett loswerden willst, z. B. Männer über ca. 20 %, Frauen über ca. 30 %, oder nach einer längeren Aufbauphase.'],
       ['Kalorien', 'Je nach Tempo ca. 300, 500 oder 700 kcal unter deinem Erhaltungsbedarf.'],
       ['Tempo', 'Wer mehr Fett hat, kann zügiger abnehmen; je schlanker du bist, desto langsamer sollte es gehen. Langsamer = mehr Muskelerhalt und weniger Hunger.'],
       ['Dauer', 'Meist 8–16 Wochen. Danach ein paar Wochen auf Erhaltung essen (Diätpause), bevor es weitergeht oder in den Aufbau geht.'],
-      ['Training', 'Gewichte so gut es geht halten. Gegen Ende kann die Kraft etwas sinken – das ist normal. Mehr Sätze bringen jetzt nichts.'],
+      ['Training', 'Gewichte so gut es geht halten. Gegen Ende kann die Kraft etwas sinken. Das ist normal. Mehr Sätze bringen jetzt nichts.'],
       ['Fortschritt erkennst du an', 'gleichmäßig sinkendem Gewicht, schmalerer Taille und weitgehend gleicher Kraft.'],
     ],
   },
   minicut: {
-    label: 'Minicut', icon: '⚡', short: 'Kurze, harte Diät über 2–4 Wochen – meist mitten in einer Aufbauphase.',
+    label: 'Minicut', icon: '⚡', short: 'Kurze, harte Diät über 2–4 Wochen, meist mitten in einer Aufbauphase.',
     long: [
       ['Worum geht es?', 'Eine kurze, bewusst harte Diät mit großem Defizit. Ziel ist, in kurzer Zeit etwas Fett loszuwerden, ohne lange aus dem Aufbau herauszugehen.'],
       ['Für wen?', 'Meist mitten im Aufbau, wenn sich zu viel Fett angesammelt hat, oder vor einem Anlass (Urlaub, Fotos). Nicht als Dauerlösung und nicht für Trainingsneulinge.'],
       ['Kalorien', 'Ca. 800 kcal unter deinem Erhaltungsbedarf, bei mehr Körperfett ca. 1.000 kcal.'],
       ['Tempo', 'In den ersten Tagen fällt das Gewicht schnell (vor allem Wasser), danach geht es zügig, aber gleichmäßig weiter.'],
-      ['Dauer', 'Höchstens 4 Wochen am Stück. Danach 1 Woche auf Erhaltungskalorien essen, am besten kombiniert mit einer Deload-Woche im Training. Bist du dann noch nicht zufrieden, höchstens noch einen weiteren Durchgang mit diesem Defizit – danach in den Aufbau oder auf Erhaltung.'],
-      ['Training', 'Gewichte halten, eher ein paar Sätze weniger – mit wenig Energie erholst du dich schlechter. Kein guter Zeitpunkt für Rekordversuche.'],
+      ['Dauer', 'Höchstens 4 Wochen am Stück. Danach 1 Woche auf Erhaltungskalorien essen, am besten kombiniert mit einer Deload-Woche im Training. Bist du dann noch nicht zufrieden, höchstens noch einen weiteren Durchgang mit diesem Defizit, danach in den Aufbau oder auf Erhaltung.'],
+      ['Training', 'Gewichte halten, eher ein paar Sätze weniger. Mit wenig Energie erholst du dich schlechter. Kein guter Zeitpunkt für Rekordversuche.'],
       ['Fortschritt erkennst du an', 'deutlich sinkendem Gewicht und Bauchumfang bei gehaltener Kraft.'],
     ],
   },
@@ -63,19 +63,19 @@ const NUT_PHASES = {
 const NUT_PACES = {
   bulk: [
     { k: 'normal', label: 'Standard', kcal: 250, range: [200, 300],
-      text: 'Für die meisten. Richtwert: möglichst nicht mehr als 1 % deines Körpergewichts pro Monat zunehmen – so kannst du den Aufbau lange durchziehen und musst hinterher nicht wieder so viel abnehmen.' },
+      text: 'Für die meisten. Richtwert: möglichst nicht mehr als 1 % deines Körpergewichts pro Monat zunehmen. So kannst du den Aufbau lange durchziehen und musst hinterher nicht wieder so viel abnehmen.' },
     { k: 'ambitious', label: 'Ambitioniert', kcal: 400, range: [300, 500],
-      text: 'Für sehr ambitionierte Einsteiger – am Anfang ist noch mehr Aufbaupotenzial da. Es kommt etwas mehr Fett mit.' },
+      text: 'Für sehr ambitionierte Einsteiger. Am Anfang ist noch mehr Aufbaupotenzial da. Es kommt etwas mehr Fett mit.' },
   ],
   recomp: [
     { k: 'maint', label: 'Erhaltung', kcal: 0, text: 'Wenn du schon recht schlank bist.' },
-    { k: 'light', label: 'Leicht darunter', kcal: -150, text: 'Der übliche Weg – ein Hauch Defizit hilft beim Fettabbau.' },
+    { k: 'light', label: 'Leicht darunter', kcal: -150, text: 'Der übliche Weg: Ein Hauch Defizit hilft beim Fettabbau.' },
     { k: 'more', label: 'Etwas mehr darunter', kcal: -300, text: 'Bei etwas mehr Körperfett.' },
   ],
   diet: [
-    { k: 'slow', label: 'Sanft', kcal: -300, text: 'Bestmöglicher Muskelerhalt, wenig Hunger – ideal, wenn du schon recht schlank bist.' },
+    { k: 'slow', label: 'Sanft', kcal: -300, text: 'Bestmöglicher Muskelerhalt, wenig Hunger. Ideal, wenn du schon recht schlank bist.' },
     { k: 'normal', label: 'Normal', kcal: -500, text: 'Der gute Mittelweg für die meisten.' },
-    { k: 'fast', label: 'Zügig', kcal: -700, text: 'Bei deutlich mehr Körperfett – mehr Hunger, eher Kraftverlust.' },
+    { k: 'fast', label: 'Zügig', kcal: -700, text: 'Bei deutlich mehr Körperfett. Mehr Hunger, eher Kraftverlust.' },
   ],
   minicut: [
     { k: 'normal', label: 'Standard', kcal: -800, text: 'Für die meisten.' },
@@ -88,8 +88,8 @@ const NUT_MINICUT_MAX = 4;  // Minicut: höchstens 4 Wochen am Stück, danach 1 
 const NUT_ACT = {
   1: { label: 'Kaum aktiv', f: 1.2, text: 'Sitzender Alltag, kaum Bewegung, kein Sport.' },
   2: { label: 'Leicht aktiv', f: 1.375, text: 'Bürojob, 1–3 Trainings pro Woche oder ca. 5.000–7.500 Schritte am Tag.' },
-  3: { label: 'Mäßig aktiv', f: 1.55, text: '3–5 Trainings pro Woche und ca. 7.500–10.000 Schritte – oder ein Job mit viel Stehen und Gehen.' },
-  4: { label: 'Sehr aktiv', f: 1.725, text: 'Fast täglich Training und über 10.000 Schritte – oder körperlich anstrengende Arbeit.' },
+  3: { label: 'Mäßig aktiv', f: 1.55, text: '3–5 Trainings pro Woche und ca. 7.500–10.000 Schritte oder ein Job mit viel Stehen und Gehen.' },
+  4: { label: 'Sehr aktiv', f: 1.725, text: 'Fast täglich Training und über 10.000 Schritte oder körperlich anstrengende Arbeit.' },
   5: { label: 'Extrem aktiv', f: 1.9, text: 'Harte körperliche Arbeit plus Training oder Leistungssport.' },
 };
 
@@ -132,7 +132,7 @@ function nutTrainAdapt() {
   return n.phase === 'diet' || (n.phase === 'minicut' && nutMinicutStage(n) === 'cut');
 }
 
-const NUT_ADAPT_TEXT = 'Das Volumen startet in der Intro-Woche auf dem Stand, den dein Plan sonst in Woche 2 hat, steigt in Woche 2 auf den Stand von Woche 3 und bleibt dann dort – kein weiterer Anstieg. Im Tank bleiben in der Intro-Woche 2 Wiederholungen, danach jede Woche 0,5 weniger bis 0,5 (Grundübungen 0,5 mehr, Assistenzübungen 0,5 weniger; mit „Mehr Volumen“ bzw. „Weniger Volumen“ im Plan jeweils 0,5 mehr bzw. weniger). Und die App erzwingt keine Gewichtssteigerung: Das Gewicht steigt nur, wenn du den Plan klar erfüllt hast – sonst höchstens 1 Wiederholung mehr als beim letzten Mal. So hältst du deine Kraft, ohne dich im Defizit zu überfordern.';
+const NUT_ADAPT_TEXT = 'Das Volumen startet in der Intro-Woche auf dem Stand, den dein Plan sonst in Woche 2 hat, steigt in Woche 2 auf den Stand von Woche 3 und bleibt dann dort, kein weiterer Anstieg. Im Tank bleiben in der Intro-Woche 2 Wiederholungen, danach jede Woche 0,5 weniger bis 0,5 (Grundübungen 0,5 mehr, Assistenzübungen 0,5 weniger; mit „Mehr Volumen“ bzw. „Weniger Volumen“ im Plan jeweils 0,5 mehr bzw. weniger, bei „Weniger Volumen“ aber nie unter 0,5). Und die App erzwingt keine Gewichtssteigerung: Das Gewicht steigt nur, wenn du den Plan klar erfüllt hast, sonst höchstens 1 Wiederholung mehr als beim letzten Mal. So hältst du deine Kraft, ohne dich im Defizit zu überfordern.';
 
 // Frage beim Einrichten von Diät und Minicut
 function nutTrainQuestion(d, action = 'nut-train-pick') {
@@ -144,8 +144,8 @@ function nutTrainQuestion(d, action = 'nut-train-pick') {
   return `<div class="card wiz-q">
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🏋️</span><h2>Trainingsplan an ${d.phase === 'minicut' ? 'den Minicut' : 'die Diät'} anpassen?</h2></div>
       <p class="hint wiz-q-explain">Im Kaloriendefizit erholst du dich schlechter. Angepasst heißt: ${NUT_ADAPT_TEXT}
-        ${own ? '<br><b>Hinweis:</b> Dein aktiver Plan ist ein eigener Plan ohne Steigerung – dort ändert sich nichts.' : ''}</p>
-      ${opt(true, 'Ja, Training anpassen', 'Gilt, solange die Phase läuft – danach wieder wie gewohnt.')}
+        ${own ? '<br><b>Hinweis:</b> Dein aktiver Plan ist ein eigener Plan ohne Steigerung, dort ändert sich nichts.' : ''}</p>
+      ${opt(true, 'Ja, Training anpassen', 'Gilt, solange die Phase läuft, danach wieder wie gewohnt.')}
       ${opt(false, 'Nein, Plan läuft unverändert', 'Volumen und Tank bleiben wie im Plan.')}
     </div>`;
 }
@@ -171,7 +171,7 @@ function nutStartLine() {
   return `<button class="nut-strip" data-action="tab" data-tab="nutrition"><span class="nut-strip-icon" aria-hidden="true">${ph.icon}</span>
       <span><b>${ph.label}</b>${maint ? ' · Erhaltungswoche' : ''} · Tagesziel ${nutKcal(nutForDay(nutCalc(n, kg)).kcal)} kcal${(t => t && t.kcal != null ? ` · heute ${nutKcal(t.kcal)}` : "")(intakeOn(todayISO()))}
         ${nutTrainAdapt() ? `<small>${feat('tr-rir-input') ? 'Training angepasst: Volumen ohne weiteren Anstieg, Tank von 2 auf 0,5' : 'Training an die Phase angepasst'}</small>` : ''}
-        ${(cc => nutLowIntake(n, nutForDay(cc)) ? '<small>⚠️ Du isst zurzeit sehr wenig – siehe Ernährung</small>'
+        ${(cc => nutLowIntake(n, nutForDay(cc)) ? '<small>⚠️ Du isst zurzeit sehr wenig, siehe Ernährung</small>'
           : n.goalKg != null && n.phase !== 'recomp' && n.goalKg !== n.startKg && (kg - n.startKg) / (n.goalKg - n.startKg) >= 1 ? '<small>🎯 Ziel erreicht</small>' : '')(nutCalc(n, kg))}</span></button>`;
 }
 
@@ -189,7 +189,7 @@ function nutMinicutNote(w) {
   return `<div class="deload-note nut-small">⚡ <b>Minicut und Training</b>
       <ul class="nut-mc-list">
         <li>Der Minicut <b>begrenzt deinen Trainingszyklus</b> auf die gewählte Dauer. Danach folgt automatisch 1 Woche auf
-          Erhaltungskalorien und im Training gleichzeitig die <b>Deload-Woche</b> – auch wenn dein Zyklus eigentlich länger wäre.</li>
+          Erhaltungskalorien und im Training gleichzeitig die <b>Deload-Woche</b>, auch wenn dein Zyklus eigentlich länger wäre.</li>
         <li>Danach ist noch <b>ein</b> weiterer Durchgang möglich: höchstens ${NUT_MINICUT_MAX} Wochen Training im Defizit, dann wieder Deload.</li>
         <li>Spätestens dann solltest du die <b>Phase wechseln</b>: weiter mit Aufbau oder ein paar Wochen auf Erhaltung.</li>
       </ul>${mine}</div>`;
@@ -302,7 +302,7 @@ const NUT_CMP_N = 10, NUT_CMP_KG = 0.5, NUT_FLAT_KG = 0.1;
 function nutWeighBlocks(n) {
   const from = [addDaysISO(n.since, 7), n.resumeAt ? addDaysISO(n.resumeAt, 7) : ''].sort().pop();
   const cut = n.phase === 'diet' || n.phase === 'minicut';
-  const dl = cut ? data.sessions.filter(s => s.deload).map(s => s.date.slice(0, 10)).filter(d => d >= n.since) : [];
+  const dl = cut ? data.sessions.filter(s => s.deload && !s.light).map(s => s.date.slice(0, 10)).filter(d => d >= n.since) : [];
   const list = data.bodyweight.map(b => ({ d: b.date.slice(0, 10), kg: b.kg }))
     .filter(b => b.d >= from && (!n.changedAt || b.d > n.changedAt) && !nutWaterDay(b.d) && !dl.some(d => b.d >= addDaysISO(d, -1) && b.d <= addDaysISO(d, 7)))
     .sort((a, c) => a.d.localeCompare(c.d));
@@ -423,9 +423,9 @@ function nutHintsCard() {
       <div class="seg two"><button class="${on ? 'on' : ''}" data-action="nut-hints" data-v="1">An</button>
         <button class="${on ? '' : 'on'}" data-action="nut-hints" data-v="0">Aus</button></div>
       <p class="hint explain nut-small">Die App bewertet, was du isst, und schlägt Änderungen vor: Gewichtsverlauf, gemessener Bedarf
-        und die grünen und orangen Balken bei „Heute gegessen“. Manche Menschen setzt so etwas unter Druck – etwa,
+        und die grünen und orangen Balken bei „Heute gegessen“. Manche Menschen setzt so etwas unter Druck, etwa,
         wenn man ohnehin sehr auf Zahlen achtet oder schon einmal Schwierigkeiten mit dem Essen hatte. <b>Aus</b> heißt: Die App zeigt
-        nur noch dein Tagesziel und was du eingetragen hast – ohne Bewertung, ohne Warnungen und ohne Vorschläge. Phasen,
+        nur noch dein Tagesziel und was du eingetragen hast, ohne Bewertung, ohne Warnungen und ohne Vorschläge. Phasen,
         Erhaltungswochen und dein Training laufen ganz normal weiter. Du kannst es jederzeit wieder einschalten.</p>
     </div>`;
 }
@@ -475,7 +475,7 @@ function nutBodyErrors(d) {
   if (d.age == null || d.age < 14 || d.age > 99) return 'Bitte dein Alter eintragen (14–99 Jahre).';
   if (d.height == null || d.height < 120 || d.height > 230) return 'Bitte deine Größe in cm eintragen (z. B. 178).';
   if (d.kg == null || d.kg < 30 || d.kg > 300) return 'Bitte dein aktuelles Gewicht in kg eintragen.';
-  if (d.bodyFat != null && (d.bodyFat < 3 || d.bodyFat > 60)) return 'Der Körperfettanteil muss zwischen 3 und 60 % liegen – oder lass das Feld leer.';
+  if (d.bodyFat != null && (d.bodyFat < 3 || d.bodyFat > 60)) return 'Der Körperfettanteil muss zwischen 3 und 60 % liegen, oder lass das Feld leer.';
   if (!d.activity) return 'Bitte deine Aktivität im Alltag auswählen.';
   return null;
 }
@@ -503,26 +503,26 @@ function nutBasicsCard(kcal, kg) {
       <p>Kalorien und Eiweiß bestimmen, ob du ab- oder zunimmst und Muskeln aufbaust. <b>Wie gesund</b> du isst, hängt aber
         vor allem davon ab, <b>was</b> auf dem Teller liegt. Diese Faustregeln helfen:</p>
       <ul>
-        <li><b>🥦 Gemüse und Obst:</b> jeden Tag mindestens <b>250 g Gemüse</b> und <b>250 g Obst</b> – etwa 3 Handvoll Gemüse
+        <li><b>🥦 Gemüse und Obst:</b> jeden Tag mindestens <b>250 g Gemüse</b> und <b>250 g Obst</b>, etwa 3 Handvoll Gemüse
           und 2 Handvoll Obst. Möglichst bunt gemischt; Tiefkühlware zählt genauso.</li>
-        <li><b>🌾 Ballaststoffe:</b> mindestens <b>10 g je 1.000 kcal</b>${fiber ? ` – bei deinem Tagesziel also ca. <b>${fiber} g</b>` : ''}.
+        <li><b>🌾 Ballaststoffe:</b> mindestens <b>10 g je 1.000 kcal</b>${fiber ? `, bei deinem Tagesziel also ca. <b>${fiber} g</b>` : ''}.
           Mehr ist ausdrücklich gut. Gute Quellen: Haferflocken, Vollkornbrot und -nudeln, Hülsenfrüchte (Linsen, Bohnen,
           Kichererbsen), Gemüse, Obst, Nüsse und Leinsamen. Langsam steigern und genug dazu trinken.</li>
         <li><b>🍞 Vollkorn statt Weißmehl:</b> sättigt länger, liefert mehr Vitamine, Mineralstoffe und Ballaststoffe.</li>
         <li><b>🥚 Eiweiß zu jeder Mahlzeit:</b> z. B. Magerquark, Skyr, Joghurt, Eier, Fisch, Geflügel, Hülsenfrüchte oder Tofu.</li>
-        <li><b>🥓 Verarbeitete Fleischprodukte meiden:</b> Wurst, Salami, Schinken, Speck und Würstchen nur selten – sie erhöhen
+        <li><b>🥓 Verarbeitete Fleischprodukte meiden:</b> Wurst, Salami, Schinken, Speck und Würstchen nur selten. Sie erhöhen
           nachweislich das Risiko für Darmkrebs und Herz-Kreislauf-Erkrankungen. Auch rotes Fleisch (Rind, Schwein, Lamm) lieber
           nicht zu oft. Fisch 1–2× pro Woche, davon gern einmal fetter Seefisch (Lachs, Hering, Makrele).</li>
         <li><b>🫒 Gute Fette:</b> Raps- und Olivenöl, Nüsse, Samen und Fisch. Frittiertes, Fast Food und viel Butter oder
           Sahne eher selten.</li>
         <li><b>🍬 Nicht zu viel Zucker und Salz:</b> Softdrinks, Säfte, Süßigkeiten und Gebäck sparsam, beim Salzen lieber
-          zurückhaltend. Fertiggerichte enthalten oft viel von beidem – Faustregel: je kürzer die Zutatenliste, desto besser.</li>
-        <li><b>💧 Trinken:</b> etwa <b>1 Liter je 20 kg Körpergewicht</b>${water ? ` – bei dir also ca. <b>${water} Liter</b>` : ''}
+          zurückhaltend. Fertiggerichte enthalten oft viel von beidem. Faustregel: je kürzer die Zutatenliste, desto besser.</li>
+        <li><b>💧 Trinken:</b> etwa <b>1 Liter je 20 kg Körpergewicht</b>${water ? `, bei dir also ca. <b>${water} Liter</b>` : ''}
           am Tag, am besten Wasser oder ungesüßter Tee. An Trainingstagen und bei Hitze etwas mehr. Alkohol nicht zu viel.</li>
         <li><b>⚖️ Kein Alles-oder-nichts:</b> Es zählt, was du an den meisten Tagen isst. Wenn rund 80 % passen, ist auch mal
           Kuchen, Pizza oder ein Grillabend völlig in Ordnung.</li>
       </ul>
-      ${seen ? '' : '<button class="btn center" data-action="nut-basics-ok">✔ Verstanden – zuklappen</button>'}
+      ${seen ? '' : '<button class="btn center" data-action="nut-basics-ok">✔ Verstanden, zuklappen</button>'}
       <p class="hint nut-small">Allgemeine Empfehlungen für gesunde Erwachsene (angelehnt an DGE und WHO). Bei Erkrankungen
         oder Unverträglichkeiten bitte ärztlich beraten lassen.</p>
     </details>`;
@@ -561,7 +561,7 @@ function renderNutBody() {
   const cut = d.flow === 'nutphase' && (d.phase === 'diet' || d.phase === 'minicut');
   const cutNote = !cut ? '' : `<p class="deload-note">🏋️ <b>Gut zu wissen:</b> Im Kaloriendefizit erholst du dich schlechter.
       Kraft und Wiederholungen können eine Zeit lang stagnieren oder leicht sinken, und ein Satz geht öfter mal knapp
-      daneben – das ist normal und kein Rückschritt. ${feat('nut-train-q')
+      daneben. Das ist normal und kein Rückschritt. ${feat('nut-train-q')
         ? 'Im letzten Schritt kannst du festlegen, ob die App dein Training daran anpasst.'
         : 'Die App passt dein Training deshalb automatisch an (weniger zusätzliche Sätze, Gewichte halten).'}</p>`;
   return `${cutNote}<div class="card wiz-q">
@@ -581,7 +581,7 @@ function renderNutBody() {
     <div class="card wiz-q">
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🚶</span><h2>Wie aktiv bist du?</h2></div>
       <p class="hint wiz-q-explain explain">Gemeint ist alles zusammen: Alltag, Arbeit und Training. Wenn du schwankst, nimm lieber die
-        niedrigere Stufe – die meisten schätzen sich zu aktiv ein.${guess ? ` Vorschlag aus deinen Daten (${guessText}): <b>${NUT_ACT[guess.lvl].label}</b>.` : ''}</p>
+        niedrigere Stufe. Die meisten schätzen sich zu aktiv ein.${guess ? ` Vorschlag aus deinen Daten (${guessText}): <b>${NUT_ACT[guess.lvl].label}</b>.` : ''}</p>
       ${Object.entries(NUT_ACT).map(([k, a]) => `<button class="split-opt ${String(d.activity) === k ? 'on' : ''}" data-action="nut-act" data-k="${k}">
           ${guess && guess.lvl === Number(k) ? '<span class="split-tag">Vorschlag</span>' : ''}<b>${a.label}</b><small>${a.text}</small></button>`).join('')}
     </div>
@@ -627,7 +627,7 @@ function renderNutGoal() {
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">${ph.icon}</span><h2>${ph.label}: Ziel & Tempo</h2></div>
       <p class="hint wiz-q-explain">Wie schnell soll es gehen? Ausgangspunkt ist dein geschätzter Erhaltungsbedarf von
         <b>${nutKcal(c.tdee)} kcal</b> pro Tag.</p>
-      ${feat('nut-pace') ? paces : `<p class="hint nut-small">Tempo: <b>${nutPace(d).label}</b> – der gute Mittelweg für die meisten.</p>`}
+      ${feat('nut-pace') ? paces : `<p class="hint nut-small">Tempo: <b>${nutPace(d).label}</b>, der gute Mittelweg für die meisten.</p>`}
       ${weeks}
       ${goal}
     </div>
@@ -658,7 +658,7 @@ function nutProteinNote(n, c) {
   return `<p class="nut-protein ${low ? 'low' : ''}"><b>Eiweiß-Empfehlung: ${c.pLo}–${c.pHi} g am Tag</b>
       (${fmtNum(pr.lo)}–${fmtNum(pr.hi)} g pro kg${Math.abs(c.ref - (n.kg || nutWeight())) > 1 ? ` bezogen auf ${fmtNum(Math.round(c.ref))} kg` : ''}).
       ${low ? 'Dein Eiweiß liegt gerade darunter. ' : ''}Orientiere dich eher am oberen Rand, wenn du relativ wenig Körperfett hast,
-      älter bist (ab ca. 50) oder dich vegan ernährst – pflanzliches Eiweiß verwertet der Körper etwas schlechter.
+      älter bist (ab ca. 50) oder dich vegan ernährst. Pflanzliches Eiweiß verwertet der Körper etwas schlechter.
       ${why.length ? `<b>Bei dir passt eher der obere Rand, weil ${why.join(' und ')}.</b>` : ''}</p>`;
 }
 
@@ -666,7 +666,7 @@ function nutProteinNote(n, c) {
 function nutPctEditor() {
   const e = nutMacroEdit;
   return `<div class="nut-pct">
-      <p class="hint nut-small">Teile deine ${nutKcal(e.kcal)} kcal selbst auf – zusammen 100 %.</p>
+      <p class="hint nut-small">Teile deine ${nutKcal(e.kcal)} kcal selbst auf, zusammen 100 %.</p>
       ${NUT_MACROS.map(([k, l]) => `<label class="row nut-pct-row ${k}"><span>${l}</span>
         <input class="inp kg" type="text" inputmode="decimal" autocomplete="off" data-field="nut-pct" data-k="${k}" value="${esc(e[k])}">
         <em>%</em><b id="nut-pct-${k}"></b></label>`).join('')}
@@ -689,7 +689,7 @@ function nutPctUpdate() {
   const s = document.getElementById('nut-pct-sum');
   if (!s) return;
   sum = round1(sum);
-  s.textContent = sum === 100 ? 'Summe: 100 % ✔' : `Summe: ${fmtNum(sum)} % – ${sum < 100 ? `es fehlen noch ${fmtNum(round1(100 - sum))}` : `${fmtNum(round1(sum - 100))} zu viel`} %`;
+  s.textContent = sum === 100 ? 'Summe: 100 % ✔' : `Summe: ${fmtNum(sum)} %: ${sum < 100 ? `es fehlen noch ${fmtNum(round1(100 - sum))}` : `${fmtNum(round1(sum - 100))} zu viel`} %`;
   s.classList.toggle('off', sum !== 100);
 }
 
@@ -700,7 +700,7 @@ const nutKcalBase = (n, kg) => nutCalc({ ...n, adjust: 0, kcalOwn: null }, kg).k
 function nutKcalPreview(n, kg, v) {
   const floor = n.sex === 'm' ? 1500 : 1200;
   if (v == null || v < floor || v > 6000) {
-    return v != null && v < floor ? `Weniger als ${deNum(floor)} kcal empfiehlt die App nicht – sonst fehlen schnell Nährstoffe.` : 'Bitte eine Kalorienzahl eintragen.';
+    return v != null && v < floor ? `Weniger als ${deNum(floor)} kcal empfiehlt die App nicht, sonst fehlen schnell Nährstoffe.` : 'Bitte eine Kalorienzahl eintragen.';
   }
   const c = nutCalc({ ...n, kcalOwn: v }, kg);
   return `Dann: <b>Eiweiß ${c.protein} g · Fett ${c.fat} g · Kohlenhydrate ${c.carbs} g</b>`;
@@ -725,7 +725,7 @@ function nutKcalEditor(n, c, kg) {
 // editable: in der Übersicht lassen sich die Makros in % selbst festlegen (nicht in der Vorschau beim Einrichten)
 function nutTargetCard(n, c, editable = false) {
   const notes = {
-    floor: `Weniger als ${deNum(n.sex === 'm' ? 1500 : 1200)} kcal empfiehlt die App nicht – sonst fehlen schnell Nährstoffe.`,
+    floor: `Weniger als ${deNum(n.sex === 'm' ? 1500 : 1200)} kcal empfiehlt die App nicht, sonst fehlen schnell Nährstoffe.`,
   };
   const adj = n.kcalOwn != null ? '' : n.adjust ? ` · inkl. ${nutSigned(n.adjust, 'kcal')} aus deinem Gewichtsverlauf` : '';
   const pct = nutPctOf(c);
@@ -765,7 +765,7 @@ function nutTargetCard(n, c, editable = false) {
       ${macros}
       ${feat('nut-protein-detail') ? nutProteinNote(n, c) : ''}
       <p class="nut-relax">😌 <b>Kein Stress:</b> Du musst diese Werte nicht aufs Gramm genau treffen. Entscheidend ist, dass Kalorien
-        und Eiweiß über die Woche gesehen ungefähr passen – ±10 % sind völlig in Ordnung. Ein Tag mit mehr Kohlenhydraten oder
+        und Eiweiß über die Woche gesehen ungefähr passen, ±10 % sind völlig in Ordnung. Ein Tag mit mehr Kohlenhydraten oder
         weniger Fett macht nichts kaputt; wichtig ist, was du an den meisten Tagen isst.</p>
     </div>`;
 }
@@ -776,7 +776,7 @@ function nutCardioLine(n, c) {
   if (!x) return '';
   return n.cardioAdd
     ? `<p class="nut-cardio">🏃 Heute <b>+${deNum(x)} kcal</b> Cardio → Ziel heute <b>${nutKcal(c.kcal + x)} kcal</b></p>`
-    : `<p class="nut-cardio off">🏃 Heute ca. ${deNum(x)} kcal Cardio – nicht ins Tagesziel eingerechnet
+    : `<p class="nut-cardio off">🏃 Heute ca. ${deNum(x)} kcal Cardio, nicht ins Tagesziel eingerechnet
         <button class="link-btn" data-action="cardio-open">ändern</button></p>`;
 }
 
@@ -841,7 +841,7 @@ function nutIntakeFormHtml() {
 }
 
 // Knopf zum Import eines eigenen Ernährungsplans (nutplan.js) – unter den Tagebuch-Knöpfen
-const NP_OPEN_BTN = `<button class="btn nav np-open-btn" data-action="np-open">📋 Eigenen Ernährungsplan übernehmen<small>Aus Excel, Google Sheets oder als Tabelle einfügen – z. B. vom Ernährungsberater</small></button>`;
+const NP_OPEN_BTN = `<button class="btn nav np-open-btn" data-action="np-open">📋 Eigenen Ernährungsplan übernehmen<small>Aus Excel, Google Sheets oder als Tabelle einfügen, z. B. vom Ernährungsberater</small></button>`;
 
 // Heute: Ist ↔ Soll
 function nutIntakeCard(n, c) {
@@ -853,7 +853,7 @@ function nutIntakeCard(n, c) {
        ${feat('nut-macros') ? nutIntakeBar('Kohlenhydrate', t.c, c.carbs, 'g', 0.25) + nutIntakeBar('Fett', t.f, c.fat, 'g', 0.25) : ''}
        <p class="hint nut-small">${{ food: 'Aus deinem Ernährungstagebuch', health: 'Aus Health übernommen', auto: 'Mit dem Tagesziel nachgetragen' }[t.src] || 'Von Hand eingetragen'}${nutHintsOn()
          ? ` · Grün = passt (Kalorien ±10 %, Eiweiß ab der Untergrenze${feat('nut-macros') ? ', Kohlenhydrate und Fett ±25 %' : ''}).` : '.'}</p>`
-    : '<p class="hint nut-small">Heute ist noch nichts eingetragen. Trag ins Ernährungstagebuch ein, was du isst – oder füg die Werte aus deiner Ernährungs-App über Health ein bzw. trag die Tagessummen von Hand ein.</p>';
+    : '<p class="hint nut-small">Heute ist noch nichts eingetragen. Trag ins Ernährungstagebuch ein, was du isst, oder füg die Werte aus deiner Ernährungs-App über Health ein bzw. trag die Tagessummen von Hand ein.</p>';
   return `<div class="card nut-intake">
       <p class="nut-intake-head"><b>🍽️ Heute gegessen</b></p>
       ${body}
@@ -916,9 +916,9 @@ function nutGapsHtml(c) {
   const span = gaps.length === 1 ? `am ${fmtDate(gaps[0] + 'T12:00:00')}` : `zwischen ${fmtDate(gaps[0] + 'T12:00:00')} und ${fmtDate(gaps[gaps.length - 1] + 'T12:00:00')}`;
   return `<div class="nut-gaps">
       <p class="hint nut-small"><b>${gaps.length} Tag${gaps.length === 1 ? '' : 'e'} ohne Eintrag</b> ${span}. Der gemessene Bedarf vergleicht,
-        was du im Schnitt isst, mit deinem Gewichtsverlauf – je mehr Tage fehlen, desto ungenauer wird er. Hast du an diesen Tagen
+        was du im Schnitt isst, mit deinem Gewichtsverlauf. Je mehr Tage fehlen, desto ungenauer wird er. Hast du an diesen Tagen
         ungefähr nach Plan gegessen, trägt die App dort dein Tagesziel ein (${nutKcal(c.kcal)} kcal, ${c.protein} g Eiweiß).
-        Tage, an denen du deutlich mehr oder weniger gegessen hast, trag lieber selbst ein – nachgetragene Tage kannst du unten jederzeit ändern.</p>
+        Tage, an denen du deutlich mehr oder weniger gegessen hast, trag lieber selbst ein. Nachgetragene Tage kannst du unten jederzeit ändern.</p>
       <button class="btn" data-action="nut-gaps-fill">📝 Bis gestern mit dem Tagesziel nachtragen</button>
     </div>`;
 }
@@ -985,7 +985,7 @@ function nutMeasuredCard(n, c) {
   if (m.tdee == null) {
     return `<div class="card nut-check"><p><b>📏 Gemessener Bedarf</b></p>
       <p class="hint nut-small">${m.noWeight
-        ? 'Genug Essens-Einträge sind da – jetzt fehlen noch Gewichtswerte: Wiege dich 3–4× pro Woche über mindestens zwei Wochen.'
+        ? 'Genug Essens-Einträge sind da. Jetzt fehlen noch Gewichtswerte: Wiege dich 3–4× pro Woche über mindestens zwei Wochen.'
         : `Trägst du an mindestens 14 Tagen ein, was du isst (bisher ${m.days} seit dem ${fmtDate(m.from + 'T12:00:00')}), und wiegst dich regelmäßig,
           rechnet die App deinen <b>echten</b> Erhaltungsbedarf aus: Was du im Schnitt isst, minus das, was sich am Gewicht
           verändert. Das ist viel genauer als die Schätzformel.`}</p></div>`;
@@ -995,8 +995,8 @@ function nutMeasuredCard(n, c) {
   return `<div class="card nut-check ${close ? 'ok' : onPlan ? '' : 'off'}"><p><b>📏 Gemessener Bedarf: ca. ${nutKcal(real)} kcal</b></p>
       <p class="hint nut-small">Seit dem ${fmtDate(m.from + 'T12:00:00')} hast du an ${m.days} Tagen im Schnitt <b>${nutKcal(m.avg)} kcal</b> gegessen,
         dein Gewicht hat sich dabei um <b>${nutSigned(m.perWeek, 'kg')} pro Woche</b> verändert. Daraus ergibt sich ein Erhaltungsbedarf
-        von ca. ${nutKcal(real)} kcal – die App rechnet gerade mit ${nutKcal(used)} kcal${n.kcalOwn != null ? ' (aus deinem eigenen Tagesziel)' : n.adjust ? ' (Formel + Anpassung)' : ' (Schätzformel)'}.
-        ${close ? 'Das passt gut zusammen.' : plan ? `Dein Ernährungsplan ist maßgeblich – die App ändert nichts. Weicht dein Gewicht länger vom Ziel ab, sprich eine Anpassung mit deinem Berater ab (Richtung: ${nutSigned(step, 'kcal')}).`
+        von ca. ${nutKcal(real)} kcal. Die App rechnet gerade mit ${nutKcal(used)} kcal${n.kcalOwn != null ? ' (aus deinem eigenen Tagesziel)' : n.adjust ? ' (Formel + Anpassung)' : ' (Schätzformel)'}.
+        ${close ? 'Das passt gut zusammen.' : plan ? `Dein Ernährungsplan ist maßgeblich, die App ändert nichts. Weicht dein Gewicht länger vom Ziel ab, sprich eine Anpassung mit deinem Berater ab (Richtung: ${nutSigned(step, 'kcal')}).`
           : onPlan ? (mst.conflict ? nutConflictText(mst) : 'Eine Änderung schlägt die App nur vor, wenn dein Durchschnittsgewicht in die falsche Richtung läuft oder stehen bleibt.')
           : atFloor || wait || minicut ? '' : 'Den Vorschlag dazu findest du weiter unten.'}</p>
       ${atFloor ? nutFloorHint(n) : minicut ? NUT_MINICUT_NOTE : ''}
@@ -1010,7 +1010,7 @@ const NUT_MINICUT_NOTE = `<p class="hint nut-small">Im Minicut schlägt die App 
 
 // Hinweis: weniger essen geht nicht mehr – das Tagesziel ist schon am Minimum
 function nutFloorHint(n) {
-  return `<p class="hint nut-small">Dein Tagesziel liegt schon bei ${deNum(nutFloor(n))} kcal – weniger empfiehlt die App nicht. Weiter
+  return `<p class="hint nut-small">Dein Tagesziel liegt schon bei ${deNum(nutFloor(n))} kcal. Weniger empfiehlt die App nicht. Weiter
     kommst du stattdessen mit mehr Bewegung im Alltag (z. B. 2.000–3.000 Schritte mehr am Tag, das sind etwa 100–150 kcal) oder mit
     einer Diätpause: 1–2 Wochen auf Erhaltung essen (Phase „Body Recomposition“, Tempo „Erhaltung“), danach geht es meist leichter weiter.</p>`;
 }
@@ -1032,7 +1032,7 @@ function nutTrendCard(n, c) {
   const perDay = v => `täglich etwa <b>${Math.abs(v)} kcal ${v < 0 ? 'weniger' : 'mehr'}</b>`;
   const corr = off.corr;
   if (typeof nutPlanActive === 'function' && nutPlanActive()) {
-    return card(`Dein Ernährungsplan ist maßgeblich – die App ändert nichts. Bleibt das so, sprich eine Anpassung (etwa ${nutSigned(corr, 'kcal')} am Tag)
+    return card(`Dein Ernährungsplan ist maßgeblich, die App ändert nichts. Bleibt das so, sprich eine Anpassung (etwa ${nutSigned(corr, 'kcal')} am Tag)
       mit deinem Ernährungsberater ab.`, NUT_LATER_BTN);
   }
   // Gemessener Bedarf zeigt in dieselbe Richtung: danach anpassen, das ist genauer
@@ -1083,20 +1083,20 @@ function nutPhaseHint(n) {
   if (stage === 'maint') {
     // Erhaltungswoche: im Training läuft dazu der Deload (beim Übergang automatisch eingelegt, siehe nutSync)
     const coupled = nutPlanCoupled() && cycleInfo().deload;
-    return `<div class="card nut-check ok"><p><b>🏁 Minicut geschafft – jetzt Erhaltungswoche</b></p>
+    return `<div class="card nut-check ok"><p><b>🏁 Minicut geschafft, jetzt Erhaltungswoche</b></p>
       <p class="hint nut-small">Diese Woche isst du auf Erhaltungskalorien (das Tagesziel ist schon umgestellt).
-        ${coupled ? 'Im Training läuft passend dazu die <b>Deload-Woche</b> – Essen und Training erholen sich gemeinsam. Die Erhaltungswoche dauert mindestens 7 Tage und so lange, bis der Deload geschafft ist.'
+        ${coupled ? 'Im Training läuft passend dazu die <b>Deload-Woche</b>. Essen und Training erholen sich gemeinsam. Die Erhaltungswoche dauert mindestens 7 Tage und so lange, bis der Deload geschafft ist.'
           : 'Trainiere diese Woche bewusst leichter (weniger Sätze, etwas weniger Gewicht), damit sich der Körper erholt.'}</p></div>`;
   }
   if (nutBreakNow(n)) {
     const minicut = n.phase === 'minicut';
     return `<div class="card nut-check ok"><p><b>😮‍💨 Deload-Woche = Erhaltungswoche</b></p>
-      <p class="hint nut-small">Im Training ist gerade Deload – deshalb isst du diese Woche auf <b>Erhaltung</b> statt im Defizit
+      <p class="hint nut-small">Im Training ist gerade Deload. Deshalb isst du diese Woche auf <b>Erhaltung</b> statt im Defizit
         (das Tagesziel ist schon umgestellt). Warum: Ein dauerhaftes Defizit setzt den Körper unter Stress. Er spart Energie, die
         Leistung sinkt, und je länger es dauert, desto eher greift er auch Muskeln an. Eine Woche ohne Defizit füllt die
-        Kohlenhydratspeicher wieder auf, senkt die Stresshormone und gibt den Muskeln das Signal, dass genug Energie da ist –
-        zusammen mit dem leichten Training ist das die beste Erholung. Danach geht der Fettabbau meist sogar leichter weiter.
-        Auf der Waage siehst du oft 0,5–1 kg mehr: Das ist Wasser in den aufgefüllten Speichern, kein Fett – es verschwindet
+        Kohlenhydratspeicher wieder auf, senkt die Stresshormone und gibt den Muskeln das Signal, dass genug Energie da ist.
+        Zusammen mit dem leichten Training ist das die beste Erholung. Danach geht der Fettabbau meist sogar leichter weiter.
+        Auf der Waage siehst du oft 0,5–1 kg mehr: Das ist Wasser in den aufgefüllten Speichern, kein Fett. Es verschwindet
         in der nächsten Defizit-Woche wieder.${minicut ? ' <b>Der Minicut verlängert sich um diese Woche.</b>' : ''}</p>
       <button class="btn" data-action="nut-nobreak">Diese Woche trotzdem im Defizit bleiben</button></div>`;
   }
@@ -1104,8 +1104,8 @@ function nutPhaseHint(n) {
     const again = (n.round || 1) < 2;
     return `<div class="card nut-check ok"><p><b>✅ Minicut und Erhaltungswoche sind vorbei</b></p>
       <p class="hint nut-small">${again
-        ? 'Zufrieden? Dann weiter mit dem Aufbau. Wenn nicht, kannst du noch einen – aber höchstens einen – weiteren Durchgang mit diesem Defizit machen.'
-        : 'Das war dein zweiter Durchgang. Mehr empfiehlt die App am Stück nicht – weiter geht es mit Aufbau oder ein paar Wochen auf Erhaltung (Body Recomposition).'}</p>
+        ? 'Zufrieden? Dann weiter mit dem Aufbau. Wenn nicht, kannst du noch einen (aber höchstens einen) weiteren Durchgang mit diesem Defizit machen.'
+        : 'Das war dein zweiter Durchgang. Mehr empfiehlt die App am Stück nicht. Weiter geht es mit Aufbau oder ein paar Wochen auf Erhaltung (Body Recomposition).'}</p>
       <button class="btn primary" data-action="nut-to-bulk">Weiter mit Aufbau</button>
       ${again ? '<button class="btn" data-action="nut-minicut-again">Noch ein Minicut-Durchgang (der letzte)</button>' : ''}</div>`;
   }
@@ -1131,18 +1131,18 @@ function nutExplain(n, c, kg) {
       <p><b>Erhaltungsbedarf ${nutKcal(c.tdee)} kcal:</b> Grundumsatz × ${fmtNum(NUT_ACT[n.activity].f)} für „${NUT_ACT[n.activity].label}“.</p>
       <p><b>Tagesziel:</b> ${c.delta ? `${nutSigned(c.delta, 'kcal')} für „${pace.label}“${pace.range ? ` (Spanne +${pace.range[0]} bis +${pace.range[1]} kcal)` : ''}`
         : n.phase === 'minicut' ? 'Erhaltungswoche nach dem Minicut, also ±0 kcal' : `±0 kcal für „${pace.label}“`}${n.adjust && n.kcalOwn == null ? `, dazu ${nutSigned(n.adjust, 'kcal')} aus deinem Gewichtsverlauf` : ''}.
-        ${n.kcalOwn != null ? `<b>Du hast dein Tagesziel selbst auf ${nutKcal(n.kcalOwn)} kcal festgelegt</b> – damit rechnet die App statt mit der Formel.` : ''}</p>
+        ${n.kcalOwn != null ? `<b>Du hast dein Tagesziel selbst auf ${nutKcal(n.kcalOwn)} kcal festgelegt</b>. Damit rechnet die App statt mit der Formel.` : ''}</p>
       ${n.macroPct
-        ? `<p><b>Makros:</b> deine eigene Aufteilung – ${n.macroPct.p} % Eiweiß, ${n.macroPct.f} % Fett und ${n.macroPct.c} % Kohlenhydrate
+        ? `<p><b>Makros:</b> deine eigene Aufteilung: ${n.macroPct.p} % Eiweiß, ${n.macroPct.f} % Fett und ${n.macroPct.c} % Kohlenhydrate
           von ${nutKcal(c.kcal)} kcal (1 g Eiweiß oder Kohlenhydrate = 4 kcal, 1 g Fett = 9 kcal).</p>`
         : `<p><b>Eiweiß:</b> ${fmtNum(NUT_PROTEIN[n.phase].def)} g pro kg (Mitte der Spanne ${fmtNum(NUT_PROTEIN[n.phase].lo)}–${fmtNum(NUT_PROTEIN[n.phase].hi)} g)${Math.abs(c.ref - kg) > 1 ? `, bezogen auf ${fmtNum(Math.round(c.ref))} kg statt deines vollen Gewichts, weil viel Körperfett kein Eiweiß braucht` : ''}.
         <b>Fett:</b> ${n.phase === 'minicut' ? '20' : '25'} % der Kalorien, mindestens ${fmtNum(n.phase === 'minicut' ? 0.6 : 0.8)} g pro kg.
         <b>Kohlenhydrate:</b> der Rest.</p>`}
       ${n.phase === 'diet' || n.phase === 'minicut' ? `<p><b>Deload = Erhaltungswoche:</b> In jeder Deload-Woche deines Trainings isst du
-        automatisch auf Erhaltung – das schützt die Muskeln und macht die Diät auf Dauer leichter.${n.phase === 'minicut'
+        automatisch auf Erhaltung. Das schützt die Muskeln und macht die Diät auf Dauer leichter.${n.phase === 'minicut'
           ? ' Nach den Minicut-Wochen legt die App den Deload selbst ein, damit Erhaltungswoche und Deload zusammenfallen.' : ''}</p>` : ''}
       ${typeof mcOn === 'function' && mcOn() ? `<p><b>Zykluskalender:</b> Gewichtswerte der letzten 6 Tage vor der Periode und der ersten
-        2 Periodentage zählen nicht für Gewichtsverlauf und gemessenen Bedarf – in diesen Tagen lagert der Körper oft Wasser ein, das sonst
+        2 Periodentage zählen nicht für Gewichtsverlauf und gemessenen Bedarf. In diesen Tagen lagert der Körper oft Wasser ein, das sonst
         wie zugenommenes Fett aussähe. Mehr dazu im Kalender unter „Welchen Einfluss hat der Kalender auf die App?“.</p>` : ''}
       <p><b>Vorschläge:</b> Die App vergleicht den Schnitt deiner letzten ${NUT_CMP_N} Wiegungen mit den ${NUT_CMP_N} davor. Bewegt er sich um mindestens
         ${fmtNum(NUT_CMP_KG)} kg in die falsche Richtung oder bleibt er stehen, obwohl du ab- oder zunehmen möchtest, schlägt sie eine Änderung vor.
@@ -1161,7 +1161,7 @@ function nutTrainCard(n) {
   if (n.phase !== 'diet' && n.phase !== 'minicut') return '';
   return `<div class="card nut-train">
         <p><b>🏋️ Training ${n.trainAdapt ? (n.phase === 'minicut' ? 'an den Minicut' : 'an die Diät') + ' angepasst' : 'läuft unverändert'}</b></p>
-        <p class="hint nut-small">${n.trainAdapt ? (nutTrainAdapt() ? (feat('tr-rir-input') ? NUT_ADAPT_TEXT : 'Das Volumen steigt nur am Anfang des Zyklus, danach bleibt es gleich – und das Gewicht wird nicht erzwungen.') : 'In der Erhaltungswoche läuft das Training wieder normal (am besten als Deload).')
+        <p class="hint nut-small">${n.trainAdapt ? (nutTrainAdapt() ? (feat('tr-rir-input') ? NUT_ADAPT_TEXT : 'Das Volumen steigt nur am Anfang des Zyklus, danach bleibt es gleich, und das Gewicht wird nicht erzwungen.') : 'In der Erhaltungswoche läuft das Training wieder normal (am besten als Deload).')
           : feat('tr-rir-input') ? 'Du kannst den Plan an die Phase anpassen lassen: Volumen ohne weiteren Anstieg ab Woche 2, Tank von 2 schrittweise auf 0,5, kein erzwungenes Gewicht.'
             : 'Du kannst den Plan an die Phase anpassen lassen: weniger Volumen-Anstieg und kein erzwungenes Gewicht.'}</p>
         <button class="btn" data-action="nut-train-toggle">${n.trainAdapt ? 'Anpassung ausschalten' : 'Training anpassen'}</button></div>`;
@@ -1213,7 +1213,7 @@ function renderNutrition() {
   } else if (!n) {
     h += `<div class="card wiz-q">
         <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🍽️</span><h2>Ernährung</h2></div>
-        <p class="hint explain wiz-q-explain">Wähle deine Phase – Aufbau, Body Recomposition, Diät oder Minicut. Die App schätzt dann
+        <p class="hint explain wiz-q-explain">Wähle deine Phase: Aufbau, Body Recomposition, Diät oder Minicut. Die App schätzt dann
           deinen Kalorienbedarf und sagt dir, wie viele Kalorien, Eiweiß, Fett und Kohlenhydrate pro Tag zu deinem Ziel passen.</p>
         <button class="btn primary" data-action="nut-setup">Los geht's</button>
       </div>`;
@@ -1245,7 +1245,7 @@ function renderNutrition() {
       ${feat('nut-explain') ? nutExplain(n, c, kg) : ''}
       ${nutHintsCard()}
       ${typeof mcAvailable === 'function' && mcAvailable() && !mcOn()
-        ? '<button class="btn nav" data-action="mc-onoff" data-v="1">🌸 Zykluskalender einschalten<small>Freiwillig – Periode eintragen, Phasen sehen, Wassertage beim Gewicht herausrechnen</small></button>' : ''}
+        ? '<button class="btn nav" data-action="mc-onoff" data-v="1">🌸 Zykluskalender einschalten<small>Freiwillig: Periode eintragen, Phasen sehen, Wassertage beim Gewicht herausrechnen</small></button>' : ''}
       <p class="hint nut-small nut-disclaimer">Alle Werte sind Richtwerte für gesunde Erwachsene. Bei Vorerkrankungen, in
         Schwangerschaft und Stillzeit oder bei Essstörungen bitte vorher ärztlich abklären.</p>`;
   }
@@ -1308,7 +1308,7 @@ Object.assign(actions, {
     const v = parseNum(nutKcalEdit.v);
     const floor = n.sex === 'm' ? 1500 : 1200;
     if (v == null || v > 6000) { alert('Bitte eine Kalorienzahl bis 6.000 kcal eintragen.'); return; }
-    if (v < floor) { alert(`Weniger als ${deNum(floor)} kcal am Tag empfiehlt die App nicht – sonst fehlen schnell Nährstoffe.`); return; }
+    if (v < floor) { alert(`Weniger als ${deNum(floor)} kcal am Tag empfiehlt die App nicht, sonst fehlen schnell Nährstoffe.`); return; }
     const own = Math.round(v / 10) * 10;
     Object.assign(n, { kcalOwn: own === nutKcalBase(n, kg) ? null : own, adjust: 0, adjustAt: todayISO(), changedAt: todayISO() });
     nutKcalEdit = null;
@@ -1384,7 +1384,7 @@ Object.assign(actions, {
     const n = data.nutrition;
     n.trainAdapt = !n.trainAdapt;
     saveData();
-    toast(n.trainAdapt ? 'Training wird angepasst – ab dem nächsten Training' : 'Training läuft wieder wie im Plan');
+    toast(n.trainAdapt ? 'Training wird angepasst, ab dem nächsten Training' : 'Training läuft wieder wie im Plan');
     render();
   },
   'nut-save': () => {
@@ -1394,7 +1394,7 @@ Object.assign(actions, {
       alert('Bitte noch auswählen, ob dein Trainingsplan an die Phase angepasst werden soll.');
       return;
     }
-    if (d.goalKg != null && (d.goalKg < 30 || d.goalKg > 300)) { alert('Bitte ein gültiges Zielgewicht eintragen – oder das Feld leer lassen.'); return; }
+    if (d.goalKg != null && (d.goalKg < 30 || d.goalKg > 300)) { alert('Bitte ein gültiges Zielgewicht eintragen oder das Feld leer lassen.'); return; }
     if (d.goalKg != null && d.phase === 'bulk' && d.goalKg <= d.kg) { alert('Im Aufbau sollte das Zielgewicht über deinem aktuellen Gewicht liegen.'); return; }
     if (d.goalKg != null && (d.phase === 'diet' || d.phase === 'minicut') && d.goalKg >= d.kg) { alert('In der Diät sollte das Zielgewicht unter deinem aktuellen Gewicht liegen.'); return; }
     // eingetipptes Gewicht als heutigen Eintrag speichern, wenn es vom letzten abweicht
@@ -1487,7 +1487,7 @@ Object.assign(actions, {
     const v = Object.fromEntries(NUT_MACROS.map(([k]) => [k, parseNum(e[k])]));
     if (Object.values(v).some(x => x == null || x < 0 || x > 100)) { alert('Bitte für alle drei Werte eine Zahl zwischen 0 und 100 eintragen.'); return; }
     const sum = round1(v.p + v.f + v.c);
-    if (sum !== 100) { alert(`Zusammen müssen es 100 % sein – gerade sind es ${fmtNum(sum)} %.`); return; }
+    if (sum !== 100) { alert(`Zusammen müssen es 100 % sein, gerade sind es ${fmtNum(sum)} %.`); return; }
     data.nutrition.macroPct = v;
     nutMacroEdit = null;
     saveData();
@@ -1513,7 +1513,7 @@ Object.assign(actions, {
   'nut-intake-save': () => {
     const f = nutIntakeForm;
     if (foodOn(f.date || todayISO()).length) {
-      alert('Für diesen Tag hast du Lebensmittel im Ernährungstagebuch eingetragen – die Tagessumme kommt automatisch von dort.');
+      alert('Für diesen Tag hast du Lebensmittel im Ernährungstagebuch eingetragen. Die Tagessumme kommt automatisch von dort.');
       return;
     }
     const num = k => (String(f[k]).trim() === '' ? null : parseNum(f[k]));

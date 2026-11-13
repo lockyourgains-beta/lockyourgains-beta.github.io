@@ -36,11 +36,11 @@ const HX_STATIONS = [
   ['wb', 'Wall Balls', '100 Wdh.', 'Wall Balls', 'ball'],
 ];
 const HX_TYPES = {
-  full: { label: 'Komplett-Durchgang', text: '8 × (1 km Laufen + Station) – wie im Wettkampf.' },
+  full: { label: 'Komplett-Durchgang', text: '8 × (1 km Laufen + Station), wie im Wettkampf.' },
   half1: { label: 'Erste Hälfte', text: 'Läufe 1–4 mit SkiErg, Sled Push, Sled Pull und Burpee-Weitsprüngen.' },
   half2: { label: 'Zweite Hälfte', text: 'Läufe 5–8 mit Rudern, Farmers Carry, Sandsack-Ausfallschritten und Wall Balls.' },
-  cmp: { label: 'Kompromiss-Lauf', text: 'Je 1 km Laufen und danach eine Station – du wählst die Stationen.' },
-  st: { label: 'Nur Stationen', text: 'Einzelne Stationen auf Zeit, ohne Laufen – du wählst die Stationen.' },
+  cmp: { label: 'Kompromiss-Lauf', text: 'Je 1 km Laufen und danach eine Station. Du wählst die Stationen.' },
+  st: { label: 'Nur Stationen', text: 'Einzelne Stationen auf Zeit, ohne Laufen. Du wählst die Stationen.' },
 };
 const HX_ROX_DEFAULT = 360;  // Roxzone gesamt, wenn noch nichts gemessen (6 min)
 
@@ -114,7 +114,7 @@ function renderHyrox() {
         <div class="hx-split">${bar(p.run, 'run', 'Laufen')}${bar(p.st, 'st', 'Stationen')}${bar(p.rox, 'rox', 'Roxzone')}</div>
         <p class="hx-legend"><span class="run"></span>Laufen <span class="st"></span>Stationen <span class="rox"></span>Roxzone ${hxTime(p.rox)}</p>
         <p class="hint">${esc(p.src)}.</p>`
-        : `<p class="hint">Sobald du einen Komplett-Durchgang gemacht hast – oder jede Station und mindestens einen Lauf auf Zeit –, rechnet die App hier deine voraussichtliche Wettkampfzeit aus.</p>`}
+        : `<p class="hint">Sobald du einen Komplett-Durchgang gemacht hast oder jede Station und mindestens einen Lauf auf Zeit –, rechnet die App hier deine voraussichtliche Wettkampfzeit aus.</p>`}
     </div>
     ${running ? '' : '<button class="btn primary" data-action="hx-open" data-v="hyroxnew">⏱ Durchgang starten</button>'}
     ${last.length ? `<div class="card"><h2>Zuletzt</h2>${last.map(hxSessionRow).join('')}</div>` : ''}
@@ -140,7 +140,7 @@ function renderHyroxNew() {
     <div class="card"><h2>Wie erfassen?</h2>
       <div class="variants">${chip('hx-mode', 'live', '⏱ Mit Uhr', n.mode === 'live')}${chip('hx-mode', 'manual', '✎ Hinterher eintragen', n.mode === 'manual')}</div>
       <p class="hint">${n.mode === 'live' ? 'Die Uhr läuft mit, du tippst nach jedem Abschnitt auf „fertig“. Dazwischen zählt die Roxzone (Wechselzone) mit, bis du den nächsten Abschnitt startest.'
-        : 'Du trägst die Zeiten nach dem Training ein – z. B. von deiner Sportuhr.'}</p>
+        : 'Du trägst die Zeiten nach dem Training ein, z. B. von deiner Sportuhr.'}</p>
       <p class="lbl">Klasse</p><div class="variants hx-divs-sm">${Object.entries(HX_DIVS).map(([k, d]) => chip('hx-div', k, d.label, hxDiv() === k)).join('')}</div>
     </div>
     <div class="card"><h2>Ablauf <small class="hint">${segs.length} Abschnitte</small></h2>
@@ -160,7 +160,7 @@ function renderHyroxLive() {
   const next = d.segs[d.idx];
   return `<div class="card hx-live">
       <p class="hx-kicker">Gesamtzeit${d.pausedAt ? ' · pausiert' : ''}</p><p class="hx-clock" data-hxclock="total">${hxTime(total)}</p>
-      ${d.phase === 'rox' ? `<div class="hx-now"><small>Roxzone – Wechsel</small><b>Als Nächstes: ${esc(next.label)}</b><span>${next.dist}${hxSegWeight(next) ? ' · ' + hxSegWeight(next) : ''}</span></div>
+      ${d.phase === 'rox' ? `<div class="hx-now"><small>Roxzone (Wechsel)</small><b>Als Nächstes: ${esc(next.label)}</b><span>${next.dist}${hxSegWeight(next) ? ' · ' + hxSegWeight(next) : ''}</span></div>
         <p class="hx-seg-clock" data-hxclock="cur">${hxTime(cur)}</p>
         <div class="row"><button class="btn" data-action="hx-pause">${d.pausedAt ? '▶ Weiter' : '⏸ Pause'}</button><button class="btn primary" data-action="hx-next">▶ ${esc(next.label)} starten</button></div>`
         : `<div class="hx-now"><small>Abschnitt ${d.idx + 1} von ${d.segs.length}</small><b>${esc(seg.label)}</b><span>${seg.dist}${hxSegWeight(seg) ? ' · ' + hxSegWeight(seg) : ''}</span></div>
@@ -216,10 +216,10 @@ function renderHyroxSession({ id }) {
 function renderHyroxStations() {
   const d = HX_DIVS[hxDiv()], b = hxBests();
   return `<div class="seg hx-divs">${Object.entries(HX_DIVS).map(([k, v]) => `<button class="${k === hxDiv() ? 'on' : ''}" data-action="hx-div" data-k="${k}">${v.label}</button>`).join('')}</div>
-    <p class="hint explain">Ablauf: 8 × (1 km Laufen + 1 Station). Gewichte für <b>${d.label}</b>, Stand Saison 2025/26 – maßgeblich ist das offizielle Regelwerk.</p>
+    <p class="hint explain">Ablauf: 8 × (1 km Laufen + 1 Station). Gewichte für <b>${d.label}</b>, Stand Saison 2025/26. Maßgeblich ist das offizielle Regelwerk.</p>
     ${HX_STATIONS.map(([k, name, dist, lib, wk], i) => `<button class="btn nav hx-st" data-action="lib-open" data-name="${esc(lib)}">
       <span class="hx-stno">${i + 1}</span><span class="hx-sttxt">${name}<small>${dist}${wk ? ' · ' + d[wk] : ''}${b[k] ? ` · Bestzeit ${hxTime(b[k])}` : ''}</small></span></button>`).join('')}
-    <p class="hint">Antippen öffnet die Übung in der Bibliothek – mit Figur, Ausführung und Tipps.</p>`;
+    <p class="hint">Antippen öffnet die Übung in der Bibliothek, mit Figur, Ausführung und Tipps.</p>`;
 }
 
 function renderHyroxHist() {
@@ -306,9 +306,9 @@ const hxRace = () => hxData().race || null;
 const hxDaysTo = r => Math.round((Date.parse(r.date + 'T12:00:00') - Date.parse(todayISO() + 'T12:00:00')) / 86400000);
 const HX_PHASES = {
   base: { label: 'Grundlage', text: 'Ausdauer aufbauen und die Technik der Stationen lernen.' },
-  build: { label: 'Aufbau', text: 'Intervalle und Stationen unter Belastung – das Tempo wird wettkampfnäher.' },
+  build: { label: 'Aufbau', text: 'Intervalle und Stationen unter Belastung. Das Tempo wird wettkampfnäher.' },
   race: { label: 'Wettkampfnah', text: 'Kompromiss-Läufe und Durchgänge im Wettkampftempo.' },
-  taper: { label: 'Erholung', text: 'Weniger Umfang, kurz und frisch – du sollst ausgeruht an den Start.' },
+  taper: { label: 'Erholung', text: 'Weniger Umfang, kurz und frisch. Du sollst ausgeruht an den Start.' },
   after: { label: 'Vorbei', text: '' },
 };
 function hxPhase(r) {
@@ -318,14 +318,14 @@ function hxPhase(r) {
 }
 // Einheiten je Phase, wichtigste zuerst: [Titel, Beschreibung, Art zum Starten (oder null)]
 const HX_WEEK = {
-  base: [['Lockerer Lauf', '30–45 min ruhig – du kannst dich dabei unterhalten', null], ['Stationen-Technik', 'Alle 8 Stationen locker, je 2 Runden, saubere Ausführung', 'st'],
+  base: [['Lockerer Lauf', '30–45 min ruhig, du kannst dich dabei unterhalten', null], ['Stationen-Technik', 'Alle 8 Stationen locker, je 2 Runden, saubere Ausführung', 'st'],
     ['Intervalle', '5 × 1 km etwas langsamer als Zieltempo, 2 min Pause', null], ['Langer Lauf', '50–60 min locker', null],
-    ['Kraft-Ausdauer-Zirkel', 'Wall Balls, Ausfallschritte, Burpees – 3 Runden', null]],
-  build: [['Intervalle', '6 × 1 km im Zieltempo, 90 s Pause', null], ['Stationen unter Last', 'Sled Push, Sled Pull, Wall Balls, Sandsack-Ausfallschritte – je 3 Runden', 'st'],
+    ['Kraft-Ausdauer-Zirkel', 'Wall Balls, Ausfallschritte, Burpees, 3 Runden', null]],
+  build: [['Intervalle', '6 × 1 km im Zieltempo, 90 s Pause', null], ['Stationen unter Last', 'Sled Push, Sled Pull, Wall Balls, Sandsack-Ausfallschritte, je 3 Runden', 'st'],
     ['Kompromiss-Lauf', '4 × (1 km Laufen + 1 Station)', 'cmp'], ['Lockerer Lauf', '40 min ruhig', null], ['Tempo-Dauerlauf', '5 km knapp langsamer als Wettkampftempo', null]],
-  race: [['Kompromiss-Lauf', '6–8 × (1 km Laufen + 1 Station) im Wettkampftempo', 'cmp'], ['Teil-Durchgang', 'Eine Hälfte auf Zeit – abwechselnd erste und zweite', 'half1'],
+  race: [['Kompromiss-Lauf', '6–8 × (1 km Laufen + 1 Station) im Wettkampftempo', 'cmp'], ['Teil-Durchgang', 'Eine Hälfte auf Zeit, abwechselnd erste und zweite', 'half1'],
     ['Intervalle', '4 × 1 km etwas schneller als Zieltempo', null], ['Lockerer Lauf', '30 min ruhig', null], ['Komplett-Durchgang', 'Einmal 2–3 Wochen vor dem Wettkampf', 'full']],
-  taper: [['Lockerer Lauf', '20–30 min mit 3 kurzen Steigerungen', null], ['Stationen kurz', 'Je Station eine kurze, lockere Runde', 'st'], ['Ruhetag', 'Beine hoch – du bist bereit', null]],
+  taper: [['Lockerer Lauf', '20–30 min mit 3 kurzen Steigerungen', null], ['Stationen kurz', 'Je Station eine kurze, lockere Runde', 'st'], ['Ruhetag', 'Beine hoch, du bist bereit', null]],
 };
 // Lauftempo je km: aus der Zielzeit (gut die Hälfte der Zeit ist Laufen), sonst aus dem besten Kilometer
 function hxPace(r) {
@@ -352,33 +352,54 @@ function hxWeek(r) {
   // erst die freien Tage; mehr Einheiten als freie Tage → zusätzlich an einen Krafttag (nach dem Krafttraining)
   list.forEach((x, i) => {
     if (i < free.length || !strDays.length) days[free[i % free.length]].push(x);
-    else days[strDays[(i - free.length) % strDays.length]].push({ ...x, d: `${x.d} – nach dem Krafttraining` });
+    else days[strDays[(i - free.length) % strDays.length]].push({ ...x, d: `${x.d}, nach dem Krafttraining` });
   });
   // Wettkampf-Woche: Wettkampftag eintragen, die zwei Tage davor frei
   if (ph.k === 'taper') {
     const raceWd = (new Date(r.date + 'T12:00:00').getDay() + 6) % 7, monday = mondayISO(new Date(todayISO() + 'T12:00:00'));
     if (addDaysISO(monday, raceWd) === r.date) {
       for (const k of [raceWd - 1, raceWd - 2]) if (k >= 0) { const moved = days[k].filter(x => !x.kraft); days[k] = days[k].filter(x => x.kraft && false); moved.forEach(x => days[Math.max(0, k - 2)].push(x)); }
-      days[raceWd] = [{ t: '🏁 Wettkampf', d: `${r.name || 'Hyrox'} – viel Erfolg!`, race: true }];
+      days[raceWd] = [{ t: '🏁 Wettkampf', d: `${r.name || 'Hyrox'}. Viel Erfolg!`, race: true }];
       for (let k = 0; k < 7; k++) days[k] = days[k].filter(x => x.t !== 'Ruhetag');  // der Wettkampf ist der Höhepunkt der Woche
     }
   }
   return { ph, days, n: list.length };
 }
+/* Wettkampf-Woche im Kraft-Reiter (v232, User 2026-11-13 nach Simulation sim9): Hinweis auf der Kraft-Startseite und auf Wunsch
+   leichte Krafttrainings wie im Deload (halbe Sätze, weniger Gewicht, keine Steigerung). data.hyrox.light = Montag dieser Woche.
+   Die Trainings zählen normal für die Woche; gespeichert mit session.deload + session.light (keine Bezugswerte, kein Deload-Wechsel). */
+const hxMonday = () => mondayISO(new Date(todayISO() + 'T12:00:00'));
+function hxTaperNow() {
+  if (!sportDraft() || !data.hyrox) return null;
+  const r = hxRace();
+  return r && hxPhase(r).k === 'taper' ? r : null;
+}
+const hxLightNow = () => !!hxTaperNow() && hxData().light === hxMonday();
+function hxTaperCard(ci) {
+  const r = hxTaperNow();
+  if (!r || ci.deload || ownPlan()) return '';
+  const d = hxDaysTo(r), on = hxLightNow();
+  return `<div class="card hints hx-taper"><h2>🏁 Wettkampf-Woche</h2>
+    <p>${esc(r.name || 'Hyrox')} ist ${d === 0 ? 'heute' : d === 1 ? 'morgen' : `in ${d} Tagen`}. Kraft diese Woche am besten nur kurz und leicht.
+      Ein lockeres Training reicht, die übrigen kannst du auslassen.</p>
+    ${on ? '<p class="hint">✓ Krafttrainings dieser Woche laufen leicht wie im Deload: halbe Sätze, etwas weniger Gewicht, keine Steigerung. Die Woche zählt trotzdem normal.</p>' : ''}
+    <button class="btn small ${on ? '' : 'primary'}" data-action="hx-light">${on ? 'Doch normal trainieren' : 'Diese Woche leicht trainieren'}</button></div>`;
+}
+
 // Richtzeiten je Station aus der Zielzeit (typische Anteile)
 const HX_SHARE = { ski: .060, push: .042, pull: .056, bbj: .060, row: .058, farm: .026, lunge: .056, wb: .072 };
 
 function hxRaceCard() {
   const r = hxRace();
   if (!r) return `<div class="card hx-race"><p class="hx-kicker">Nächster Wettkampf</p><h2>Noch keiner eingetragen</h2>
-      <p class="hint">Trag deinen Wettkampf ein – dann plant die App die Wochen bis zum Start: Grundlage, Aufbau, wettkampfnah und Erholung.</p>
+      <p class="hint">Trag deinen Wettkampf ein. Dann plant die App die Wochen bis zum Start: Grundlage, Aufbau, wettkampfnah und Erholung.</p>
       <button class="btn primary" data-action="hx-event">Wettkampf eintragen</button></div>`;
   const d = hxDaysTo(r), ph = hxPhase(r), p = hxPrognosis();
   if (d < 0) {
     const res = hxData().sessions.find(s => s.type === 'race' && s.date.slice(0, 10) >= r.date);
     return `<div class="card hx-race"><p class="hx-kicker">Wettkampf vorbei</p><h2>${esc(r.name || 'Hyrox')}</h2>
       ${res ? `<p class="hx-meta">Deine Zeit: <b>${hxTime(res.total)}</b>${r.goal ? ` · Ziel ${hxTime(r.goal)} ${res.total <= r.goal ? '✓ geschafft' : `(${hxDiff(res.total, r.goal)})`}` : ''}</p>`
-        : '<p class="hint">Wie lief’s? Trag dein Ergebnis ein – Zeiten je Abschnitt findest du in der Ergebnisliste des Veranstalters.</p>'}
+        : '<p class="hint">Wie lief’s? Trag dein Ergebnis ein. Zeiten je Abschnitt findest du in der Ergebnisliste des Veranstalters.</p>'}
       <div class="row">${res ? '' : '<button class="btn primary" data-action="hx-result">Ergebnis eintragen</button>'}<button class="btn" data-action="hx-event" data-new="1">Nächsten planen</button></div></div>`;
   }
   const weeks = Math.ceil(d / 7);
@@ -405,7 +426,7 @@ function hxWeekCard() {
   }).join('')).join('');
   return `<div class="card hx-week"><h2>Diese Woche <small class="hint">${done.length} von ${w.n} erledigt</small></h2>${rows}
     ${pace ? `<p class="hint">Zieltempo Laufen: <b>${hxTime(pace.run)} / km</b> (${pace.src}).${r.goal ? ' Richtzeiten je Station: ' + HX_STATIONS.map(([k, n]) => `${n} ${hxTime(r.goal * HX_SHARE[k])}`).join(' · ') + '.' : ''}</p>` : ''}
-    ${r.combine ? '<p class="hint">Mit deinem Kraftplan kombiniert: Hyrox-Einheiten liegen auf den Tagen ohne Krafttraining. Die Tage sind ein Vorschlag – tausch sie, wie es dir passt.</p>' : ''}
+    ${r.combine ? '<p class="hint">Mit deinem Kraftplan kombiniert: Hyrox-Einheiten liegen auf den Tagen ohne Krafttraining. Die Tage sind ein Vorschlag. Tausch sie, wie es dir passt.</p>' : ''}
   </div>`;
 }
 
@@ -516,12 +537,12 @@ Object.assign(actions, {
     const e = hxEv;
     if (!e.date) { alert('Bitte das Datum des Wettkampfs eintragen.'); return; }
     const goal = e.goal ? hxParse(e.goal) : null;
-    if (e.goal && !goal) { alert('Die Zielzeit kann die App nicht lesen – bitte als Stunden:Minuten:Sekunden, z. B. 1:25:00.'); return; }
-    if (goal && goal < 2400) { alert('Die Zielzeit wirkt sehr kurz – bitte als Stunden:Minuten:Sekunden eintragen, z. B. 1:25:00.'); return; }
+    if (e.goal && !goal) { alert('Die Zielzeit kann die App nicht lesen. Bitte als Stunden:Minuten:Sekunden, z. B. 1:25:00.'); return; }
+    if (goal && goal < 2400) { alert('Die Zielzeit wirkt sehr kurz. Bitte als Stunden:Minuten:Sekunden eintragen, z. B. 1:25:00.'); return; }
     hxData().race = { name: (e.name || '').trim() || 'Hyrox', date: e.date, div: e.div, goal, per: e.per, combine: !!e.combine };
     hxData().div = e.div;
     saveData(); hxEv = null;
-    toast('Wettkampf gespeichert ✔ – der Wochenplan steht auf der Hyrox-Seite');
+    toast('Wettkampf gespeichert ✔, der Wochenplan steht auf der Hyrox-Seite');
     go('hyrox');
   },
   'hx-ev-del': () => { if (!askOk('Wettkampf entfernen? Deine Zeiten bleiben erhalten.')) return; hxData().race = null; saveData(); hxEv = null; go('hyrox'); },
@@ -531,6 +552,12 @@ Object.assign(actions, {
     const list = H.done[key] || [];
     H.done[key] = list.includes(i) ? list.filter(x => x !== i) : [...list, i];
     saveData(); render();
+  },
+  'hx-light': () => {
+    const H = hxData(), on = hxLightNow();
+    H.light = on ? null : hxMonday();
+    saveData(); render();
+    toast(on ? 'Diese Woche wieder normale Krafttrainings' : 'Krafttrainings dieser Woche laufen leicht ✔');
   },
   'hx-start': el => { hxNew = { type: el.dataset.k, mode: 'live', picks: el.dataset.k === 'cmp' ? ['ski', 'push', 'wb', 'lunge'] : HX_STATIONS.map(x => x[0]), rox: true }; go('hyroxnew'); },
   'hx-result': () => { hxManual = { type: 'race', segs: hxSegs('race'), vals: [], rox: '' }; go('hyroxmanual'); },

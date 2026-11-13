@@ -91,6 +91,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 b, strong { font-weight: 650; }
+/* v233 (Feedback „mal fett, mal dünn“): kein Fett mitten im Fließtext. Überschriften, Optionstitel und Zahlen-Kacheln haben eigene Regeln. */
+p b, p strong, li b, li strong, small b, small strong, .hint b, .hint strong { font-weight: inherit; }
 
 /* ---------- Kopfzeile ---------- */
 header {

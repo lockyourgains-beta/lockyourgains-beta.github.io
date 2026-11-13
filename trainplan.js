@@ -121,14 +121,14 @@ function renderTrainPlan() {
   if (tpImport) return tpMappingHtml();
   return `<div class="card wiz-q">
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">📄</span><h2>Trainingsplan übernehmen</h2></div>
-      <p class="hint wiz-q-explain explain">Du hast deinen Plan schon als Tabelle – z. B. vom Trainer, aus Excel oder Google Sheets? Übernimm ihn einmal:
+      <p class="hint wiz-q-explain explain">Du hast deinen Plan schon als Tabelle, z. B. vom Trainer, aus Excel oder Google Sheets? Übernimm ihn einmal:
         Die App liest Trainingstage, Übungen, Sätze, Wiederholungen und Gewichte ein und erkennt die Übungen aus ihrer Bibliothek.</p>
       <button class="btn primary" data-action="tp-pick">📄 Datei wählen (Excel oder CSV)</button>
       <button class="btn" data-action="tp-paste-open">📋 Tabelle einfügen</button>
       ${tpPasteOpen ? `<textarea class="inp comment" id="tp-paste" rows="6" placeholder="In Excel oder Google Sheets die Zellen markieren (mit Überschriften), kopieren und hier einfügen"></textarea>
         <button class="btn primary" data-action="tp-paste-go">Übernehmen</button>` : ''}
       <p class="hint nut-small explain"><b>Google Sheets:</b> Datei → Herunterladen → Microsoft Excel (.xlsx) bzw. am Handy „Teilen und exportieren →
-        Kopie senden“ – oder einfach die Zellen kopieren und oben einfügen. Die Datei wird nur auf deinem Handy gelesen, nichts wird hochgeladen.</p>
+        Kopie senden“ oder einfach die Zellen kopieren und oben einfügen. Die Datei wird nur auf deinem Handy gelesen, nichts wird hochgeladen.</p>
     </div>
     <div class="card">
       <h2>Vorlage</h2>
@@ -166,7 +166,7 @@ function tpMappingHtml() {
         <div class="variants"><button class="vchip ${im.perSheet ? 'on' : ''}" data-action="tp-persheet">Jedes Tabellenblatt ist ein Trainingstag</button></div>` : ''}
       <div class="table-wrap"><table class="rir np-prev">${preview.map((r, ri) => `<tr>${Array.from({ length: cols }, (_, i) =>
         `<${ri === 0 ? 'th' : 'td'}>${esc(r[i] || '')}</${ri === 0 ? 'th' : 'td'}>`).join('')}</tr>`).join('')}</table></div>
-      <p class="hint nut-small">Die App hat die Spalten anhand der Überschriften erraten – prüf kurz, ob es passt. Ohne Spalte „Trainingstag“
+      <p class="hint nut-small">Die App hat die Spalten anhand der Überschriften erraten. Prüf kurz, ob es passt. Ohne Spalte „Trainingstag“
         gilt eine Zeile mit nur einem Eintrag (z. B. „Push“ oder „Tag A“) als Überschrift für die Übungen darunter.</p>
       ${TP_ROLES.map(([k, l]) => `<label class="row"><span>${l}</span>${sel(k)}</label>`).join('')}
       <label class="row"><span>Kopfzeile ist Zeile</span><input class="inp kg" type="text" inputmode="numeric" data-field="tp-head" value="${im.head + 1}"></label>
@@ -175,8 +175,8 @@ function tpMappingHtml() {
       <h2>Vorschau: ${days.length} Trainingstag${days.length === 1 ? '' : 'e'}</h2>
       ${suggs > 1 ? `<button class="btn" data-action="tp-swap-all">✔ Alle ${suggs} Vorschläge übernehmen</button>` : ''}
       ${days.length ? days.map(d => `<p class="tp-day"><b>${esc(d.name)}</b></p><ul class="tp-list">${d.exercises.map(e => exRow(d, e)).join('')}</ul>`).join('')
-        : '<p class="hint">Noch keine Übungen erkannt – ordne mindestens die Spalte „Übung“ zu.</p>'}
-      ${unknown ? `<p class="hint nut-small"><span class="tp-new">neu</span> = nicht in der Übungsliste – wird als eigene Übung übernommen (ohne Animation).
+        : '<p class="hint">Noch keine Übungen erkannt. Ordne mindestens die Spalte „Übung“ zu.</p>'}
+      ${unknown ? `<p class="hint nut-small"><span class="tp-new">neu</span> = nicht in der Übungsliste, wird als eigene Übung übernommen (ohne Animation).
         Ein Vorschlag „→ …?“ tauscht sie gegen die passende Übung aus der Bibliothek.</p>` : ''}
     </div>
     <div class="card">
@@ -184,7 +184,7 @@ function tpMappingHtml() {
       <button class="split-opt cat ${im.prog === 'own' ? 'on' : ''}" data-action="tp-prog" data-k="own"><span class="cat-icon">✍️</span>
         <b>Wie im Plan, ohne Steigerung</b><small>Im Training stehen deine Sätze × Wdh. und beim nächsten Mal deine Werte vom letzten Mal. Die Steigerung lässt sich später im Plan-Reiter einschalten.</small></button>
       <button class="split-opt cat ${im.prog === 'app' ? 'on' : ''}" data-action="tp-prog" data-k="app"><span class="cat-icon">📈</span>
-        <b>Mit Steigerung der App</b><small>Deine Übungen, Sätze und Wdh. als Start – die App plant Zyklen mit Intro-, Aufbau- und Deload-Woche und schlägt Woche für Woche mehr Gewicht bzw. Wiederholungen vor.</small></button>
+        <b>Mit Steigerung der App</b><small>Deine Übungen, Sätze und Wdh. als Start. Die App plant Zyklen mit Intro-, Aufbau- und Deload-Woche und schlägt Woche für Woche mehr Gewicht bzw. Wiederholungen vor.</small></button>
       ${im.prog === 'app' ? `<p class="lbl">Deine Trainingserfahrung</p><div class="variants">${Object.entries(LEVELS).map(([k, l]) =>
         `<button class="vchip ${im.level === k ? 'on' : ''}" data-action="tp-level" data-k="${k}">${l.icon} ${l.label}</button>`).join('')}</div>
         <p class="hint nut-small">Bestimmt, wie schnell die App steigert (und bei Neulingen und Einsteigern: nie unter 8 Wdh.).</p>` : ''}
@@ -228,7 +228,7 @@ Object.assign(actions, {
         if (!f) return;
         try {
           if (/\.xlsx$/i.test(f.name)) tpStart(await npParseXlsx(await f.arrayBuffer()), f.name);
-          else if (/\.xls$|\.numbers$|\.ods$/i.test(f.name)) alert('Bitte die Datei als .xlsx (Excel) oder .csv speichern – dieses Format kann die App nicht lesen.');
+          else if (/\.xls$|\.numbers$|\.ods$/i.test(f.name)) alert('Bitte die Datei als .xlsx (Excel) oder .csv speichern. Dieses Format kann die App nicht lesen.');
           else tpStart([{ name: f.name, rows: npParseDelimited(await f.text()) }], f.name);
         } catch (e) {
           alert(`Die Datei konnte nicht gelesen werden (${e.message}). Speichere sie als .csv oder kopiere die Zellen und füge sie ein.`);
@@ -263,7 +263,7 @@ Object.assign(actions, {
   'tp-level': el => { tpImport.level = el.dataset.k; render(); },
   'tp-save': () => {
     const im = tpImport;
-    if (im.prog === 'app' && !im.level) { alert('Bitte wähle noch deine Trainingserfahrung – danach richtet sich die Steigerung.'); return; }
+    if (im.prog === 'app' && !im.level) { alert('Bitte wähle noch deine Trainingserfahrung. Danach richtet sich die Steigerung.'); return; }
     if (draft && !askOk(`Es läuft noch ein Training (${draft.dayName}). Trotzdem den neuen Plan aktiv setzen?`)) return;
     const days = tpBuild().map(d => ({
       id: uid(), name: d.name, intensity: '',
@@ -297,4 +297,4 @@ Object.assign(fields, {
 });
 
 // Knopf für Plan-Reiter und Assistent
-const TP_OPEN_BTN = `<button class="btn nav tp-open-btn" data-action="tp-open">📄 Plan aus Excel / Google Sheets übernehmen<small>Tabelle mit Tagen, Übungen, Sätzen und Wdh. – z. B. vom Trainer</small></button>`;
+const TP_OPEN_BTN = `<button class="btn nav tp-open-btn" data-action="tp-open">📄 Plan aus Excel / Google Sheets übernehmen<small>Tabelle mit Tagen, Übungen, Sätzen und Wdh., z. B. vom Trainer</small></button>`;
