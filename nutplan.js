@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Ernährungsplan importieren (Excel, CSV, Google Sheets, Kopieren & Einfügen) ----------
    data.nutPlan = { name, importedAt, start, assign: 'weekday' | 'daytype' | 'rotation' | 'same',
                     days: [{ label, kind?: 'train'|'rest', weekday?: 0–6 (Mo = 0), kcal, p, c, f,
@@ -279,7 +279,7 @@ function renderNutPlan() {
     const today = nutPlanDay();
     return `<div class="card">
         <h2>📋 ${esc(pl.name)}</h2>
-        <p class="hint nut-small">Importiert am ${fmtDate(pl.importedAt + 'T12:00:00')} · ${NP_ASSIGN[pl.assign]}. Solange der Plan aktiv ist,
+        <p class="hint nut-small">Importiert am ${fmtDate(pl.importedAt + 'T12:00:00')} | ${NP_ASSIGN[pl.assign]}. Solange der Plan aktiv ist,
           kommt dein Tagesziel aus ihm. Die App schlägt keine eigenen Änderungen vor, sondern gibt nur Hinweise.</p>
       </div>
       ${pl.days.map(d => `<div class="card np-day ${d === today ? 'now' : ''}">
@@ -287,7 +287,7 @@ function renderNutPlan() {
         <div class="nut-goal-row food-sum"><span>Kalorien<b>${nutKcal(d.kcal)}</b></span><span>Eiweiß<b>${d.p} g</b></span>
           <span>Kohlenh.<b>${d.c} g</b></span><span>Fett<b>${d.f} g</b></span></div>
         ${Object.keys(d.meals || {}).length ? `<details class="nut-more"><summary>Mahlzeiten</summary>${Object.entries(MEALS).filter(([k]) => d.meals[k])
-          .map(([k, [icon, label]]) => `<p class="np-meal"><b>${icon} ${label}</b><br>${d.meals[k].map(i => `${esc(i.name)}${i.g ? ` · ${fmtNum(i.g)} g` : ''} · ${nutKcal(i.kcal)} kcal`).join('<br>')}</p>`).join('')}</details>` : ''}
+          .map(([k, [icon, label]]) => `<p class="np-meal"><b>${icon} ${label}</b><br>${d.meals[k].map(i => `${esc(i.name)}${i.g ? ` | ${fmtNum(i.g)} g` : ''} | ${nutKcal(i.kcal)} kcal`).join('<br>')}</p>`).join('')}</details>` : ''}
       </div>`).join('')}
       <button class="btn" data-action="np-pick">📄 Neuen Plan importieren</button>
       <button class="btn danger" data-action="np-end">Plan beenden, wieder die Berechnung der App</button>`;
@@ -355,7 +355,7 @@ function npMappingHtml() {
       <h2>Vorschau: ${days.length} Tag${days.length === 1 ? '' : 'e'}</h2>
       ${days.length ? days.map(d => `<p class="np-sum"><b>${esc(d.label)}</b>${im.assign === 'weekday' && d.weekday == null ? ' <small class="hint">(kein Wochentag erkannt)</small>' : ''}
         ${im.assign === 'daytype' && !d.kind ? ' <small class="hint">(Training/Ruhe nicht erkannt)</small>' : ''}<br>
-        ${nutKcal(d.kcal)} kcal · Eiweiß ${d.p} g · KH ${d.c} g · Fett ${d.f} g${Object.keys(d.meals).length ? ` · ${Object.values(d.meals).flat().length} Einträge in ${Object.keys(d.meals).length} Mahlzeiten` : ''}</p>`).join('')
+        ${nutKcal(d.kcal)} kcal | Eiweiß ${d.p} g | KH ${d.c} g | Fett ${d.f} g${Object.keys(d.meals).length ? ` | ${Object.values(d.meals).flat().length} Einträge in ${Object.keys(d.meals).length} Mahlzeiten` : ''}</p>`).join('')
         : '<p class="hint">Noch keine Werte erkannt. Ordne mindestens Kalorien oder Eiweiß, Kohlenhydrate und Fett zu.</p>'}
       ${unknown.length ? `<p class="food-miss">Ohne Nährwerte und nicht in der Grundliste: ${unknown.slice(0, 6).map(esc).join(', ')}${unknown.length > 6 ? ' …' : ''}: zählen mit 0 kcal.</p>` : ''}
     </div>
@@ -469,7 +469,7 @@ Object.assign(fields, {
 function nutPlanCard() {
   const pl = data.nutPlan, d = nutPlanDay(), c = nutForDay(nutPlanTarget());
   return `<div class="card nut-target np-card">
-      <span class="lbl">📋 ${esc(pl.name)} · ${esc(d.label)}</span>
+      <span class="lbl">📋 ${esc(pl.name)} | ${esc(d.label)}</span>
       <b class="nut-kcal">${nutKcal(c.kcal)} kcal</b>
       <div class="nut-macros">${[['p', 'Eiweiß', c.protein], ['f', 'Fett', c.fat], ['c', 'Kohlenhydrate', c.carbs]].map(([k, l, g]) =>
         `<div class="nut-macro ${k}"><span>${l}</span><b>${g} g</b></div>`).join('')}</div>

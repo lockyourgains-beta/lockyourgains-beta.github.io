@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Hyrox (v226, User 2026-11-13, erst in der Beta) ----------
@@ -19,10 +19,10 @@ function sportSwitch(on) {
 /* ---------- Grunddaten ---------- */
 // Klassen: Gewichte je Station (Stand Saison 2025/26, wie in der Übungsbibliothek)
 const HX_DIVS = {
-  wo: { label: 'Open Frauen', push: '102 kg', pull: '78 kg', farm: '2 × 16 kg', bag: '10 kg', ball: '4 kg · 2,70 m' },
-  wp: { label: 'Pro Frauen', push: '152 kg', pull: '103 kg', farm: '2 × 24 kg', bag: '20 kg', ball: '6 kg · 2,70 m' },
-  mo: { label: 'Open Männer', push: '152 kg', pull: '103 kg', farm: '2 × 24 kg', bag: '20 kg', ball: '6 kg · 3 m' },
-  mp: { label: 'Pro Männer', push: '202 kg', pull: '153 kg', farm: '2 × 32 kg', bag: '30 kg', ball: '9 kg · 3 m' },
+  wo: { label: 'Open Frauen', push: '102 kg', pull: '78 kg', farm: '2 × 16 kg', bag: '10 kg', ball: '4 kg | 2,70 m' },
+  wp: { label: 'Pro Frauen', push: '152 kg', pull: '103 kg', farm: '2 × 24 kg', bag: '20 kg', ball: '6 kg | 2,70 m' },
+  mo: { label: 'Open Männer', push: '152 kg', pull: '103 kg', farm: '2 × 24 kg', bag: '20 kg', ball: '6 kg | 3 m' },
+  mp: { label: 'Pro Männer', push: '202 kg', pull: '153 kg', farm: '2 × 32 kg', bag: '30 kg', ball: '9 kg | 3 m' },
 };
 // Stationen in Wettkampf-Reihenfolge: [Schlüssel, Name, Strecke, Übung in der Bibliothek, Gewicht-Schlüssel]
 const HX_STATIONS = [
@@ -123,7 +123,7 @@ function renderHyrox() {
 }
 function hxSessionRow(s) {
   return `<button class="hx-day done" data-action="hx-ses" data-id="${s.id}"><span class="hx-dow">${new Date(s.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>
-    <span class="hx-dtxt"><b>${esc(HX_TYPES[s.type].label)}</b><small>${s.segs.length} Abschnitte · ${s.mode === 'live' ? 'mit Uhr' : 'eingetragen'}</small></span><span class="hx-dst">${hxTime(s.total)}</span></button>`;
+    <span class="hx-dtxt"><b>${esc(HX_TYPES[s.type].label)}</b><small>${s.segs.length} Abschnitte | ${s.mode === 'live' ? 'mit Uhr' : 'eingetragen'}</small></span><span class="hx-dst">${hxTime(s.total)}</span></button>`;
 }
 
 // Neuen Durchgang einrichten
@@ -144,7 +144,7 @@ function renderHyroxNew() {
       <p class="lbl">Klasse</p><div class="variants hx-divs-sm">${Object.entries(HX_DIVS).map(([k, d]) => chip('hx-div', k, d.label, hxDiv() === k)).join('')}</div>
     </div>
     <div class="card"><h2>Ablauf <small class="hint">${segs.length} Abschnitte</small></h2>
-      <ol class="hx-plan">${segs.map(g => `<li>${esc(g.label)} <small>${g.dist}${hxSegWeight(g) ? ' · ' + hxSegWeight(g) : ''}</small></li>`).join('') || '<li>Bitte mindestens eine Station wählen.</li>'}</ol></div>
+      <ol class="hx-plan">${segs.map(g => `<li>${esc(g.label)} <small>${g.dist}${hxSegWeight(g) ? ' | ' + hxSegWeight(g) : ''}</small></li>`).join('') || '<li>Bitte mindestens eine Station wählen.</li>'}</ol></div>
     <button class="btn primary" data-action="hx-go" ${segs.length ? '' : 'disabled'}>${n.mode === 'live' ? '⏱ Los geht’s' : '✎ Zeiten eintragen'}</button>`;
 }
 
@@ -159,11 +159,11 @@ function renderHyroxLive() {
   const cur = d.phase === 'rox' ? hxElapsed(d, d.roxT0) : hxElapsed(d, d.segT0);
   const next = d.segs[d.idx];
   return `<div class="card hx-live">
-      <p class="hx-kicker">Gesamtzeit${d.pausedAt ? ' · pausiert' : ''}</p><p class="hx-clock" data-hxclock="total">${hxTime(total)}</p>
-      ${d.phase === 'rox' ? `<div class="hx-now"><small>Roxzone (Wechsel)</small><b>Als Nächstes: ${esc(next.label)}</b><span>${next.dist}${hxSegWeight(next) ? ' · ' + hxSegWeight(next) : ''}</span></div>
+      <p class="hx-kicker">Gesamtzeit${d.pausedAt ? ' | pausiert' : ''}</p><p class="hx-clock" data-hxclock="total">${hxTime(total)}</p>
+      ${d.phase === 'rox' ? `<div class="hx-now"><small>Roxzone (Wechsel)</small><b>Als Nächstes: ${esc(next.label)}</b><span>${next.dist}${hxSegWeight(next) ? ' | ' + hxSegWeight(next) : ''}</span></div>
         <p class="hx-seg-clock" data-hxclock="cur">${hxTime(cur)}</p>
         <div class="row"><button class="btn" data-action="hx-pause">${d.pausedAt ? '▶ Weiter' : '⏸ Pause'}</button><button class="btn primary" data-action="hx-next">▶ ${esc(next.label)} starten</button></div>`
-        : `<div class="hx-now"><small>Abschnitt ${d.idx + 1} von ${d.segs.length}</small><b>${esc(seg.label)}</b><span>${seg.dist}${hxSegWeight(seg) ? ' · ' + hxSegWeight(seg) : ''}</span></div>
+        : `<div class="hx-now"><small>Abschnitt ${d.idx + 1} von ${d.segs.length}</small><b>${esc(seg.label)}</b><span>${seg.dist}${hxSegWeight(seg) ? ' | ' + hxSegWeight(seg) : ''}</span></div>
         <p class="hx-seg-clock" data-hxclock="cur">${hxTime(cur)}${b[seg.k] ? `<small>Bestzeit ${hxTime(b[seg.k])}</small>` : ''}</p>
         <div class="row"><button class="btn" data-action="hx-pause">${d.pausedAt ? '▶ Weiter' : '⏸ Pause'}</button><button class="btn primary" data-action="hx-done">${seg.label} fertig ✓</button></div>`}
       <p class="hint">${d.rox === false ? '' : 'Die Uhr läuft auch weiter, wenn du die App kurz verlässt.'}</p>
@@ -178,7 +178,7 @@ function renderHyroxLive() {
 function hxSummary(d, b) {
   const total = d.times.reduce((a, x) => a + x, 0) + d.rox.reduce((a, x) => a + x, 0);
   return `<div class="card hx-live"><p class="hx-kicker">Geschafft!</p><p class="hx-clock">${hxTime(total)}</p>
-      <p class="hint">${esc(HX_TYPES[d.type].label)} · Roxzone ${hxTime(d.rox.reduce((a, x) => a + x, 0))}</p></div>
+      <p class="hint">${esc(HX_TYPES[d.type].label)} | Roxzone ${hxTime(d.rox.reduce((a, x) => a + x, 0))}</p></div>
     <div class="card"><h2>Abschnitte</h2><div class="hx-segs">${d.segs.map((g, i) => `<div class="hx-seg done ${g.run ? 'run' : 'st'}"><span class="hx-sno">${g.run ? '🏃' : (g.st + 1)}</span>
       <span class="hx-sname">${esc(g.label)}</span><span class="hx-stime">${hxTime(d.times[i])}${b[g.k] ? `<small class="${d.times[i] <= b[g.k] ? 'good' : ''}">${hxDiff(d.times[i], b[g.k])}</small>` : '<small class="good">erste Zeit</small>'}</span></div>`).join('')}</div></div>
     <button class="btn primary" data-action="hx-save-live">✔ Speichern</button>
@@ -193,7 +193,7 @@ function renderHyroxManual() {
   const b = hxBests();
   return `<p class="hint explain">Zeiten als Minuten:Sekunden, z. B. 4:35. Leere Felder zählen nicht.</p>
     <div class="card"><h2>${esc(HX_TYPES[m.type].label)}</h2>
-      ${m.segs.map((g, i) => `<label class="row hx-in"><span>${esc(g.label)}<small>${g.dist}${b[g.k] ? ` · Best ${hxTime(b[g.k])}` : ''}</small></span>
+      ${m.segs.map((g, i) => `<label class="row hx-in"><span>${esc(g.label)}<small>${g.dist}${b[g.k] ? ` | Best ${hxTime(b[g.k])}` : ''}</small></span>
         <input class="inp" type="text" inputmode="decimal" placeholder="m:ss" data-field="hx-t" data-i="${i}" value="${m.vals[i] || ''}"></label>`).join('')}
       ${m.type !== 'st' ? `<label class="row hx-in"><span>Roxzone gesamt<small>Wechselzeiten zusammen, freiwillig</small></span>
         <input class="inp" type="text" inputmode="decimal" placeholder="m:ss" data-field="hx-rox" value="${m.rox || ''}"></label>` : ''}
@@ -206,7 +206,7 @@ function renderHyroxSession({ id }) {
   if (!s) return '<p class="hint">Nicht gefunden.</p>';
   const b = hxBests(s.date);
   return `<div class="card hx-live"><p class="hx-kicker">${fmtDate(s.date, true)}</p><p class="hx-clock">${hxTime(s.total)}</p>
-      <p class="hint">${esc(HX_TYPES[s.type].label)} · ${s.mode === 'live' ? 'mit Uhr gemessen' : 'eingetragen'} · ${esc((HX_DIVS[s.div] || {}).label || '')}${s.rox ? ` · Roxzone ${hxTime(s.rox)}` : ''}</p></div>
+      <p class="hint">${esc(HX_TYPES[s.type].label)} | ${s.mode === 'live' ? 'mit Uhr gemessen' : 'eingetragen'} | ${esc((HX_DIVS[s.div] || {}).label || '')}${s.rox ? ` | Roxzone ${hxTime(s.rox)}` : ''}</p></div>
     <div class="card"><h2>Abschnitte</h2><div class="hx-segs">${s.segs.map(g => `<div class="hx-seg done ${g.run ? 'run' : 'st'}"><span class="hx-sno">${g.run ? '🏃' : (g.st + 1)}</span>
       <span class="hx-sname">${esc(g.label)}</span><span class="hx-stime">${g.sec ? hxTime(g.sec) : '–'}${g.sec && b[g.k] ? `<small class="${g.sec <= b[g.k] ? 'good' : ''}">${hxDiff(g.sec, b[g.k])}</small>` : g.sec ? '<small class="good">erste Zeit</small>' : ''}</span></div>`).join('')}</div>
       <p class="hint">Vergleich mit den Bestzeiten vor diesem Tag.</p></div>
@@ -218,7 +218,7 @@ function renderHyroxStations() {
   return `<div class="seg hx-divs">${Object.entries(HX_DIVS).map(([k, v]) => `<button class="${k === hxDiv() ? 'on' : ''}" data-action="hx-div" data-k="${k}">${v.label}</button>`).join('')}</div>
     <p class="hint explain">Ablauf: 8 × (1 km Laufen + 1 Station). Gewichte für <b>${d.label}</b>, Stand Saison 2025/26. Maßgeblich ist das offizielle Regelwerk.</p>
     ${HX_STATIONS.map(([k, name, dist, lib, wk], i) => `<button class="btn nav hx-st" data-action="lib-open" data-name="${esc(lib)}">
-      <span class="hx-stno">${i + 1}</span><span class="hx-sttxt">${name}<small>${dist}${wk ? ' · ' + d[wk] : ''}${b[k] ? ` · Bestzeit ${hxTime(b[k])}` : ''}</small></span></button>`).join('')}
+      <span class="hx-stno">${i + 1}</span><span class="hx-sttxt">${name}<small>${dist}${wk ? ' | ' + d[wk] : ''}${b[k] ? ` | Bestzeit ${hxTime(b[k])}` : ''}</small></span></button>`).join('')}
     <p class="hint">Antippen öffnet die Übung in der Bibliothek, mit Figur, Ausführung und Tipps.</p>`;
 }
 
@@ -293,7 +293,7 @@ function hxSave(type, mode, segs, times, rox) {
   saveData();
   const won = typeof achievementProgress === 'function' ? achievementProgress().done.filter(a => !before.has(a.id)) : [];
   if (won.length && typeof celebrate === 'function') celebrate(won);
-  toast(`Durchgang gespeichert ✔ · ${hxTime(total)}`);
+  toast(`Durchgang gespeichert ✔ | ${hxTime(total)}`);
   return s;
 }
 
@@ -398,13 +398,13 @@ function hxRaceCard() {
   if (d < 0) {
     const res = hxData().sessions.find(s => s.type === 'race' && s.date.slice(0, 10) >= r.date);
     return `<div class="card hx-race"><p class="hx-kicker">Wettkampf vorbei</p><h2>${esc(r.name || 'Hyrox')}</h2>
-      ${res ? `<p class="hx-meta">Deine Zeit: <b>${hxTime(res.total)}</b>${r.goal ? ` · Ziel ${hxTime(r.goal)} ${res.total <= r.goal ? '✓ geschafft' : `(${hxDiff(res.total, r.goal)})`}` : ''}</p>`
+      ${res ? `<p class="hx-meta">Deine Zeit: <b>${hxTime(res.total)}</b>${r.goal ? ` | Ziel ${hxTime(r.goal)} ${res.total <= r.goal ? '✓ geschafft' : `(${hxDiff(res.total, r.goal)})`}` : ''}</p>`
         : '<p class="hint">Wie lief’s? Trag dein Ergebnis ein. Zeiten je Abschnitt findest du in der Ergebnisliste des Veranstalters.</p>'}
       <div class="row">${res ? '' : '<button class="btn primary" data-action="hx-result">Ergebnis eintragen</button>'}<button class="btn" data-action="hx-event" data-new="1">Nächsten planen</button></div></div>`;
   }
   const weeks = Math.ceil(d / 7);
-  return `<div class="card hx-race"><p class="hx-kicker">Nächster Wettkampf · Phase ${esc(ph.label)}</p><h2>${esc(r.name || 'Hyrox')}</h2>
-      <p class="hx-meta">${fmtDate(r.date + 'T12:00:00', true)} · ${esc(HX_DIVS[r.div || hxDiv()].label)} · <b>${d === 0 ? 'heute!' : d === 1 ? 'morgen' : d < 14 ? `noch ${d} Tage` : `noch ${weeks} Wochen`}</b></p>
+  return `<div class="card hx-race"><p class="hx-kicker">Nächster Wettkampf | Phase ${esc(ph.label)}</p><h2>${esc(r.name || 'Hyrox')}</h2>
+      <p class="hx-meta">${fmtDate(r.date + 'T12:00:00', true)} | ${esc(HX_DIVS[r.div || hxDiv()].label)} | <b>${d === 0 ? 'heute!' : d === 1 ? 'morgen' : d < 14 ? `noch ${d} Tage` : `noch ${weeks} Wochen`}</b></p>
       ${r.goal || p ? `<div class="hx-goal">${r.goal ? `<div><small>Ziel</small><b>${hxTime(r.goal)}</b></div>` : ''}${p ? `<div><small>Prognose</small><b>${hxTime(p.total)}</b></div>` : ''}
         ${r.goal && p ? `<div><small>Abstand</small><b class="${p.total <= r.goal ? 'good' : ''}">${hxDiff(p.total, r.goal)}</b></div>` : ''}</div>` : ''}
       <p class="hint">${esc(ph.text)}</p>
@@ -425,7 +425,7 @@ function hxWeekCard() {
         <button class="hx-mini ${ok ? 'on' : ''}" data-action="hx-wdone" data-i="${x.i}" aria-label="Erledigt">✓</button>` : ''}</div>`;
   }).join('')).join('');
   return `<div class="card hx-week"><h2>Diese Woche <small class="hint">${done.length} von ${w.n} erledigt</small></h2>${rows}
-    ${pace ? `<p class="hint">Zieltempo Laufen: <b>${hxTime(pace.run)} / km</b> (${pace.src}).${r.goal ? ' Richtzeiten je Station: ' + HX_STATIONS.map(([k, n]) => `${n} ${hxTime(r.goal * HX_SHARE[k])}`).join(' · ') + '.' : ''}</p>` : ''}
+    ${pace ? `<p class="hint">Zieltempo Laufen: <b>${hxTime(pace.run)} / km</b> (${pace.src}).${r.goal ? ' Richtzeiten je Station: ' + HX_STATIONS.map(([k, n]) => `${n} ${hxTime(r.goal * HX_SHARE[k])}`).join(' | ') + '.' : ''}</p>` : ''}
     ${r.combine ? '<p class="hint">Mit deinem Kraftplan kombiniert: Hyrox-Einheiten liegen auf den Tagen ohne Krafttraining. Die Tage sind ein Vorschlag. Tausch sie, wie es dir passt.</p>' : ''}
   </div>`;
 }

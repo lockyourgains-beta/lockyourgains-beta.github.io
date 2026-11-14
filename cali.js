@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Calisthenics (v225, User 2026-11-13, erst in der Beta) ----------
@@ -122,8 +122,10 @@ function caliApply(en, ex) {
 function caliTargetHtml(en) {
   const c = en.caliInfo, lad = caliLad(c.lad), pr = en.planned.map(x => x.reps);
   const today = Math.min(...pr) === Math.max(...pr) ? pr[0] : `${Math.max(...pr)}–${Math.min(...pr)}`;
-  return `<p class="target">Heute: ${en.sets.length} × ${today} ${c.hold ? 's' : 'Wdh.'} · Stufenziel: ${caliGoalText(c.goal)}</p>
-    <p class="hint cali-tr">${esc(lad.title)}-Leiter · Stufe ${c.step + 1} von ${lad.steps.length}</p>`;
+  // v265: ohne „Heute: …“ (steht in den Feldern), nur das Stufenziel
+  void today;
+  return `<p class="target-note">Stufenziel: ${caliGoalText(c.goal)}</p>
+    <p class="hint cali-tr">${esc(lad.title)}-Leiter | Stufe ${c.step + 1} von ${lad.steps.length}</p>`;
 }
 
 /* ---------- Stufenwechsel (nur nach Rückfrage) ---------- */
@@ -204,7 +206,7 @@ function renderCali() {
         ${l.steps.map(([n, g], i) => `<option value="${i}" ${i === lv ? 'selected' : ''}>${i + 1}. ${esc(n)} (Ziel ${caliGoalText(g)})</option>`).join('')}</select></label>` : ''}
     </div>`;
   };
-  return `${has ? `<div class="card"><h2>Dein Calisthenics-Plan</h2><p>„${esc(plan.name)}“ ist aktiv · Schwerpunkt <b>${CALI_PRIOS[plan.cali.prio].label}</b> ·
+  return `${has ? `<div class="card"><h2>Dein Calisthenics-Plan</h2><p>„${esc(plan.name)}“ ist aktiv | Schwerpunkt <b>${CALI_PRIOS[plan.cali.prio].label}</b> |
       ${plan.days.length} Tage pro Woche.</p>
       <div class="row"><button class="btn" data-action="tab" data-tab="plan">Zum Plan</button><button class="btn primary" data-action="cali-skills">Skill-Stufen</button></div></div>
       <h2>Neuen Calisthenics-Plan erstellen</h2>` : ''}
@@ -241,7 +243,7 @@ function renderCaliSkills() {
           const st = i < cur ? 'done' : i === cur ? 'now' : 'next';
           const last = i === cur ? caliHistory(n)[0] : null;
           const lastTxt = last ? last.sets.filter(x => x.reps != null).map(x => x.reps).join(' / ') + (g.h ? ' s' : '') : '';
-          const inner = `<span class="cali-dot">${i < cur ? '✓' : i + 1}</span><span class="cali-stxt">${esc(n)}<small>Ziel: ${caliGoalText(g)}${lastTxt ? ` · zuletzt <b>${lastTxt}</b>` : ''}</small></span>`;
+          const inner = `<span class="cali-dot">${i < cur ? '✓' : i + 1}</span><span class="cali-stxt">${esc(n)}<small>Ziel: ${caliGoalText(g)}${lastTxt ? ` | zuletzt <b>${lastTxt}</b>` : ''}</small></span>`;
           return libEntry(n) ? `<button class="cali-step ${st}" data-action="lib-open" data-name="${esc(n)}">${inner}</button>` : `<div class="cali-step ${st}">${inner}</div>`;
         }).join('')}</div></div>`;
     }).join('')}`;

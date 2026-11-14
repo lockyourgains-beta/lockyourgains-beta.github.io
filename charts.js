@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Diagramme (Übungen & Körpergewicht) ---------- */
@@ -306,7 +306,7 @@ const unlockedIds = () => new Set(achievementProgress().done.map(a => a.id));
 function awardCard(a, open) {
   if (!open) {
     return `<div class="card award-row done"><span class="award-icon">${a.icon}</span>
-      <div><b>${esc(a.name)}</b><small>${esc(a.desc)} · ${fmtDate(a.date)}</small></div></div>`;
+      <div><b>${esc(a.name)}</b><small>${esc(a.desc)} | ${fmtDate(a.date)}</small></div></div>`;
   }
   const pct = Math.max(0, Math.min(100, Math.round(a.value / a.goal * 100)));
   return `<div class="card award-row"><span class="award-icon locked">${a.icon}</span>
@@ -359,7 +359,7 @@ function chartPoints() {
         weeks.set(w, p);
       }
       return [...weeks.values()].map(p => ({
-        t: p.t, v: round1(p.kg / 1000), unit: 't', note: `Woche ab ${fmtDate(new Date(p.t).toISOString())} · ${p.n} Trainings`,
+        t: p.t, v: round1(p.kg / 1000), unit: 't', note: `Woche ab ${fmtDate(new Date(p.t).toISOString())} | ${p.n} Trainings`,
       }));
     }
     return sessions.map(s => ({
@@ -548,7 +548,7 @@ function tooltip(p, unit, x, y, W, H) {
   if (p.note) {
     const note = document.createElement('div');
     note.className = 'muted';
-    note.textContent = p.note + (p.deload ? ' · Deload-Woche' : '');
+    note.textContent = p.note + (p.deload ? ' | Deload-Woche' : '');
     tip.appendChild(note);
   }
   if (p.sets) {
@@ -558,8 +558,8 @@ function tooltip(p, unit, x, y, W, H) {
     tip.appendChild(sets);
     const day = document.createElement('div');
     day.className = 'muted';
-    day.textContent = p.dayName + (p.deload ? ' · Deload-Woche' : '') +
-      (p.replacedFrom ? ` · statt ${p.replacedFrom}` : '');
+    day.textContent = p.dayName + (p.deload ? ' | Deload-Woche' : '') +
+      (p.replacedFrom ? ` | statt ${p.replacedFrom}` : '');
     tip.appendChild(day);
   }
   tip.style.visibility = 'hidden';
@@ -850,7 +850,7 @@ function lastMeasures() {
 function measBtnHtml() {
   const last = lastMeasures(), k = MEASURES.find(([x]) => last[x]);
   return `<button class="link-btn meas-link" data-action="meas-open">${k
-    ? `Körpermaße · zuletzt ${k[1]} ${fmtNum(last[k[0]].v)} cm ›` : 'Auch Körpermaße wie Taille oder Hüfte festhalten ›'}</button>`;
+    ? `Körpermaße | zuletzt ${k[1]} ${fmtNum(last[k[0]].v)} cm ›` : 'Auch Körpermaße wie Taille oder Hüfte festhalten ›'}</button>`;
 }
 function renderMeasures() {
   if (!measForm) measForm = { date: todayISO(), v: {} };
@@ -870,7 +870,7 @@ function renderMeasures() {
     `<button class="vchip ${chartState.meas === k ? 'on' : ''}" data-action="meas-pick" data-k="${k}">${l}</button>`).join('')}</div>`
     + rangeRow() + '<div id="chart-area" class="chart-area"></div><div id="chart-extra"></div>';
   h += '<h2>Einträge</h2><ul class="list">' + [...data.measures].sort((a, b) => b.date.localeCompare(a.date)).map(m => `<li class="bw-row meas-row">
-      <span><b>${fmtDate(m.date + 'T12:00:00')}</b><small>${MEASURES.filter(([k]) => m.v && m.v[k] != null).map(([k, l]) => `${l} ${fmtNum(m.v[k])}`).join(' · ')} cm</small></span>
+      <span><b>${fmtDate(m.date + 'T12:00:00')}</b><small>${MEASURES.filter(([k]) => m.v && m.v[k] != null).map(([k, l]) => `${l} ${fmtNum(m.v[k])}`).join(' | ')} cm</small></span>
       <button class="icon-btn danger" data-action="meas-del" data-id="${esc(m.id)}" aria-label="Löschen">✕</button></li>`).join('') + '</ul>';
   return h;
 }
@@ -944,9 +944,9 @@ function histExListHtml() {
   const q = norm(histExQ.trim());
   return `<input class="inp hist-ex-q" type="search" data-field="hist-ex-q" autocomplete="off" autocorrect="off" spellcheck="false"
       placeholder="Übung suchen …" value="${esc(histExQ)}">
-    <p class="lbl chips-title">${list.length} Übung${list.length === 1 ? '' : 'en'} · zuletzt trainierte zuerst</p>
+    <p class="lbl chips-title">${list.length} Übung${list.length === 1 ? '' : 'en'} | zuletzt trainierte zuerst</p>
     <div id="hist-ex-list">${list.map(x => `<button class="btn nav" data-action="chart-pick" data-name="${esc(x.name)}" data-q="${esc(norm(x.name))}"
-      ${q && !norm(x.name).includes(q) ? 'hidden' : ''}>${esc(x.name)}<small>${x.count}× trainiert · zuletzt ${fmtDate(x.last)}</small></button>`).join('')}</div>
+      ${q && !norm(x.name).includes(q) ? 'hidden' : ''}>${esc(x.name)}<small>${x.count}× trainiert | zuletzt ${fmtDate(x.last)}</small></button>`).join('')}</div>
     <p class="hint" id="hist-ex-none" ${q && !list.some(x => norm(x.name).includes(q)) ? '' : 'hidden'}>Keine Übung gefunden.</p>`;
 }
 // Seite einer Übung: Schalter (Experte), Zeitraum, Diagramm, Kennzahlen – gezeichnet von drawChart (views.exercise.after)
@@ -1336,7 +1336,7 @@ function reviewTeaser(r) {
   return [`${r.trainings} Training${r.trainings === 1 ? '' : 's'}`,
     r.pbs ? `${r.pbs} Bestleistung${r.pbs === 1 ? '' : 'en'}` : null,
     r.avgGain != null && r.avgGain >= 0.5 ? `Ø ${reviewPct(r.avgGain)} stärker` : null,
-    r.kg >= 1000 ? `${reviewTons(r.kg)} t bewegt` : null].filter(Boolean).join(' · ');
+    r.kg >= 1000 ? `${reviewTons(r.kg)} t bewegt` : null].filter(Boolean).join(' | ');
 }
 
 // Startseite: Deload steht an, noch kein Deload-Training in diesem Zyklus, nicht ausgeblendet
@@ -1367,7 +1367,7 @@ function renderCycleReview({ cs }) {
       ${tile('⭐', r.pbs, r.pbs === 1 ? 'Bestleistung' : 'Bestleistungen')}
       ${r.avgGain != null ? tile('📈', reviewPct(r.avgGain), 'stärker im Schnitt') : ''}
       ${r.kg >= 100 ? tile('🏗️', `${reviewTons(r.kg)} t`, cars >= 1 ? `bewegt, so viel wie ${cars} Auto${cars === 1 ? '' : 's'}` : 'bewegt') : ''}
-      ${tile('🔁', deNum(r.sets), `Sätze · ${deNum(r.reps)} Wdh.`)}
+      ${tile('🔁', deNum(r.sets), `Sätze | ${deNum(r.reps)} Wdh.`)}
     </div>`;
   const top = r.gains.filter(g => g.pct >= 1).slice(0, 5);
   const cut = data.nutrition && ['diet', 'minicut'].includes(data.nutrition.phase);

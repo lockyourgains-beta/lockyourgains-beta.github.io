@@ -1971,7 +1971,7 @@ nav button.active { font-weight: 700; }
 .ex-card .last-sets { margin: 0 0 4px; font-size: 14.5px; }
 .ex-card .last-sets td, .ex-card .last-sets th { padding: 2px 6px 2px 0; }
 .last-sets.one th small { display: inline; }
-.last-sets.one th small::before { content: ' · '; }
+.last-sets.one th small::before { content: ' | '; }
 /* Sätze */
 .ex-card .setgrid { grid-template-columns: 46px 1.3fr 1fr 1fr; gap: 6px 8px; }
 .ex-card .setgrid .head { font-size: 11.5px; }
@@ -3634,3 +3634,58 @@ div.btn.week-ses { cursor: default; }
 .bwc-cross { stroke: var(--text); opacity: .6; }
 .bwc-kavg { margin: 4px 2px 14px; font-size: 15px; }
 .bw-hist-link { display: block; margin: -4px 0 16px; }
+
+/* v262: Karte „Dein Ernährungsziel“ oben im Ernährungsreiter */
+.nut-goal-card .nut-phase-head { margin: 4px 0 6px; }
+.nut-goal-card .nut-goal-explain { margin: 6px 0 4px; font-size: 15.5px; line-height: 1.45; }
+.nut-goal-card .explain-q { margin: 2px 0 6px; }
+.nut-goal-btns { display: grid; gap: 4px; margin-top: 12px; }
+.nut-goal-switch { width: 100%; margin: 0; }
+.nut-goal-btns .link-btn { justify-self: center; padding: 8px 4px; font-size: 15px; }
+
+/* v263: Reihenfolge der Trainingstage im Plan */
+.pday-order-btn { margin-top: 10px; }
+.pday-order .bw-row span { flex: 1; min-width: 0; }
+
+/* v265 (User 2026-11-14): Übungsname im Training deutlich und in der Farbwelt; Zeile „Heute“ entfällt; Scheiben zum Aufklappen */
+.ex-card .ex-head h2 { font-size: 24px; font-weight: 800; color: var(--accent-text); }
+[data-look="plain"] .ex-card .ex-head h2 { font-size: 23px; }
+.target-note { margin: 0 0 10px; font-size: 15.5px; font-weight: 600; color: var(--accent-text); }
+details.plates-line { padding: 0 10px; }
+details.plates-line > summary { display: flex; align-items: center; gap: 6px; min-height: 36px; cursor: pointer; list-style: none; }
+details.plates-line > summary::-webkit-details-marker { display: none; }
+details.plates-line > summary::after { content: '▸'; margin-left: auto; transition: transform .15s; }
+details.plates-line[open] > summary::after { transform: rotate(90deg); }
+details.plates-line > p { margin: 0 0 8px; color: var(--muted); }
+
+/* v267: Plan-Assistent – Übungsarten, Vorschau-Tabelle, Sätze je Woche, Schieberegler für die Zykluslänge */
+.kind-explain { margin: 14px 0 4px; padding: 12px 14px; border-radius: 14px; background: var(--fill); }
+.kind-explain .lbl { margin: 0 0 8px; }
+.kind-explain > div { display: grid; grid-template-columns: 7.5em 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 15px; line-height: 1.4; }
+.kind-explain > div b { font-size: 15px; }
+.kind-explain > div span { color: var(--muted); }
+.kind-explain .hint { margin: 8px 0 0; font-size: 14px; }
+.wiz-adjust-top { margin: 4px 0 12px; }
+table.wiz-sum { width: 100%; margin: 4px 0 2px; border-collapse: collapse; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+table.wiz-sum th { padding: 4px 2px; font-size: 12.5px; font-weight: 600; color: var(--muted); text-align: center; }
+table.wiz-sum td { padding: 5px 2px; text-align: center; border-top: 1px solid var(--line); }
+table.wiz-sum td:first-child, table.wiz-sum th:first-child { text-align: left; color: var(--muted); font-weight: 600; }
+table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px solid var(--line); }
+.wiz-sum-note { margin: 0 0 8px; font-size: 13.5px; }
+.wk-sets { display: flex; margin-top: 6px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.wk-sets > span { flex: 1; padding: 3px 0 4px; text-align: center; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+.wk-sets > span + span { border-left: 1px solid var(--line); }
+.wk-sets > span.dl { color: var(--muted); }
+.wk-sets i { display: block; font-style: normal; font-weight: 500; font-size: 11px; color: var(--muted); }
+.wiz-weeks-slider { margin: 12px 0 6px; }
+.wiz-weeks-val { margin: 0 0 6px; text-align: center; font-size: 18px; }
+.wiz-weeks-val small { display: block; font-size: 14px; color: var(--muted); }
+.wiz-range { width: 100%; height: 36px; margin: 0; accent-color: var(--accent); }
+.wiz-range-scale { display: flex; justify-content: space-between; padding: 0 6px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cyc-overview { display: grid; grid-template-columns: repeat(3, 1fr); margin: 12px 0 2px; }
+.cyc-overview > div { padding: 4px 10px; font-size: 14px; line-height: 1.35; color: var(--muted); }
+.cyc-overview > div + div { border-left: 2px solid var(--line-strong); }
+.cyc-overview > div b { display: block; color: var(--text); font-size: 14.5px; }
+.cyc-overview > div.on b { color: var(--accent-text); }
+.kind-explain > div { display: block; }
+.kind-explain > div b { display: block; margin-bottom: 2px; }

@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Trainingsplan importieren (Excel, CSV, Google Sheets, Kopieren & Einfügen) ----------
    Wie beim Ernährungsplan (nutplan.js, dessen Leser npParseDelimited/npParseXlsx/npNum hier mitbenutzt werden):
    Spalten Tag, Übung, Sätze, Wdh., Gewicht (kg) – Sätze und Wdh. dürfen auch zusammen in einer Zelle stehen („3×10“),
@@ -13,13 +13,14 @@ const TP_GUESS = {
   sets: /satz|satze|sets?$|serie/, reps: /wdh|wiederh|reps?$|repetition/, kg: /gewicht|kg|last|weight|load/,
 };
 
+let tpProgPreset = null;  // v270: im Plan-Assistenten schon gewählt ('app' | 'own')
 let tpImport = null;   // { sheets, si, head, map, name, perSheet, swaps: { Name: Ersatz }, prog: 'own'|'app', level }
 let tpPasteOpen = false;
 
 function tpStart(sheets, name) {
   sheets = sheets.filter(s => s.rows.length);
   if (!sheets.length) { alert('In der Datei wurde keine Tabelle mit Inhalt gefunden.'); return; }
-  tpImport = { sheets, si: 0, name: (name || 'Importierter Plan').replace(/\.(xlsx|csv|txt)$/i, ''), swaps: {}, prog: 'own', level: null,
+  tpImport = { sheets, si: 0, name: (name || 'Importierter Plan').replace(/\.(xlsx|csv|txt)$/i, ''), swaps: {}, prog: tpProgPreset || 'own', level: null,
     perSheet: false };
   tpGuess();
   // mehrere Blätter ohne Tag-Spalte: vermutlich je Blatt ein Trainingstag
@@ -194,7 +195,7 @@ function tpMappingHtml() {
     const sugg = !m.known && m.suggest
       ? `<button class="vchip tp-sugg" data-action="tp-swap" data-from="${esc(e.orig)}" data-to="${esc(m.suggest)}">→ ${esc(m.suggest)}?</button>` : '';
     const undo = im.swaps[e.orig] ? `<button class="link-btn" data-action="tp-swap" data-from="${esc(e.orig)}" data-to="">↩ „${esc(e.orig)}“</button>` : '';
-    return `<li>${tag} <b>${esc(e.name)}</b> · ${e.sets} × ${e.amrap ? 'AMRAP (so viele Wdh. wie möglich, Tank 0)' : e.reps}${e.kg != null ? ` · ${fmtNum(e.kg)} kg` : ''}
+    return `<li>${tag} <b>${esc(e.name)}</b> | ${e.sets} × ${e.amrap ? 'AMRAP (so viele Wdh. wie möglich, Tank 0)' : e.reps}${e.kg != null ? ` | ${fmtNum(e.kg)} kg` : ''}
       ${e.guessedSets || e.guessedReps ? '<small class="hint">(fehlende Werte: 3 × 10 angenommen)</small>' : ''}${sugg}${undo}</li>`;
   };
   const unknown = days.flatMap(d => d.exercises).filter(e => !tpMatch(e.name).known).length;
@@ -220,11 +221,9 @@ function tpMappingHtml() {
         Ein Vorschlag „→ …?“ tauscht sie gegen die passende Übung aus der Bibliothek.</p>` : ''}
     </div>
     <div class="card">
-      <h2>Wie möchtest du trainieren?</h2>
-      <button class="split-opt cat ${im.prog === 'own' ? 'on' : ''}" data-action="tp-prog" data-k="own"><span class="cat-icon">✍️</span>
-        <b>Wie im Plan, ohne Steigerung</b><small>Im Training stehen deine Sätze × Wdh. und beim nächsten Mal deine Werte vom letzten Mal. Die Steigerung lässt sich später im Plan-Reiter einschalten.</small></button>
-      <button class="split-opt cat ${im.prog === 'app' ? 'on' : ''}" data-action="tp-prog" data-k="app"><span class="cat-icon">📈</span>
-        <b>Mit Steigerung der App</b><small>Deine Übungen, Sätze und Wdh. als Start. Die App plant Zyklen mit Intro-, Aufbau- und Deload-Woche und schlägt Woche für Woche mehr Gewicht bzw. Wiederholungen vor.</small></button>
+      <h2>Fast geschafft</h2>
+      <p class="hint prog-sum">Steigerung: ${im.prog === 'app' ? 'mit der Steigerungslogik der App' : 'ohne Vorgaben, du steigerst selbst'}
+        <button class="link-btn" data-action="tp-prog" data-k="${im.prog === 'app' ? 'own' : 'app'}">ändern</button></p>
       ${im.prog === 'app' ? `<p class="lbl">Deine Trainingserfahrung</p><div class="variants">${Object.entries(LEVELS).map(([k, l]) =>
         `<button class="vchip ${im.level === k ? 'on' : ''}" data-action="tp-level" data-k="${k}">${l.icon} ${l.label}</button>`).join('')}</div>
         <p class="hint nut-small">Bestimmt, wie schnell die App steigert (und bei Neulingen und Einsteigern: nie unter 8 Wdh.).</p>` : ''}
@@ -256,7 +255,7 @@ views.trainplan = { title: 'Plan übernehmen', tab: 'plan', back: 'plan', render
   cancel: () => tpImport ? { ask: 'Import abbrechen?', run: () => { tpImport = null; go('trainplan'); } } : null };
 
 Object.assign(actions, {
-  'tp-open': () => { tpImport = null; tpPasteOpen = false; if (typeof wiz !== 'undefined') wiz = null; go('trainplan'); },
+  'tp-open': () => { tpImport = null; tpPasteOpen = false; tpProgPreset = null; if (typeof wiz !== 'undefined') wiz = null; go('trainplan'); },
   'tp-pick': () => {
     let input = document.getElementById('tp-file');
     if (!input) {

@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Fehlerprotokoll (v205, User-Wunsch 2026-11-11) ---------- */
@@ -361,14 +361,14 @@ const fmtMB = b => b < 100 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : 
 
 // Optionen: Platzanzeige (Speicherort, belegt, frei) – die freie Menge liefert der Browser erst asynchron
 const storageInfoHtml = () => `<p class="hint storage-info" id="storage-info">💾 Deine Daten: ${fmtMB(dataBytes())}${storeMode === 'idb'
-  ? ' · Speicher wird geprüft …' : ` von ca. 5 MB`}</p><p class="hint persist-info" id="persist-info"></p>`;
+  ? ' | Speicher wird geprüft …' : ` von ca. 5 MB`}</p><p class="hint persist-info" id="persist-info"></p>`;
 
 // Optionen (v205): Hat der Browser die Daten als dauerhaft markiert (löscht sie nicht von sich aus)? Sonst Rat je Gerät
 function persistAdvice() {
   if (isIOS()) return isStandalone()
     ? 'Als App auf dem Home-Bildschirm löscht das iPhone deine Daten nicht nach 7 Tagen ohne Besuch. Mach trotzdem regelmäßig eine Sicherung.'
     : 'In Safari löscht das iPhone die Daten von Websites, die 7 Tage nicht geöffnet wurden. Hol dir die App auf den Home-Bildschirm (Anleitung unten) und mach regelmäßig eine Sicherung.';
-  if (isAndroid()) return 'Chrome erlaubt das meist erst, wenn die App installiert ist oder öfter benutzt wird: Menü ⋮ → „App installieren“. Mach bis dahin regelmäßig eine Sicherung.';
+  if (isAndroid()) return 'Der Browser erlaubt das meist erst, wenn die App installiert ist oder öfter benutzt wird: im Browser-Menü (⋮ oder ☰, je nach Browser oben oder unten) „App installieren“ bzw. „Zum Startbildschirm hinzufügen“ wählen. Mach bis dahin regelmäßig eine Sicherung.';
   return 'Der Browser darf die Daten bei Speichermangel löschen. Mach regelmäßig eine Sicherung.';
 }
 async function persistFill() {
@@ -400,11 +400,11 @@ async function storageInfoFill() {
     const est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
     if (est && est.quota) {
       const left = est.quota - (est.usage || 0);
-      free = left > 1024 * 1024 * 1024 ? ` · frei: mehr als ${Math.floor(left / 1024 / 1024 / 1024)} GB` : ` · frei: ${fmtMB(left)}`;
+      free = left > 1024 * 1024 * 1024 ? ` | frei: mehr als ${Math.floor(left / 1024 / 1024 / 1024)} GB` : ` | frei: ${fmtMB(left)}`;
       if ((est.usage || 0) / est.quota >= 0.8) free += '. <b>Der Speicher wird knapp.</b>';
     }
   } catch (e) { /* ohne Angabe */ }
-  el.innerHTML = `💾 Deine Daten: ${fmtMB(used)} · großer App-Speicher${free}`;
+  el.innerHTML = `💾 Deine Daten: ${fmtMB(used)} | großer App-Speicher${free}`;
 }
 
 // Startseite: Warnung nur, wenn der alte Speicher (ohne Umzug) fast voll ist
@@ -532,8 +532,8 @@ function outlierRef(name, planned) {
 const holdSec = name => typeof name === 'string' && typeof isHoldName === 'function' && isHoldName(name);
 function fmtSet(s, name) {
   const sec = holdSec(name);
-  const tank = (s.rir != null && feat('tr-rir-input') ? ` · Tank ${fmtNum(s.rir)}` : '') + (s.variant ? ` · ${VARIANTS[s.variant]}` : '')
-    + (s.outlier ? ' · ⚠ zählt nicht (Ausreißer)' : '');
+  const tank = (s.rir != null && feat('tr-rir-input') ? ` | Tank ${fmtNum(s.rir)}` : '') + (s.variant ? ` | ${VARIANTS[s.variant]}` : '')
+    + (s.outlier ? ' | ⚠ zählt nicht (Ausreißer)' : '');
   // Teil-Sätze (v211): Reduktion „→ 65 × 8 → 52,5 × 6“, Myo „+ 4+4+3“
   const subs = !(s.subs || []).length ? '' : s.variant === 'myo' ? ` + ${s.subs.map(x => x.reps).join('+')}`
     : ' ' + s.subs.map(x => `→ ${x.weight != null ? `${fmtNum(x.weight)} × ` : ''}${x.reps}`).join(' ');
@@ -1488,7 +1488,7 @@ const targetRirText = t => t.deload ? `mind. ${fmtNum(t.rir)}` : (t.rirText || f
 
 // Tank je Satz (v199, User-Regel 2026-11-10): immer ganze Zahlen, absteigend – der erste Satz hat nie weniger im Tank als
 // der zweite. Ist das Ziel ein halber Wert (z. B. 1,5), bekommen die vorderen Sätze die höhere, die hinteren die niedrigere
-// Zahl, so dass der Schnitt das Ziel ergibt; bei ungerader Satzzahl aufgerundet (3 Sätze bei 1,5 → 2 · 2 · 1).
+// Zahl, so dass der Schnitt das Ziel ergibt; bei ungerader Satzzahl aufgerundet (3 Sätze bei 1,5 → 2 | 2 | 1).
 // Ganzzahlige Ziele: alle Sätze gleich. Nur für Ziele mit t.rirSplit (ab v199) – ältere gespeicherte Trainings wurden mit
 // dem Schnitt in jedem Satz geplant und werden auch so weitergerechnet. Zusätzliche Sätze über t.sets: niedrigere Zahl.
 function rirAt(t, i) {
@@ -1503,10 +1503,10 @@ function rirAt(t, i) {
 }
 // Ziel für Satz i: wie t, aber mit dem Tank dieses Satzes (für alle Berechnungen eines einzelnen Satzes)
 const tAt = (t, i) => t && t.rirSplit ? { ...t, rir: rirAt(t, i) } : t;
-// Tank je Satz als Text, z. B. „2 · 2 · 1“ (gleiche Zahl in allen Sätzen: nur die Zahl)
+// Tank je Satz als Text, z. B. „2 | 2 | 1“ (gleiche Zahl in allen Sätzen: nur die Zahl)
 function rirSeqText(t, n = t.sets) {
   const seq = Array.from({ length: Math.max(1, n || 1) }, (_, i) => rirAt(t, i));
-  return seq.every(x => x === seq[0]) ? fmtNum(seq[0]) : seq.map(fmtNum).join(' · ');
+  return seq.every(x => x === seq[0]) ? fmtNum(seq[0]) : seq.map(fmtNum).join(' | ');
 }
 
 // Bestehende Pläne einmalig an die um 0,5 gesenkte Grundkurve anpassen (v199): eigene Tank-Werte aus dem Plan-Assistenten
@@ -1563,7 +1563,7 @@ function planIntensityCard(bw) {
       ${low ? `<p class="hint rir-low">${low}</p>` : ''}
       <button class="btn small" data-action="plan-rir-auto">Auf automatische Werte umstellen</button></div>`;
   if (!feat('tr-rir-input')) return '';  // Einfach: läuft im Hintergrund mit „Deutlich“
-  const prev = [...Array(Math.max(1, Math.min(bw, 8)))].map((_, i) => `${i ? 'W' + (i + 1) : 'Intro'} ${fmtNum(rirAutoRange('normal', i + 1, p)[0])}`).join(' · ');
+  const prev = [...Array(Math.max(1, Math.min(bw, 8)))].map((_, i) => `${i ? 'W' + (i + 1) : 'Intro'} ${fmtNum(rirAutoRange('normal', i + 1, p)[0])}`).join(' | ');
   return `<div class="int-card"><p class="lbl">Wie stark soll die Intensität im Zyklus steigen?</p>
       <div class="variants">${Object.entries(RIR_COURSES).map(([k, x]) => chip('plan-course', k, x.label, (p.rirCourse || 'strong') === k)).join('')}</div>
       <p class="hint">${esc(RIR_COURSES[p.rirCourse || 'strong'].text)}${p.rirStyle ? ` Dazu ${p.rirStyle > 0 ? '0,5 mehr' : '0,5 weniger'} im Tank aus der Volumen-Variante „${p.volStyle === 'hard' ? 'Beides' : p.rirStyle > 0 ? 'Mehr Volumen' : 'Weniger Volumen'}“${p.rirStyle < 0 ? ' (alle Übungen mindestens 0,5)' : ''}.` : ''} Tank normaler Übungen: ${prev}.</p></div>`;
@@ -1784,7 +1784,7 @@ function volDurText() {
   if (!days.length) return '';
   const bw = data.cycle.buildWeeks || 4;
   const dur = days.map(d => [Math.round(estDuration(d, 1, p)), Math.round(estDuration(d, bw, p))]);
-  const list = days.map((d, i) => `<b>${esc(d.name)}</b> ca. ${dur[i][0] === dur[i][1] ? fmtDur(dur[i][1]) : `${fmtDur(dur[i][0])} → ${fmtDur(dur[i][1])}`}`).join(' · ');
+  const list = days.map((d, i) => `<b>${esc(d.name)}</b> ca. ${dur[i][0] === dur[i][1] ? fmtDur(dur[i][1]) : `${fmtDur(dur[i][0])} → ${fmtDur(dur[i][1])}`}`).join(' | ');
   let t = `⏱ So lange dauern deine Trainingstage damit etwa (Intro → Höhepunkt): ${list}.`;
   if (p.timeMax && Math.max(...dur.map(x => x[1])) > p.timeMax * 1.1) t += ` Das ist etwas länger als die ${p.timeMax} min, die du beim Erstellen gewählt hast. Die App übernimmt deine Zahlen trotzdem so.`;
   return t;
@@ -1802,13 +1802,13 @@ function volWeekText(g, typed = null) {
   if (typed && target[typed[0]] !== typed[1]) {
     t += `→ ${typed[1]} lässt sich nicht gleichmäßig auf ${fmtNum(days.length * per)} Trainings verteilen, es werden ${target[typed[0]]}. `;
   }
-  t += `${per % 1 ? 'Ø ' : ''}${fmtNum(round1(days.length * per))} Training${days.length * per === 1 ? '' : 's'} pro Woche · Deload ${fmtNum(Math.round(act[4]))}`;
-  if ([0, 1, 2, 3].some(w => volExtraFor(g, w))) t += ' · nicht glatt teilbar: einzelne Tage bekommen 1 Satz mehr';
+  t += `${per % 1 ? 'Ø ' : ''}${fmtNum(round1(days.length * per))} Training${days.length * per === 1 ? '' : 's'} pro Woche | Deload ${fmtNum(Math.round(act[4]))}`;
+  if ([0, 1, 2, 3].some(w => volExtraFor(g, w))) t += ' | nicht glatt teilbar: einzelne Tage bekommen 1 Satz mehr';
   if (target.some((x, w) => act[w] !== x)) {
     const why = [];
     if (target.some((x, w) => act[w] < x)) why.push(`höchstens ${MAX_SETS_PER_EX} Sätze je Übung, ggf. Übung ergänzen`);
     if (target.some((x, w) => act[w] > x)) why.push('jede Übung bekommt mindestens 1 Satz');
-    t += ` · ⚠ tatsächlich: ${act.slice(0, 4).join(' · ')} (${why.join('; ')})`;
+    t += ` | ⚠ tatsächlich: ${act.slice(0, 4).join(' | ')} (${why.join('; ')})`;
   }
   return t;
 }
@@ -1976,7 +1976,7 @@ function ssOrder(p) {
 const ssNext = p => ssOrder(p).find(([ei, si]) => !isDone(draft.entries[ei].sets[si])) || null;
 function ssRoundText(p) {
   const nx = ssNext(p), rounds = Math.max(draft.entries[p.i].sets.length, draft.entries[p.j].sets.length);
-  return `${nx ? `Runde ${nx[1] + 1} von ${rounds}` : 'erledigt ✓'} · Pause je ${ssRestText(p.rest)}`;
+  return `${nx ? `Runde ${nx[1] + 1} von ${rounds}` : 'erledigt ✓'} | Pause je ${ssRestText(p.rest)}`;
 }
 // Automatisch koppeln: zuerst Gegenspieler, dann unabhängige Muskelgruppen – nur Paare, die Zeit sparen. Jede Übung höchstens
 // einmal; bestehende Paare bleiben. Liefert [[i, j], …] (Indizes in exs, i < j).
@@ -2998,16 +2998,16 @@ function restHtml() {
       <button data-action="rest-skip">Weiter</button></div>
     <div class="trh-bar rest"><i id="tr-rest-bar" style="width:${Math.round(left / r.total * 100)}%"></i></div>${restNextHtml(r)}`;
 }
-// Supersatz (v210): welcher Satz als Nächstes dran ist, z. B. „Danach: B2 · Rudern am Kabel“
+// Supersatz (v210): welcher Satz als Nächstes dran ist, z. B. „Danach: B2 | Rudern am Kabel“
 function restNextHtml(r) {
   if (r.myo) {
     const en = draft.entries[r.ei];
-    return en ? `<button class="trh-next" data-action="tr-jump">Danach: <b>Mini-Satz ${r.myo[1] + 1} · ${esc(en.name)}</b></button>` : '';
+    return en ? `<button class="trh-next" data-action="tr-jump">Danach: <b>Mini-Satz ${r.myo[1] + 1} | ${esc(en.name)}</b></button>` : '';
   }
   if (!r.next) return '';
   const [ei, si] = r.next, en = draft.entries[ei], p = draftPairs().get(ei);
   if (!en || !p || isDone(en.sets[si] || {})) return '';
-  return `<button class="trh-next" data-action="tr-jump">Danach: <b>${p.role}${si + 1} · ${esc(en.name)}</b></button>`;
+  return `<button class="trh-next" data-action="tr-jump">Danach: <b>${p.role}${si + 1} | ${esc(en.name)}</b></button>`;
 }
 // Signal am Ende: Vibration (nur Android – iPhone erlaubt Web-Apps keine Vibration) und/oder Ton
 function restSignal() {
@@ -3070,7 +3070,7 @@ function restCard() {
     </div>`;
 }
 
-// Kopfleiste im Training (v200, User-Wunsch 2026-11-10): „Übung x von y · a von b Sätzen“, Balken, Uhr und Menü „⋯“.
+// Kopfleiste im Training (v200, User-Wunsch 2026-11-10): „Übung x von y | a von b Sätzen“, Balken, Uhr und Menü „⋯“.
 // Aktuelle Übung = erste mit noch offenen Sätzen; antippen springt dorthin.
 let trMenuOpen = false;
 function trProgress() {
@@ -3091,7 +3091,7 @@ function trHeadHtml() {
   const pct = all ? Math.round(done / all * 100) : 0;
   const where = cur < 0 ? 'Alles erledigt ✓' : `Übung ${cur + 1} von ${draft.entries.length}`;
   return `<div class="trh-row">
-      <button class="trh-where" data-action="tr-jump">${where}<span> · ${done} von ${all} Sätzen</span></button>
+      <button class="trh-where" data-action="tr-jump">${where}<span> | ${done} von ${all} Sätzen</span></button>
       <span class="trh-time">⏱ <b id="tr-timer">${fmtClock(Date.now() - Date.parse(draft.date))}</b></span>
       <button class="trh-menu-btn" data-action="tr-menu" aria-label="Mehr" aria-expanded="${trMenuOpen}">⋯</button>
     </div>
@@ -3174,14 +3174,14 @@ const ssSaveText = (a, b, rest) => { const v = ssSaves(a, b, rest); return v ? `
 function ssPlanHead(day, p) {
   const a = day.exercises[p.i], b = day.exercises[p.j];
   return `<div class="ss-head"><span class="ss-title">🔗 Supersatz<small>${ssAntag(a, b) ? 'Gegenspieler' : 'Unabhängige Muskelgruppen'}
-      · Pause je ${ssRestText(p.rest)} · ${ssSaveText(a, b, p.rest)}</small></span>
+      | Pause je ${ssRestText(p.rest)} | ${ssSaveText(a, b, p.rest)}</small></span>
     <button class="btn small outline" data-action="ss-unpair" data-i="${p.i}">Lösen</button></div>`;
 }
 function ssPickHtml(day, i) {
   const ex = day.exercises[i], c = ssCandidates(day, i);
   return `<div class="replace ss-pick"><p class="lbl">„${esc(ex.name)}“ im Wechsel mit …</p>
       ${c.length ? `<div class="quick-picks">${c.map(j => { const b = day.exercises[j];
-        return `<button class="vchip" data-action="ss-pair" data-i="${i}" data-j="${j}">${esc(b.name)}<small>${ssAntag(ex, b) ? 'Gegenspieler · ' : ''}${ssSaveText(ex, b)}</small></button>`; }).join('')}</div>`
+        return `<button class="vchip" data-action="ss-pair" data-i="${i}" data-j="${j}">${esc(b.name)}<small>${ssAntag(ex, b) ? 'Gegenspieler | ' : ''}${ssSaveText(ex, b)}</small></button>`; }).join('')}</div>`
         : '<p class="hint">An diesem Tag passt keine Übung dazu.</p>'}
       <p class="hint quick-title">… oder eine andere Übung wählen (sie kommt direkt dahinter in den Plan):</p>
       <input class="inp" type="text" data-field="ss-pick-name" data-i="${i}" autocomplete="off" autocorrect="off" spellcheck="false"
@@ -3255,7 +3255,7 @@ function ssAutoBtnHtml(day) {
   const pv = ssAutoPreview(day);
   if (!pv || pv.save < 1) return '';
   return `<button class="btn outline nav ss-auto-btn" data-action="ss-auto">🔗 Supersätze vorschlagen
-    <small>${pv.pairs.length} Paar${pv.pairs.length === 1 ? '' : 'e'} möglich · spart ca. ${pv.save} min pro Training</small></button>`;
+    <small>${pv.pairs.length} Paar${pv.pairs.length === 1 ? '' : 'e'} möglich | spart ca. ${pv.save} min pro Training</small></button>`;
 }
 // Übungsname: Zusatz in Klammern kleiner und grau, z. B. „Bankdrücken Flachbank (Langhantel)“
 function exTitleHtml(name) {
@@ -3392,7 +3392,7 @@ function painSpark(pts) {
   const W = 320, H = 92, L = 24, R = 10, T = 10, B = 22;
   const t0 = Date.parse(pts[0].date), t1 = Math.max(Date.parse(pts[pts.length - 1].date), t0 + 86400000);
   const X = d => L + (Date.parse(d) - t0) / (t1 - t0) * (W - L - R), Y = p => T + (10 - p) / 10 * (H - T - B);
-  const tip = p => `${fmtDate(p.date)} · ${p.pain}/10${p.ex ? ` · im Training bei ${p.ex}` : ''}`;
+  const tip = p => `${fmtDate(p.date)} | ${p.pain}/10${p.ex ? ` | im Training bei ${p.ex}` : ''}`;
   return `<svg class="pain-spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Verlauf der Stärke, ${pts.length} Werte">
     ${[0, 5, 10].map(v => `<line class="ps-grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ps-ax" x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`).join('')}
     <polyline class="ps-line" points="${pts.map(p => `${X(p.date).toFixed(1)},${Y(p.pain).toFixed(1)}`).join(' ')}"/>
@@ -3435,7 +3435,7 @@ function renderComplaints() {
     const when = x.now ? `Seit ${fmtDate(x.since)}` : x.n ? `Zuletzt angegeben am ${fmtDate(x.lastDiary)}` : `Zuletzt am ${fmtDate(x.last)}`;
     h += `<div class="card compl-area ${x.now ? 'now' : 'gone'}">
         <p class="compl-head"><b>${areaName(x.k, x.side)}</b><span class="compl-badges">${x.lastP ? `<span class="compl-val">${x.lastP.pain}/10</span>` : ''}<span class="badge ${x.now ? 'warn' : 'ok'}">${x.now ? 'aktuell' : x.n ? 'abgeklungen ✓' : 'im Training notiert'}</span></span></p>
-        <p class="hint">${when}${x.n ? ` · ${x.n}× im Tagebuch` : ''}${x.nZw ? ` · ${x.nZw}× im Training` : ''}.</p>
+        <p class="hint">${when}${x.n ? ` | ${x.n}× im Tagebuch` : ''}${x.nZw ? ` | ${x.nZw}× im Training` : ''}.</p>
         ${painSpark(x.pts)}
         ${exs.length ? `<p class="compl-ex">Gezwickt bei: ${exs.map(e => `${esc(e.name)} ${e.n}×${e.max != null ? ` (bis ${e.max}/10)` : ''}`).join(', ')}</p>` : ''}
         ${x.now && hits.length ? `<p class="compl-ex">Betrifft im Plan: ${hits.map(esc).join(', ')}</p><p class="hint">Tipp: ${BODY_AREAS[x.k].tip}.</p>` : ''}
@@ -3445,7 +3445,7 @@ function renderComplaints() {
   const rows = [...data.complaints.map(e => ({ d: e.date, h: `<div><span>${fmtDate(e.date)}</span>
       <b>${e.areas.length ? e.areas.map(a => areaName(a, e.side && e.side[a]) + (e.pain && e.pain[a] != null ? ` ${e.pain[a]}/10` : '')).join(', ') : 'nichts'}</b>
       ${e.note ? `<small>„${esc(e.note)}“</small>` : ''}</div>` })),
-    ...data.painLog.map(z => ({ d: z.date, h: `<div><span>${fmtDate(z.date)} · im Training</span>
+    ...data.painLog.map(z => ({ d: z.date, h: `<div><span>${fmtDate(z.date)} | im Training</span>
       <b>🩹 ${areaName(z.area, z.side)}${z.pain != null ? ` ${z.pain}/10` : ''}</b><small>bei ${esc(z.ex)}</small></div>
       <button class="icon-btn" data-action="pain-del" data-id="${z.id}" aria-label="Eintrag löschen">✕</button>` }))]
     .sort((a, b) => b.d.localeCompare(a.d));
@@ -3460,7 +3460,7 @@ function complaintsHistBtn() {
   const sum = complaintSummary();
   const now = sum.filter(x => x.now);
   const txt = !sum.length ? 'Schmerzen und Beschwerden festhalten, z. B. für deinen nächsten Termin'
-    : now.length ? now.map(x => `${areaName(x.k, x.side)} seit ${fmtDate(x.since)}${x.lastP ? ` · ${x.lastP.pain}/10` : ''}`).join(' · ') : 'Zurzeit nichts, alles abgeklungen ✓';
+    : now.length ? now.map(x => `${areaName(x.k, x.side)} seit ${fmtDate(x.since)}${x.lastP ? ` | ${x.lastP.pain}/10` : ''}`).join(' | ') : 'Zurzeit nichts, alles abgeklungen ✓';
   return `<button class="btn nav compl-btn" data-action="compl-open" data-from="history">🩹 Beschwerden<small>${txt}</small></button>`;
 }
 
@@ -3469,7 +3469,7 @@ let painQuick = null;  // { ei, area, pain, side } – offenes Eingabefeld im Tr
 function painTrainingHtml(en, ei, affected) {
   const day = localDay(draft.date);
   const noted = data.painLog.filter(z => nameKey(z.ex) === nameKey(en.name) && localDay(z.date) === day);
-  let h = noted.map(z => `<p class="pain-noted"><span>🩹 Notiert: ${areaName(z.area, z.side)}${z.pain != null ? ` · ${z.pain}/10` : ''}</span>
+  let h = noted.map(z => `<p class="pain-noted"><span>🩹 Notiert: ${areaName(z.area, z.side)}${z.pain != null ? ` | ${z.pain}/10` : ''}</span>
     <button class="icon-btn" data-action="pain-del" data-id="${z.id}" aria-label="Eintrag löschen">✕</button></p>`).join('');
   if (painQuick && painQuick.ei === ei) {
     const q = painQuick;
@@ -3507,7 +3507,7 @@ function complReportData(weeks) {
 }
 function complReportText(R) {
   const L = [`Beschwerde-Tagebuch${R.name ? `: ${R.name}` : ''}`,
-    `Zeitraum: ${fmtDate(R.from)} bis ${fmtDate(new Date().toISOString())} (${R.weeks} Wochen) · ${R.sessions} Trainings`, ''];
+    `Zeitraum: ${fmtDate(R.from)} bis ${fmtDate(new Date().toISOString())} (${R.weeks} Wochen) | ${R.sessions} Trainings`, ''];
   if (!R.areas.length) L.push('Im Zeitraum gibt es keine Einträge.', '');
   for (const a of R.areas) {
     L.push(`${areaName(a.k, a.side)}${a.now ? ' (aktuell)' : ''}`);
@@ -3550,7 +3550,7 @@ function complReportCanvas(R) {
   y = 40;
   text('Beschwerde-Tagebuch', F(800, 64), INK, 84);
   if (R.name) text(R.name, F(600, 40), INK, 56);
-  text(`${fmtDate(R.from)} bis ${fmtDate(new Date().toISOString())} · ${R.weeks} Wochen · ${R.sessions} Trainings`, F(500, 32), MUTED, 50);
+  text(`${fmtDate(R.from)} bis ${fmtDate(new Date().toISOString())} | ${R.weeks} Wochen | ${R.sessions} Trainings`, F(500, 32), MUTED, 50);
   rule();
   if (!R.areas.length) text('Im gewählten Zeitraum gibt es keine Einträge.', F(500, 36), INK, 80);
   for (const a of R.areas) {
@@ -3559,7 +3559,7 @@ function complReportCanvas(R) {
     g.font = F(700, 30); g.fillStyle = MUTED; g.textAlign = 'right';
     g.fillText(a.now ? 'AKTUELL' : 'ABGEKLUNGEN', W - X, y); g.textAlign = 'left';
     const lp = a.pts[a.pts.length - 1];
-    text(lp ? `Zuletzt ${lp.pain}/10 am ${fmtDate(lp.date)} · ${a.pts.length} ${a.pts.length === 1 ? 'Wert' : 'Werte'}` : 'Ohne Angabe der Stärke', F(500, 32), MUTED, 50);
+    text(lp ? `Zuletzt ${lp.pain}/10 am ${fmtDate(lp.date)} | ${a.pts.length} ${a.pts.length === 1 ? 'Wert' : 'Werte'}` : 'Ohne Angabe der Stärke', F(500, 32), MUTED, 50);
     if (a.pts.length) {
       // Diagramm: Stärke 0–10 über den Zeitraum
       const top = y + 36, ch = 250, cl = X + 50, cr = W - X - 10;
@@ -3599,7 +3599,7 @@ function complReportCanvas(R) {
   }
   y += 10;
   text(`🩺 ${COMPL_DISCLAIMER}`, F(500, 28), MUTED, 42);
-  text(`Selbst erfasst mit ${APP_NAME} · erstellt am ${fmtDate(new Date().toISOString())}`, F(600, 28), MUTED, 52);
+  text(`Selbst erfasst mit ${APP_NAME} | erstellt am ${fmtDate(new Date().toISOString())}`, F(600, 28), MUTED, 52);
   const H = Math.min(MAXH, Math.ceil(y + 70));
   const out = document.createElement('canvas');
   out.width = W; out.height = H;
@@ -3761,7 +3761,7 @@ function warmupBlock(en, ei) {
   // Standard zugeklappt (spart Platz, eine Übung passt so etwa auf einen Bildschirm): eine Zeile mit allen Werten,
   // aufgeklappt (en.warmOpen) zum Ändern
   const closed = !en.warmOpen;
-  const summary = en.warmup.map(w => `${w.weight || '–'} kg × ${w.reps || '–'}`).join(' · ');
+  const summary = en.warmup.map(w => `${w.weight || '–'} kg × ${w.reps || '–'}`).join(' | ');
   const head = `<button class="warm-title warm-toggle" data-action="wu-toggle" data-ei="${ei}" aria-expanded="${!closed}">
       <span>🔥 Aufwärmen${closed ? ` <small>${esc(summary)}</small>` : ''}</span><span class="chev" aria-hidden="true">${closed ? '▸' : '▾'}</span></button>`;
   if (closed) return `<div class="warmup closed" data-warm="${ei}">${head}</div>`;
@@ -3823,14 +3823,15 @@ const isBarbellEx = en => /langhantel/.test(norm(en.name));
 function platesLineText(en) {
   const s = en.sets.find(x => !isDone(x)) || en.sets[en.sets.length - 1];
   const w = s && parseNum(s.weight);
-  return w ? `🏋️ Scheiben je Seite (${fmtNum(w)} kg): <b>${platesPerSide(w)}</b>` : '';
+  return w ? `Für ${fmtNum(w)} kg: <b>${platesPerSide(w)}</b>` : '';
 }
 function platesSync(ei) {
   const el = $view.querySelector(`[data-plates-line="${ei}"]`);
   if (!el) return;
   const t = platesLineText(draft.entries[ei]);
   el.innerHTML = t;
-  el.hidden = !t;
+  const wrap = el.closest('[data-plates-wrap]');
+  (wrap || el).hidden = !t;
 }
 // Optionen: Stange und Scheiben
 function platesCard() {
@@ -4045,15 +4046,15 @@ function cyclePills(ci, action = null) {
   return h + '</div>';
 }
 
-// Stand des Durchlaufs: „1 von 3 Trainings erledigt · offen: Pull, Beine“
+// Stand des Durchlaufs: „1 von 3 Trainings erledigt | offen: Pull, Beine“
 function roundStatus(ci) {
   const total = activeDays().reduce((a, d) => a + dayTimes(d, ci.week), 0);
   const open = roundOpen(ci.cycleStart, ci.week);
   const left = open.reduce((a, x) => a + x.left, 0);
   const sk = roundSkipped(ci.cycleStart, ci.week).filter(id => findDay(id)).length;
   if (!total) return '';
-  return `${total - left - sk} von ${total} Trainings erledigt${sk ? ` · ${sk} ausgelassen` : ''}` +
-    (left ? ` · offen: ${open.map(x => esc(x.day.name) + (x.left > 1 ? ` (${x.left}×)` : '')).join(', ')}` : '');
+  return `${total - left - sk} von ${total} Trainings erledigt${sk ? ` | ${sk} ausgelassen` : ''}` +
+    (left ? ` | offen: ${open.map(x => esc(x.day.name) + (x.left > 1 ? ` (${x.left}×)` : '')).join(', ')}` : '');
 }
 
 function cycleCard(ci) {
@@ -4065,8 +4066,8 @@ function cycleCard(ci) {
     </div>`;
   }
   const head = ci.deload
-    ? `Zyklus ${ci.cycle} · Deload-Woche`
-    : `Zyklus ${ci.cycle} · ${weekLabel(ci.week)}${ci.intro ? '' : ci.extra ? ' · Verlängerung' : ` von ${ci.buildWeeks}`}`;
+    ? `Zyklus ${ci.cycle} | Deload-Woche`
+    : `Zyklus ${ci.cycle} | ${weekLabel(ci.week)}${ci.intro ? '' : ci.extra ? ' | Verlängerung' : ` von ${ci.buildWeeks}`}`;
   const self = selfDeload();
   const sub = ci.deload
     ? (feat('tr-rir-input') ? `Halbe Sätze, 15 % weniger Gewicht oder weniger Wdh. als in der letzten Trainingswoche, mind. ${DELOAD_RIR} Wdh. im Tank. Danach beginnt der nächste Zyklus.`
@@ -4093,7 +4094,7 @@ function cycleCard(ci) {
     <div class="cyc-head" data-action="cyc-toggle" role="button" tabindex="0" aria-expanded="${open}">
       <h2>${head}</h2><span class="chev" aria-hidden="true">▾</span></div>
     ${cyclePills(ci, 'week-open')}
-    <p class="round-status">🔄 ${open ? status : status.split(' · offen: ')[0]}</p>
+    <p class="round-status">🔄 ${open ? status : status.split(' | offen: ')[0]}</p>
     ${open ? `<p class="sub">${sub} Eine Woche ist geschafft, sobald ${roundDoneText()}, egal, wie viele Tage du dafür brauchst.</p>` : ''}
     ${off ? `<p class="prog-note">⏸ Diese Woche ${off}</p>` : ''}
     ${self && !ci.deload ? `<button class="btn outline deload-btn" data-action="deload-now">😮‍💨 Deload-Woche einlegen</button>
@@ -4188,8 +4189,12 @@ const SHARE_ICON = '<svg class="ios-share" viewBox="0 0 24 24" aria-label="Teile
 function installStepsHtml() {
   if (isAndroid()) {
     if (installEvt) return '<button class="btn primary" data-action="install-now">📲 Jetzt installieren</button>';
-    return `<ol class="install-steps"><li>Oben rechts auf das Menü <b>⋮</b> tippen.</li>
-      <li><b>„App installieren“</b> oder <b>„Zum Startbildschirm hinzufügen“</b> wählen.</li><li>Bestätigen, fertig.</li></ol>`;
+    // v264 (Tester-Feedback 2026-11-14): Lage des Menüs hängt vom Browser ab (Chrome oben, Samsung Internet unten) – allgemein beschreiben
+    return `<ol class="install-steps"><li>Das Menü deines Browsers öffnen: meist die drei Punkte ⋮ oder die drei Striche ☰.
+        Je nach Browser sitzen sie oben oder unten am Bildschirmrand.</li>
+      <li>Dort „App installieren“ oder „Zum Startbildschirm hinzufügen“ wählen. Bei manchen Browsern heißt es
+        „Seite hinzufügen zu“ und dann „Startbildschirm“.</li>
+      <li>Bestätigen. Danach öffnest du die App über ihr Symbol auf dem Startbildschirm.</li></ol>`;
   }
   const move = hasOwnData() ? `<li><b>Zuerst sichern:</b> Auf dem iPhone hat die App auf dem Home-Bildschirm einen eigenen Speicher und
       startet dort leer. Exportiere deshalb jetzt eine Sicherung und importiere sie danach dort unter Optionen → Deine Daten → „Sicherung importieren“.
@@ -4348,7 +4353,7 @@ function timeLimitHtml() {
       </div>`;
   }
   if (tl && tl.min) {
-    return `<div class="time-strip"><span>⏱ <b>Zeitlimit ${tl.min} min</b> · ${tl.once ? 'nur nächstes Training' : 'bis du es änderst'}${tl.ss && ssOn() ? ' · 🔗 erst Supersätze' : ''}</span>
+    return `<div class="time-strip"><span>⏱ <b>Zeitlimit ${tl.min} min</b> | ${tl.once ? 'nur nächstes Training' : 'bis du es änderst'}${tl.ss && ssOn() ? ' | 🔗 erst Supersätze' : ''}</span>
         <button class="btn small" data-action="time-open">Ändern</button><button class="btn small" data-action="time-off">Aus</button></div>`;
   }
   return `<button class="btn outline time-btn" data-action="time-open">⏱ Wenig Zeit?<small>Training kürzen</small></button>`;
@@ -4440,8 +4445,8 @@ function renderStart() {
     // geschätzte Dauer dieser Woche (Sätze wie im Training) und zuletzt gemessene Dauer
     const est = estDuration(day, ci.week, activePlan(), ci.deload || hxLight());
     const estTxt = !est ? '' : limit && est > limit ? `⏱ gekürzt auf ca. ${fmtDur(limit)} (sonst ${estText(est)})` : estText(est);
-    const info = `${day.exercises.length} Übung${day.exercises.length === 1 ? '' : 'en'}` + (estTxt ? ` · ${estTxt}` : '') +
-      (last ? ` · zuletzt ${fmtDate(last.date)}` : '') + (dur ? ` · ⏱ ${fmtDur(dur)}` : '');
+    const info = `${day.exercises.length} Übung${day.exercises.length === 1 ? '' : 'en'}` + (estTxt ? ` | ${estTxt}` : '') +
+      (last ? ` | zuletzt ${fmtDate(last.date)}` : '') + (dur ? ` | ⏱ ${fmtDur(dur)}` : '');
     const next = day === nextDay;
     return `<button class="btn nav day-btn ${next ? 'next' : ''} ${done ? 'done' : ''} ${skipped ? 'skipped' : ''}" data-action="start-day" data-id="${day.id}">
       <span class="day-no">${skipped ? '⏭' : done ? '✓' : dayNoText(i)}</span>
@@ -4452,7 +4457,7 @@ function renderStart() {
   // (der nächste bleibt hervorgehoben), Zeitlimit direkt darunter
   h += cycleCard(ci) + caliUp + (typeof hxTaperCard === 'function' ? hxTaperCard(ci) : '') + hint
     + (typeof reviewStartCard === 'function' ? reviewStartCard() : '') + hintsCard();
-  h += `<h2 class="start-days-h">Trainingstage <small class="hint">· ${esc(activePlan().name)}</small></h2>`
+  h += `<h2 class="start-days-h">Trainingstage <small class="hint">| ${esc(activePlan().name)}</small></h2>`
     // v246 (User 2026-11-14): „Wenig Zeit?“ hängt direkt am nächsten Trainingstag (ohne nächsten Tag wie bisher unten)
     + data.days.map((d, i) => dayBtn(d, i) + (d === nextDay && !draft ? `<div class="tl-attach">${timeLimitHtml()}</div>` : '')).join('');
   const tlAttached = !draft && !!nextDay;
@@ -4555,12 +4560,12 @@ function timeCutNote() {
   if (draft.timeFull && !draft.timeOk) return timeEditHtml();
   const btns = draft.timeFull ? `<span class="tc-btns"><button class="btn small" data-action="tc-edit">Anpassen</button>
     <button class="btn small" data-action="tc-full">Ganzes Training</button></span>` : '';
-  const ss = (draft.ssToday || []).length ? `<br><small>🔗 Heute im Supersatz: ${draft.ssToday.map(([a, b]) => `${esc(a)} + ${esc(b)}`).join(' · ')}</small>` : '';
+  const ss = (draft.ssToday || []).length ? `<br><small>🔗 Heute im Supersatz: ${draft.ssToday.map(([a, b]) => `${esc(a)} + ${esc(b)}`).join(' | ')}</small>` : '';
   if (ss && !c) return `<p class="intro-note time-note">⏱ Zeitlimit ${draft.timeLimit} min: Mit Supersätzen passt das Training ohne Kürzen.${ss}</p>`;
   if (!c) return `<p class="intro-note time-note">⏱ Zeitlimit ${draft.timeLimit} min: Das Training passt schon so, nichts gekürzt.</p>`;
   return `<p class="intro-note time-note">⏱ Auf ca. ${fmtDur(c.after)} gekürzt (Zeitlimit ${c.limit} min, sonst ca. ${fmtDur(c.before)}).
-    ${c.cut.length ? `<br><small>Weniger Sätze: ${c.cut.map(x => `${esc(x.name)} ${x.from} → ${x.to}`).join(' · ')}</small>` : ''}
-    ${c.dropped.length ? `<br><small>Heute ausgelassen: ${c.dropped.map(esc).join(' · ')}</small>` : ''}${ss}${btns}</p>`;
+    ${c.cut.length ? `<br><small>Weniger Sätze: ${c.cut.map(x => `${esc(x.name)} ${x.from} → ${x.to}`).join(' | ')}</small>` : ''}
+    ${c.dropped.length ? `<br><small>Heute ausgelassen: ${c.dropped.map(esc).join(' | ')}</small>` : ''}${ss}${btns}</p>`;
 }
 
 function renderTraining() {
@@ -4619,7 +4624,7 @@ function renderTraining() {
         <h2>${pr ? `<span class="ss-badge" aria-label="Übung ${pr.role} im Supersatz">${pr.role}</span>` : ''}${libEntry(en.name) ? `<button class="lib-link" data-action="lib-open" data-name="${esc(en.name)}"
           aria-label="Ausführung ansehen">${exTitleHtml(en.name)} <span class="info-dot">i</span></button>` : exTitleHtml(en.name)}</h2>
         <button class="det-btn ord-btn" data-action="reorder-toggle" data-ei="${ei}" aria-label="Reihenfolge ändern">⇅</button>
-        <button class="det-btn" data-action="ex-details" data-ei="${ei}" aria-expanded="${det}">Details${hasComment && !det ? ' · 💬' : ''}
+        <button class="det-btn" data-action="ex-details" data-ei="${ei}" aria-expanded="${det}">Details${hasComment && !det ? ' | 💬' : ''}
           <span class="chev" aria-hidden="true">▾</span></button>
         ${det ? `<div class="ex-tools">
           ${feat('tr-comment') ? `<button class="icon-btn bubble ${hasComment ? 'has' : ''}" data-action="comment-toggle"
@@ -4665,17 +4670,13 @@ function renderTraining() {
     if (en.caliInfo && typeof caliTargetHtml === 'function') {
       h += caliTargetHtml(en);
     } else if (en.target && en.target.own) {
-      h += en.target.amrap ? `<p class="target">Plan: ${en.target.sets} × AMRAP · so viele Wdh. wie möglich (Tank 0)</p>`
-        : `<p class="target">Plan: ${en.target.sets} × ${en.target.reps} ${typeof holdUnit === 'function' ? holdUnit(en.name) : 'Wdh.'}</p>`;
+      // v265 (User 2026-11-14): keine Zeile „Plan: …“ mehr, die Werte stehen vorausgefüllt in den Feldern; AMRAP sieht man dort nicht
+      if (en.target.amrap) h += `<p class="target-note">AMRAP: so viele Wdh. wie möglich (Tank 0)</p>`;
     } else if (en.target) {
       const t = en.target;
-      // Heute: wirklich vorgeschlagene Wdh. (User-Regel 2026-11-06), nicht der Startwert des Plans
-      const pr = (en.planned || []).map(x => x && x.reps).filter(x => x != null);
-      const today = pr.length ? (Math.min(...pr) === Math.max(...pr) ? pr[0] : `${Math.max(...pr)}–${Math.min(...pr)}`) : t.reps;
-      h += en.holdSec ? `<p class="target">Heute: ${t.sets} × ${today} s halten · nächste Woche mehr, wenn du es schaffst (bis ${HOLD_MAX} s)</p>${holdHintHtml(en)}`
-        : feat('tr-tank-target')
-        ? `<p class="target">Heute: ${t.sets} × ${today} ${holdSec(en.name) ? 's' : 'Wdh.'} · ${t.deload || !t.rirSplit ? `Ø ${targetRirText(t)} im Tank` : `Tank ${rirSeqText(t)}`}</p>`
-        : `<p class="target">Heute: ${t.sets} × ${today} ${holdSec(en.name) ? 's' : 'Wdh.'} · ${feelTargetText(t)}</p>`;
+      // v265 (User 2026-11-14): Zeile „Heute: 3 × 7–5 Wdh. | Tank 1“ entfällt, Gewicht, Wdh. und Tank stehen in den Feldern
+      if (t.amrap && !t.deload) h += `<p class="target-note">AMRAP: so viele Wdh. wie möglich (Tank 0)</p>`;
+      if (en.holdSec) h += holdHintHtml(en);
       if (feat('tr-prefat') && (t.fat || 0) >= PREFAT_SHOW - 1e-9) {
         const pi = preFatigueInfo(draftPrefatList(), ei);
         const parts = [pi.same ? `${fmtNum(pi.same)} ${pi.same === 1 ? 'Satz' : 'Sätze'} ${MUSCLES[pi.g] || ''}` : '', pi.help ? `${fmtNum(pi.help)} ${pi.help === 1 ? 'Satz' : 'Sätze'} für Hilfsmuskeln` : ''].filter(Boolean);
@@ -4685,14 +4686,16 @@ function renderTraining() {
     // Scheiben-Rechner (v204): bei Langhantel-Übungen immer sichtbar, rechnet beim Eintippen mit (platesSync)
     if (!body && isBarbellEx(en)) {
       const pt = platesLineText(en);
-      h += `<p class="plates-line" data-plates-line="${ei}"${pt ? '' : ' hidden'}>${pt}</p>`;
+      // v265 (User 2026-11-14): nur noch zum Aufklappen
+      h += `<details class="plates-line" data-plates-wrap="${ei}"${pt ? '' : ' hidden'}><summary>🏋️ Scheiben je Seite</summary>
+        <p data-plates-line="${ei}">${pt}</p></details>`;
     }
     // Max. bei 10 Wdh., Steigerung und Ausführung kompakt nebeneinander; die Auswahl klappt darunter auf
     const t = en.target;
     const withMax = t && !t.own && !body && feat('tr-max');
     const vAll = en.sets.length && en.sets.every(s => variantOf(s) === variantOf(en.sets[0])) ? variantOf(en.sets[0]) : null;
     const maxToday = !withMax ? '' : t.max10 != null && (t.fat || 0) >= PREFAT_SHOW - 1e-9
-      ? `<small class="max-today">frisch · heute ≈ ${fmtNum(Math.round(effMax(t) * 2) / 2)}</small>` : '<small class="max-today">frisch</small>';
+      ? `<small class="max-today">frisch | heute ≈ ${fmtNum(Math.round(effMax(t) * 2) / 2)}</small>` : '<small class="max-today">frisch</small>';
     // Zugeklappt: nur zeigen, wenn das Max. fehlt (dann muss es eingetragen bzw. bewusst leer gelassen werden)
     if ((det || (withMax && t.max10 == null)) && (withMax || feat('tr-variants'))) h += `<div class="ex-meta ${withMax ? '' : 'wide'}">${withMax ? `<label class="max-mini"><span>Max. kg bei 10 Wdh.${maxToday}</span>
           <input class="inp kg ${t.max10 == null ? 'missing' : ''}" type="text" inputmode="decimal" autocomplete="off"
@@ -4720,7 +4723,7 @@ function renderTraining() {
     // Werte vom letzten Mal: immer sichtbar, auch bei zugeklappten Details (User-Wunsch 2026-11-11, v206)
     if (!feat('tr-compare')) {
       // Einfach: eine Zeile mit den Werten vom letzten Mal
-      h += last ? `<p class="last">Letztes Mal: ${last.sets.map(x => fmtSet({ weight: x.weight, reps: x.reps }, en.name)).join(' · ')}</p>`
+      h += last ? `<p class="last">Letztes Mal: ${last.sets.map(x => fmtSet({ weight: x.weight, reps: x.reps }, en.name)).join(' | ')}</p>`
         : '<p class="last">Erstes Mal, noch keine Werte.</p>';
     } else if (en.compare) {
       const rule = en.compare.shifted && !en.rule
@@ -4735,8 +4738,8 @@ function renderTraining() {
             ? 'Diät: Gewicht wie zuletzt, höchstens 1 Wdh. mehr, dafür näher am Muskelversagen'
             : `Heute: je Satz +${en.compare.plus || 1} Wdh. oder mehr Gewicht, wenn es die Leistung hergibt`;
       const occ = draft.occurrence > 1 || en.compare.occ > 1 ? `, ${en.compare.occ || 1}. Training` : '';
-      const cols = [{ label: `Letzter Zyklus<small>${weekLabel(en.compare.week)}${occ} · ${fmtDate(en.compare.date)}</small>`, sets: en.compare.rawSets || en.compare.sets }];
-      if (en.prevWeek) cols.push({ label: `Vorwoche<small>${weekLabel(en.prevWeek.week)} · ${fmtDate(en.prevWeek.date)}</small>`, sets: en.prevWeek.rawSets || en.prevWeek.sets });
+      const cols = [{ label: `Letzter Zyklus<small>${weekLabel(en.compare.week)}${occ} | ${fmtDate(en.compare.date)}</small>`, sets: en.compare.rawSets || en.compare.sets }];
+      if (en.prevWeek) cols.push({ label: `Vorwoche<small>${weekLabel(en.prevWeek.week)} | ${fmtDate(en.prevWeek.date)}</small>`, sets: en.prevWeek.rawSets || en.prevWeek.sets });
       const conv = [en.compare, en.prevWeek].some(x => x && x.rawSets);
       h += `<div class="compare">${setRows(cols, true, en.name)}<b>${rule}</b>${conv && feat('tr-prefat') ? '<br><small>Damals stand die Übung an anderer Stelle im Training. Die App hat die Werte auf die heutige Vorermüdung umgerechnet.</small>' : ''}</div>`;
     } else {
@@ -4835,7 +4838,7 @@ const FEELS = [
 ];
 function feelRir(t, k, si = 0) {
   const r = Math.round(rirAt(t, si));
-  // locker = noch mind. 4 · gut = genau das Ziel · hart = noch 1 · ging nichts mehr = 0
+  // locker = noch mind. 4 | gut = genau das Ziel | hart = noch 1 | ging nichts mehr = 0
   return { easy: Math.max(4, r + 2), good: r, hard: Math.max(0, Math.min(1, r - 1)), max: 0 }[k];
 }
 function feelIcon(en, s, si = 0) {
@@ -4920,7 +4923,7 @@ function renderReplace(en, ei) {
         data-field="rep-max" data-ei="${ei}" placeholder="kg">
     </label>
     ${feat('tr-max') ? `<p class="hint rep-max-hint" hidden>Für diese Übung ist noch kein Max. bei 10 Wdh. bekannt. Trag es ein, wenn du es weißt. ${MAX_UNKNOWN_HINT}</p>` : ''}
-    ${t ? `<p class="hint">Übernimmt das Ziel: ${t.sets} × ${t.reps} Wdh.${feat('tr-rir-input') ? ` · ${t.rir} im Tank` : ''}. Der Plan bleibt unverändert.</p>` : ''}
+    ${t ? `<p class="hint">Übernimmt das Ziel: ${t.sets} × ${t.reps} Wdh.${feat('tr-rir-input') ? ` | ${t.rir} im Tank` : ''}. Der Plan bleibt unverändert.</p>` : ''}
     <div class="row">
       <button class="btn" data-action="rep-cancel" data-ei="${ei}">Abbrechen</button>
       <button class="btn primary" data-action="rep-ok" data-ei="${ei}">Ersetzen</button>
@@ -4961,11 +4964,11 @@ function renderPlan() {
   // Einfach: nur der aktive Plan („Neuen Plan erstellen“ ersetzt ihn)
   for (const p of data.plans.filter(x => feat('plans-multi') || x.id === active.id)) {
     const isActive = p.id === active.id;
-    const state = isActive ? ' · aktiv'
-      : (p.endedAt ? ` · beendet am ${fmtDate(p.endedAt + 'T12:00:00')}` : '') + ' · antippen zum Aktivieren';
+    const state = isActive ? ' | aktiv'
+      : (p.endedAt ? ` | beendet am ${fmtDate(p.endedAt + 'T12:00:00')}` : '') + ' | antippen zum Aktivieren';
     // geschätzte Dauer pro Training: kürzester Tag in der Intro-Woche bis längster am Höhepunkt
     const est = p.days.map(d => estRange(d, p)).filter(([, hi]) => hi);
-    const estTxt = est.length ? ` · ${estText(Math.min(...est.map(x => x[0])), Math.max(...est.map(x => x[1])))} pro Training` : '';
+    const estTxt = est.length ? ` | ${estText(Math.min(...est.map(x => x[0])), Math.max(...est.map(x => x[1])))} pro Training` : '';
     const openN = p.days.filter(d => !d.exercises.some(e => e.name.trim())).length;  // noch zu erstellen
     const openTxt = openN && p.days.length > openN ? ` (${openN} noch offen)` : '';
     h += `<div class="plan-row ${isActive ? 'active' : ''} ${p.endedAt && !isActive ? 'ended' : ''}">
@@ -4987,23 +4990,28 @@ function renderPlan() {
   h += `<button class="btn outline center plan-new-btn" data-action="wiz-start">✨ Neuen Plan erstellen</button>
     ${active.cali && typeof caliOn === 'function' && caliOn() ? '<button class="btn nav" data-action="cali-skills-plan">🤸 Skill-Stufen<small>Wo du in jeder Calisthenics-Leiter stehst</small></button>' : ''}
     ${libBtn}
-    <h2>Trainingstage · ${esc(active.name)}</h2>`;
+    <h2>Trainingstage | ${esc(active.name)}</h2>`;
   if (!data.days.length) {
     h += '<p class="hint">Dieser Plan hat noch keine Trainingstage.</p>';
   }
   if (typeof pendingDaysHtml === 'function') h += pendingDaysHtml();  // Tage, die noch erstellt werden müssen (wizard.js)
   // Dauer je Tag: eine Zahl für die aktuelle Woche (v207, vorher Spanne Intro bis Höhepunkt)
   const ci = active.own ? null : cycleInfo();
-  h += '<div class="plan-days">';
-  data.days.forEach((day, i) => {
+  // v263 (User 2026-11-14): Trainingstage im bestehenden Plan umsortieren (↑ ↓ wie bei den Übungen eines Tages)
+  if (planDayOrder && data.days.length > 1) h += planDayOrderHtml();
+  else h += '<div class="plan-days">';
+  if (!(planDayOrder && data.days.length > 1)) data.days.forEach((day, i) => {
     const open = !day.exercises.some(e => e.name.trim());
     const est = open ? 0 : ci ? estDuration(day, ci.week, active, ci.deload) : estRange(day, active)[1];
     const n = day.exercises.filter(e => e.name.trim()).length;
     h += `<button class="btn nav day-btn ${open ? 'pending' : ''}" data-action="${open && active.byHand ? 'own-resume' : 'open-day'}" data-id="${day.id}">
       <span class="day-no">${open ? '⏳' : dayNoText(i)}</span><span class="day-txt">${esc(day.name)}${open ? '<small>noch zu erstellen</small>'
-        : `<small>${n} Übung${n === 1 ? '' : 'en'}${est ? ` · ${estText(est)}${ci ? (ci.deload ? ' im Deload' : ci.week === 1 ? ' in der Intro-Woche' : ` in Woche ${ci.week}`) : ''}` : ''}</small>`}</span></button>`;
+        : `<small>${n} Übung${n === 1 ? '' : 'en'}${est ? ` | ${estText(est)}${ci ? (ci.deload ? ' im Deload' : ci.week === 1 ? ' in der Intro-Woche' : ` in Woche ${ci.week}`) : ''}` : ''}</small>`}</span></button>`;
   });
-  h += '</div>';
+  if (!(planDayOrder && data.days.length > 1)) {
+    h += '</div>';
+    if (data.days.length > 1) h += '<button class="btn outline center pday-order-btn" data-action="pday-order">⇅ Reihenfolge der Tage ändern</button>';
+  }
   if (active.equip === 'home') h += homeEqCard();
   if (data.days.some(d => estDuration(d, 1, active))) {
     h += `<p class="hint explain">Geschätzte Trainingsdauer: je Satz 1 Minute, dazu Pause nach jedem Satz: Grundübungen 4, normale Übungen 3,
@@ -5022,15 +5030,15 @@ function renderPlan() {
   // Nur bei Plänen, deren Tage 2× pro Woche laufen: kurzer Hinweis (festgelegt beim Erstellen des Plans)
   h += `<button class="btn center" data-action="add-day">+ Trainingstag hinzufügen</button>
     ${perWeek > 1 ? `<div class="card per-week">
-      <p class="per-week-title">🔁 Jeder Trainingstag 2× pro Woche · ${data.days.length * perWeek} Trainings</p>
+      <p class="per-week-title">🔁 Jeder Trainingstag 2× pro Woche | ${data.days.length * perWeek} Trainings</p>
       <p class="hint">Die Tage wiederholen sich der Reihe nach. Das 2. Training eines Tages in der Woche richtet sich nach dem 2. Training derselben Woche im letzten Zyklus und liegt nie über dem Plan des 1. Trainings dieser Woche.</p>
     </div>` : ''}
     ${active.rotate ? `<div class="card per-week">
-      <p class="per-week-title">🔁 Im Wechsel · ${active.rotate} Trainings pro Woche · Ø ${fmtNum(round1(perWeekAvg(active)))}× je Tag</p>
+      <p class="per-week-title">🔁 Im Wechsel | ${active.rotate} Trainings pro Woche | Ø ${fmtNum(round1(perWeekAvg(active)))}× je Tag</p>
       <p class="hint">Die Tage laufen über die Wochen der Reihe nach weiter: ${(() => {
         const list = activeDays(active);
-        const wk = w => Array.from({ length: active.rotate }, (_, i) => list[((w - 1) * active.rotate + i) % list.length].name).join(' · ');
-        return list.length ? `Woche 1: ${esc(wk(1))} · Woche 2: ${esc(wk(2))} …` : '';
+        const wk = w => Array.from({ length: active.rotate }, (_, i) => list[((w - 1) * active.rotate + i) % list.length].name).join(' | ');
+        return list.length ? `Woche 1: ${esc(wk(1))} | Woche 2: ${esc(wk(2))} …` : '';
       })()} Kommt ein Tag 2× in einer Woche dran, liegt das 2. Training nie über dem Plan des 1.</p>
     </div>` : ''}
     <h2>Steigerung</h2>${overloadHtml()}
@@ -5094,13 +5102,13 @@ function cycleLenHtml(ci) {
   const wk = n => `${n} Woche${n === 1 ? '' : 'n'}`;
   const changed = adj ? `${wk(Math.abs(adj))} ${adj > 0 ? 'verlängert' : 'verkürzt'}` : '';
   const state = scope === 'all'
-    ? `Standard für alle Zyklen${adj ? ` · dieser Zyklus: ${wk(len)} (${changed})` : ''}`
-    : adj ? `nur dieser Zyklus, ${changed} · Standard ${def}` : `nur dieser Zyklus · wie Standard`;
+    ? `Standard für alle Zyklen${adj ? ` | dieser Zyklus: ${wk(len)} (${changed})` : ''}`
+    : adj ? `nur dieser Zyklus, ${changed} | Standard ${def}` : `nur dieser Zyklus | wie Standard`;
   const chip = (k, l) => `<button class="vchip ${scope === k ? 'on' : ''}" data-action="cyc-scope" data-s="${k}">${l}</button>`;
   return `<p><b>Zykluslänge</b></p>
       <div class="row cyc-adj-row">
         <button class="icon-btn" data-action="cyc-adj" data-scope="${scope}" data-d="-1" ${val <= lo ? 'disabled' : ''} aria-label="Eine Woche kürzer">−</button>
-        <span><b>${wk(val)}</b> + Deload<small>${scope === 'all' ? cycleLenInfo(val).tag + ' · ' : ''}${state}</small></span>
+        <span><b>${wk(val)}</b> + Deload<small>${scope === 'all' ? cycleLenInfo(val).tag + ' | ' : ''}${state}</small></span>
         <button class="icon-btn" data-action="cyc-adj" data-scope="${scope}" data-d="1" ${val >= hi ? 'disabled' : ''} aria-label="Eine Woche länger">+</button>
       </div>
       ${lenOn ? `<p class="lbl chips-title">Gilt für</p><div class="variants cyc-scope">${chip('all', 'Alle Zyklen')}${chip('this', 'Nur diesen Zyklus')}</div>` : ''}
@@ -5116,7 +5124,7 @@ function cycleLenHtml(ci) {
 function cycleAdjustHtml(ci) {
   if (!feat('cycle-adjust') || ownPlan()) return '';
   return `<button class="btn cyc-adjust-btn" data-action="cycle-page"><span>⚙️ Zyklus anpassen</span>
-      <small>${feat('plan-week-jump') ? 'Woche · ' : ''}Länge · Deload · Intensität · Beenden</small></button>`;
+      <small>${feat('plan-week-jump') ? 'Woche | ' : ''}Länge | Deload | Intensität | Beenden</small></button>`;
 }
 function cycEndAskHtml(ci) {
   const trained = roundSessions(ci.cycleStart, ci.week).length > 0;
@@ -5147,7 +5155,7 @@ function renderCyclePage() {
   if (!hasActivePlan() || ownPlan()) return '<p class="hint">Dieser Plan hat keine Zyklen: Eigene Pläne laufen ohne Intro-, Aufbau- und Deload-Woche.</p>';
   const ci = cycleInfo(), active = activePlan(), c = data.cycle;
   if (cycEndAsk) return cycEndAskHtml(ci);
-  let h = `<div class="card"><h2>${ci.deload ? `Zyklus ${ci.cycle} · Deload-Woche` : `Zyklus ${ci.cycle} · ${weekLabel(ci.week)}${ci.intro ? '' : ci.extra ? ' · Verlängerung' : ` von ${ci.buildWeeks}`}`}</h2>
+  let h = `<div class="card"><h2>${ci.deload ? `Zyklus ${ci.cycle} | Deload-Woche` : `Zyklus ${ci.cycle} | ${weekLabel(ci.week)}${ci.intro ? '' : ci.extra ? ' | Verlängerung' : ` von ${ci.buildWeeks}`}`}</h2>
       <p class="hint">Eine Woche ist ein Durchlauf: geschafft, sobald ${roundDoneText(active)}, egal, ob du dafür 6, 7 oder 9 Tage brauchst.</p>
       ${feat('plan-week-jump') ? `<p class="lbl chips-title">Mit welcher Woche weitermachen?</p>${cyclePills(ci, 'cycle-jump')}
         <p class="hint">Antippen, um ab jetzt mit einer anderen Woche weiterzumachen, z. B. nach Krankheit oder längerer Pause
@@ -5168,9 +5176,9 @@ function periodCard(c, active) {
   if (!cfg && !feat('cycle-adjust') && !feat('plan-volume')) return '';
   let h = '';
   if (!ownPlan() && (cfg || feat('cycle-adjust'))) {
-    const inten = feat('tr-rir-input') ? (active.rirMode === 'table' ? ' · eigene Tank-Tabelle' : ` · Intensität ${RIR_COURSES[active.rirCourse || 'strong'].label.toLowerCase()}`) : '';
+    const inten = feat('tr-rir-input') ? (active.rirMode === 'table' ? ' | eigene Tank-Tabelle' : ` | Intensität ${RIR_COURSES[active.rirCourse || 'strong'].label.toLowerCase()}`) : '';
     h += `<h2>Zyklus</h2><button class="btn nav cyc-page-btn" data-action="cycle-page" data-from="plan">🔄 Zyklus, Deload und Intensität
-      <small>${c.buildWeeks} Trainingswochen · Deload ${selfDeload() ? 'selbst bestimmt' : 'automatisch'}${inten}</small></button>`;
+      <small>${c.buildWeeks} Trainingswochen | Deload ${selfDeload() ? 'selbst bestimmt' : 'automatisch'}${inten}</small></button>`;
   }
   if (feat('plan-volume')) h += volumeEditor();
   return h;
@@ -5209,7 +5217,7 @@ const LIMITS = { sets: [1, 20], setsEnd: [1, 20], reps: [5, 50], rir: [0, 10] };
 function setsPreview(ex) {
   const bw = data.cycle.buildWeeks;
   const weeks = Array.from({ length: bw }, (_, i) => setsForWeek(ex, i + 1, bw));
-  return `Sätze je Woche: ${weeks.map((s, i) => `${i === 0 ? 'Intro' : 'W' + (i + 1)} ${s}`).join(' · ')} · Deload ${deloadSets(ex.setsEnd)}`;
+  return `Sätze je Woche: ${weeks.map((s, i) => `${i === 0 ? 'Intro' : 'W' + (i + 1)} ${s}`).join(' | ')} | Deload ${deloadSets(ex.setsEnd)}`;
 }
 
 function stepperRow(label, prop, i, value) {
@@ -5230,7 +5238,7 @@ function planCompare(ex, day) {
   const cmp = comparisonEntry(ex.name, day.id, ci);
   if (!cmp) return '';
   return `<p class="compare">Diese Woche (${weekLabel(ci.week)}), Vergleich mit dem letzten Zyklus:<br>
-    ${cmp.sets.map(x => fmtSet(x, ex.name)).join(' · ')}<br><b>Ziel: je Satz +${cmp.plus || 1} Wdh. bzw. nächste Gewichtsstufe. Ab Woche 2 höchstens Vorwoche mit Satz 1 +1 Wdh.</b></p>`;
+    ${cmp.sets.map(x => fmtSet(x, ex.name)).join(' | ')}<br><b>Ziel: je Satz +${cmp.plus || 1} Wdh. bzw. nächste Gewichtsstufe. Ab Woche 2 höchstens Vorwoche mit Satz 1 +1 Wdh.</b></p>`;
 }
 
 // Kontrolle im Plan: Sätze pro Muskelgruppe und Woche für diesen Trainingstag
@@ -5330,7 +5338,7 @@ function renameCheck(from, to) {
 const exSessionCount = name => { const k = nameKey(name); return data.sessions.filter(s => s.entries.some(en => nameKey(en.name) === k)).length; };
 const trainingsText = n => n === 1 ? '1 Training' : `${n} Trainings`;
 /* Umbenennen (v219, User 2026-11-12): fragen, ob die bisherigen Daten mitgehen.
-   'all' = ja, übertragen (Name gilt überall) · 'new' = nein, neue Übung (bisherige Trainings bleiben beim alten Namen) · null = abbrechen.
+   'all' = ja, übertragen (Name gilt überall) | 'new' = nein, neue Übung (bisherige Trainings bleiben beim alten Namen) | null = abbrechen.
    where 'slot' = Namensfeld im Trainingstag („nein“ gilt dann nur für diesen Platz), 'form' = Umbenennen-Feld. */
 function askRename(from, to, where) {
   from = from.trim();
@@ -5463,6 +5471,24 @@ function ownExerciseCard(ex, i) {
 }
 
 // Reihenfolge der Übungen im Plan ändern (User-Wunsch 2026-11-09): kompakte Liste mit Pfeilen, bleibt dauerhaft im Plan
+var planDayOrder = false;  // v263: Reihenfolge der Trainingstage im Plan wird gerade geändert
+function planDayOrderHtml() {
+  const n = data.days.length;
+  return `<div class="card pday-order"><h2>Reihenfolge der Trainingstage</h2><ul class="list reorder">${data.days.map((d, i) => `<li class="bw-row">
+        <span>${i + 1}. ${esc(d.name)}</span>
+        <button class="icon-btn" data-action="pday-up" data-i="${i}" aria-label="Nach oben" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button class="icon-btn" data-action="pday-down" data-i="${i}" aria-label="Nach unten" ${i === n - 1 ? 'disabled' : ''}>↓</button>
+      </li>`).join('')}</ul>
+    <button class="btn primary" data-action="pday-order">✔ Fertig</button>
+    <p class="hint">Deine Trainings laufen ab jetzt in dieser Reihenfolge. Was du diese Woche schon trainiert hast, bleibt erledigt.
+      Als Nächstes steht der nächste noch offene Tag nach dem zuletzt trainierten an. Ein schon begonnenes Training läuft normal weiter.</p></div>`;
+}
+const planDayMove = (i, d) => {
+  const a = data.days, j = i + d;
+  if (j < 0 || j >= a.length) return;
+  [a[i], a[j]] = [a[j], a[i]];
+  saveData(); render();
+};
 var dayReorder = null;  // id des Trainingstags, dessen Reihenfolge gerade geändert wird
 function dayReorderHtml(day) {
   const n = day.exercises.length;
@@ -5534,13 +5560,13 @@ function renderDay({ id }) {
         </select>
       </label>` : ''}
       ${isAuto
-        ? `<p class="auto-info">Sätze automatisch: ${autoWeeks.map((m, w) => `${w === 0 ? 'Intro' : 'W' + (w + 1)} ${m.get(ex.id)}`).join(' · ')} · Deload ${autoDeload.get(ex.id)}<br>
+        ? `<p class="auto-info">Sätze automatisch: ${autoWeeks.map((m, w) => `${w === 0 ? 'Intro' : 'W' + (w + 1)} ${m.get(ex.id)}`).join(' | ')} | Deload ${autoDeload.get(ex.id)}<br>
            Wdh.: ${repRangeText(day, ex)} (Start bei ${repsFor(day, ex)})</p>`
         : `${stepperRow('Sätze Intro', 'sets', i, ex.sets)}
            ${stepperRow('Sätze letzte Woche', 'setsEnd', i, ex.setsEnd)}
            <p class="hint kind-hint">${setsPreview(ex)}</p>
            ${dayIntensity(day)
-             ? `<p class="auto-info">Wdh.: ${repRangeText(day, ex)} (Start bei ${repsFor(day, ex)}) · Muskelgruppe ohne Volumen-Vorgabe, Sätze von Hand</p>`
+             ? `<p class="auto-info">Wdh.: ${repRangeText(day, ex)} (Start bei ${repsFor(day, ex)}) | Muskelgruppe ohne Volumen-Vorgabe, Sätze von Hand</p>`
              : stepperRow('Wdh. pro Satz', 'reps', i, ex.reps)}`}
       ${feat('ex-kind-group') ? `<div class="variants plan"><span>Art${ex.kind == null ? ' <small class="hint">(auto)</small>' : ''}</span>${Object.entries(KINDS).map(([k, label]) =>
         `<button class="vchip ${kindOf(ex) === k ? 'on' : ''}" data-action="plan-kind" data-i="${i}" data-k="${k}">${label}</button>`).join('')}
@@ -5611,7 +5637,7 @@ function calendarHtml(key, marks) {
 
 // Knopf eines gespeicherten Trainings (Verlauf, Kalendertag)
 const sessionBtn = s => `<button class="btn nav" data-action="open-session" data-id="${s.id}">
-    ${fmtDate(s.date)}<small>${esc(s.dayName)} · ${s.entries.length} Übungen · ${fmtTons(sessionTonnage(s))}${s.duration ? ' · ⏱ ' + fmtDur(s.duration) : ''}${s.light ? ' · leicht (Wettkampf-Woche)' : s.deload ? ' · Deload' : ''}</small></button>`;
+    ${fmtDate(s.date)}<small>${esc(s.dayName)} | ${s.entries.length} Übungen | ${fmtTons(sessionTonnage(s))}${s.duration ? ' | ⏱ ' + fmtDur(s.duration) : ''}${s.light ? ' | leicht (Wettkampf-Woche)' : s.deload ? ' | Deload' : ''}</small></button>`;
 
 // Verlauf: Kalender mit Trainings (und Cardio), angetippter Tag, Trainings des Monats, Übungen
 function renderHistory() {
@@ -5647,7 +5673,7 @@ function renderHistory() {
   const inMonth = sessionsNewestFirst().filter(s => localDay(s.date).slice(0, 7) === st.month);
   const cdMonth = cardioList.filter(c => c.date.slice(0, 7) === st.month);
   const [y, m] = st.month.split('-').map(Number);
-  h += `<h2>${MONTHS_DE[m - 1]}: ${inMonth.length} Training${inMonth.length === 1 ? '' : 's'}${cdMonth.length ? ` · ${cdMonth.length}× Cardio` : ''}</h2>`;
+  h += `<h2>${MONTHS_DE[m - 1]}: ${inMonth.length} Training${inMonth.length === 1 ? '' : 's'}${cdMonth.length ? ` | ${cdMonth.length}× Cardio` : ''}</h2>`;
   h += inMonth.length ? inMonth.map(sessionBtn).join('') : '<p class="hint">In diesem Monat keine Trainings.</p>';
   h += `<h2>Cardio</h2>${cardio}`;
   h += typeof reviewHistoryHtml === 'function' ? reviewHistoryHtml() : '';  // Zyklus-Rückblicke (charts.js)
@@ -5667,7 +5693,7 @@ function renderExercise({ name }) {
 
   const weights = rows.flatMap(r => r.sets.map(s => s.weight)).filter(w => w != null);
   let h = weights.length
-    ? `<p class="sub">Höchstes Gewicht: <b>${fmtNum(Math.max(...weights))} kg</b> · ${rows.length} Trainings</p>`
+    ? `<p class="sub">Höchstes Gewicht: <b>${fmtNum(Math.max(...weights))} kg</b> | ${rows.length} Trainings</p>`
     : '';
   if (libEntry(name)) h += `<button class="link-btn lib-small" data-action="lib-open" data-name="${esc(name)}">ⓘ Ausführung ansehen</button>`;
   h += `<button class="link-btn lib-small" data-action="vid-open-list" data-name="${esc(name)}">🎥 Technik-Videos</button>`;  // v213 (media.js)
@@ -5759,7 +5785,7 @@ function renderLibEx({ name }) {
       <h2>Ausführung</h2>
       <ol class="lib-steps">${(t.steps || []).map(s => `<li>${esc(s)}</li>`).join('')}</ol>
       ${t.tips && t.tips.length ? `<h2>Darauf achten</h2><ul class="lib-tips">${t.tips.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
-      <p class="hint lib-muscles"><b>Zielmuskel:</b> ${group || '–'}${t.also ? ` · <b>mit dabei:</b> ${esc(t.also)}` : ''}</p>
+      <p class="hint lib-muscles"><b>Zielmuskel:</b> ${group || '–'}${t.also ? ` | <b>mit dabei:</b> ${esc(t.also)}` : ''}</p>
     </div>
     ${typeof guideHtml === 'function' ? guideHtml(e.name, e.pattern) : ''}
     ${trained ? `<button class="btn nav" data-action="open-exercise" data-name="${esc(name)}">Deine Einträge zu dieser Übung</button>` : ''}
@@ -5908,7 +5934,7 @@ function renderWeek({ key }) {
   for (const s of sessions) {
     h += `<button class="btn nav day-btn done week-ses" data-action="open-session" data-id="${s.id}" data-week="${esc(key)}">
       <span class="day-no">✓</span><span class="day-txt">${esc(s.dayName)}<span class="badge done">absolviert</span>
-      <small>${fmtDate(s.date)} · ${s.entries.length} Übungen · ${fmtTons(sessionTonnage(s))}${s.duration ? ' · ⏱ ' + fmtDur(s.duration) : ''}</small></span></button>`;
+      <small>${fmtDate(s.date)} | ${s.entries.length} Übungen | ${fmtTons(sessionTonnage(s))}${s.duration ? ' | ⏱ ' + fmtDur(s.duration) : ''}</small></span></button>`;
   }
   if (!isNow && !ahead) {
     for (const id of roundSkipped(start, week)) {
@@ -6060,8 +6086,8 @@ function renderSession({ id, fresh, edit, week }) {
     `<div class="stats two"><div class="stat"><span>Bewegt (Tonnage)</span><b>${fmtTons(sessionTonnage(s))}</b></div>
       <div class="stat"><span>Dauer</span><b>${s.duration ? fmtDur(s.duration) : '–'}</b></div></div>
     <button class="btn ${fresh ? 'primary' : 'outline'} share-btn" data-action="share-open" data-id="${s.id}">📤 Ergebnis teilen</button>`;
-  const progNote = s.progression ? ` · ${progOffText(s.progression)}` : '';
-  let h = top + `<p class="sub">${fmtDate(s.date, true)}<br>${esc(s.dayName)}${s.light ? ' · leichtes Training in der Wettkampf-Woche (keine Steigerung)' : s.deload ? ' · Deload-Woche (keine Steigerung)' : progNote}` +
+  const progNote = s.progression ? ` | ${progOffText(s.progression)}` : '';
+  let h = top + `<p class="sub">${fmtDate(s.date, true)}<br>${esc(s.dayName)}${s.light ? ' | leichtes Training in der Wettkampf-Woche (keine Steigerung)' : s.deload ? ' | Deload-Woche (keine Steigerung)' : progNote}` +
     (s.readiness ? `<br>Tagesform: ${readinessText(s.readiness)}` : '') + (s.timeLimit ? `<br>⏱ auf ${s.timeLimit} min gekürzt` : '') + '</p>' +
     `${feat('session-edit') ? `<button class="btn outline" data-action="se-edit" data-id="${s.id}">✎ Training bearbeiten</button>` : ''}<ul class="list">`;
   for (const e of s.entries) {
@@ -6071,7 +6097,7 @@ function renderSession({ id, fresh, edit, week }) {
     const instead = e.replacedFrom ? ` <small>statt ${esc(e.replacedFrom)}</small>` : '';
     const comment = e.comment ? `<div class="comment-text">💬 ${esc(e.comment)}</div>` : '';
     const warm = e.warmup && e.warmup.length
-      ? `<div class="warm-line">🔥 Aufwärmen: ${e.warmup.map(fmtSet).join(' · ')}</div>` : '';
+      ? `<div class="warm-line">🔥 Aufwärmen: ${e.warmup.map(fmtSet).join(' | ')}</div>` : '';
     h += `<li><div class="date">${esc(e.name)}${instead}${e.ss ? ' <small class="ss-tag">🔗 Supersatz</small>' : ''}</div>${warm}
       <div class="sets">${sessionPbHtml(s, e)}</div>${comment}${res}</li>`;
   }
@@ -6142,7 +6168,7 @@ function shareCanvas(s) {
   for (const line of wrap(s.dayName, W - 2 * X).slice(0, 2)) { g.fillText(fit(line, W - 2 * X), X, y); y += 104; }
   g.font = F(500, 42); g.fillStyle = 'rgba(255,255,255,.88)';
   const wk = s.deload && !s.light ? 'Deload-Woche' : s.week ? weekLabel(s.week) : '';
-  g.fillText(fit(fmtDate(s.date, true) + (wk ? ` · ${wk}` : ''), W - 2 * X), X, y);
+  g.fillText(fit(fmtDate(s.date, true) + (wk ? ` | ${wk}` : ''), W - 2 * X), X, y);
   y += 80;
   // Kacheln
   const d = shareData(s);
@@ -6235,7 +6261,7 @@ function renderEntryWeek({ id, w }) {
       ? `Danach ${left ? `noch ${left} Aufbauwoche${left === 1 ? '' : 'n'}, dann ` : ''}geht es Woche für Woche weiter, bis du den Deload einlegst.`
       : `Danach ${left ? `noch ${left} Aufbauwoche${left === 1 ? '' : 'n'} und ` : ''}die Deload-Woche.`;
   return `<div class="card wiz-q">
-      <p class="sub">${esc(findDay(id).name)} · erstes Training mit „${esc(activePlan().name)}“</p>
+      <p class="sub">${esc(findDay(id).name)} | erstes Training mit „${esc(activePlan().name)}“</p>
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">📅</span><h2>Mit welcher Woche startest du?</h2></div>
       <p class="hint wiz-q-explain">Normalerweise beginnst du mit der Intro-Woche. Nach Krankheit oder einer längeren Pause
         kannst du z. B. direkt mit der leichten Deload-Woche einsteigen oder, wenn du schon gut im Training bist, mit einer
@@ -6256,11 +6282,11 @@ function renderEntryWeek({ id, w }) {
 function renderCycleChoice({ id, by }) {
   const bw = data.cycle.buildWeeks;
   const wk = n => `${n} Woche${n === 1 ? '' : 'n'}`;
-  const pairs = Array.from({ length: bw }, (_, i) => `${i ? 'W' + (i + 1) : 'Intro'} ↔ W${i + 1 + by}`).join(' · ');
+  const pairs = Array.from({ length: bw }, (_, i) => `${i ? 'W' + (i + 1) : 'Intro'} ↔ W${i + 1 + by}`).join(' | ');
   const opt = (shift, title, text) => `<button class="split-opt freq-opt" data-action="cycle-choice" data-shift="${shift}">
       <b>${title}</b><small>${text}</small></button>`;
   return `<div class="card wiz-q">
-      <p class="sub">${esc(findDay(id).name)} · erstes Training im neuen Zyklus</p>
+      <p class="sub">${esc(findDay(id).name)} | erstes Training im neuen Zyklus</p>
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🔁</span><h2>Woran soll sich der neue Zyklus orientieren?</h2></div>
       <p class="hint wiz-q-explain">Dein letzter Zyklus wurde um <b>${wk(by)}</b> verlängert (bis Woche ${bw + by}). Soll sich der neue Zyklus
         Woche für Woche nach dem alten richten oder die Verlängerung mit berücksichtigen?</p>
@@ -6275,7 +6301,7 @@ function renderFirstMax({ id, exIds }) {
   const day = findDay(id);
   const list = day.exercises.filter(e => exIds.includes(e.id));
   return `<div class="card wiz-q">
-      <p class="sub">${esc(day.name)} · ${list.length === 1 ? '1 neue Übung' : `${list.length} neue Übungen`}</p>
+      <p class="sub">${esc(day.name)} | ${list.length === 1 ? '1 neue Übung' : `${list.length} neue Übungen`}</p>
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🏋️</span><h2>Wie viel schaffst du bei 10 Wiederholungen?</h2></div>
       <p class="hint wiz-q-explain"><b>Max. bei 10 Wdh.</b> (auch „10 RM“) ist das Gewicht, mit dem du eine Übung gerade so
         <b>10-mal sauber</b> schaffst. Eine 11. Wiederholung ginge nicht mehr. Daraus berechnet die App deine Gewichte für jedes Training.</p>
@@ -6298,7 +6324,7 @@ function renderCheck({ id, step, areas }) {
   if (step === 3) {
     const sel = areas || [];
     return `<div class="card check">
-      <p class="sub">${esc(findDay(id).name)} · Frage 3 von 3 · einmal pro Zyklus</p>
+      <p class="sub">${esc(findDay(id).name)} | Frage 3 von 3 | einmal pro Zyklus</p>
       <h2 class="question">Hast du aktuell Beschwerden oder Schmerzen?</h2>
       <div class="area-grid">${Object.entries(BODY_AREAS).map(([k, a]) =>
         `<button class="vchip ${sel.includes(k) ? 'on' : ''}" data-action="check-area" data-k="${k}">${a.label}</button>`).join('')}</div>
@@ -6331,7 +6357,7 @@ function renderCheck({ id, step, areas }) {
   }
   const [emoji, q] = step === 1 ? ['😴', 'Hast du gut geschlafen?'] : ['😫', 'Hattest du sonst viel Stress?'];
   return `<div class="card check">
-    <p class="sub">${esc(findDay(id).name)} · Frage ${step} von ${total}</p>
+    <p class="sub">${esc(findDay(id).name)} | Frage ${step} von ${total}</p>
     <div class="check-emoji" aria-hidden="true">${emoji}</div>
     <h2 class="question">${q}</h2>
     <div class="row">
@@ -6398,16 +6424,16 @@ function prefatHelpHtml() {
 const SIZES = { '': 'Normal', l: 'Groß', xl: 'Sehr groß' };
 const OPT_SECS = {
   look: { icon: '🎨', title: 'Aussehen', render: () => appearanceCard(),
-    sub: () => { const p = data.profile || {}; return [LOOKS[currentLook()], PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || '']].join(' · '); } },
+    sub: () => { const p = data.profile || {}; return [LOOKS[currentLook()], PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || '']].join(' | '); } },
   train: { icon: '🏋️', title: 'Training', render: () => motivCard() + restCard() + platesCard() + (typeof tourCard === 'function' ? tourCard() : '') + explainCard() + hintOffCard(),
-    sub: () => `Motivation ${MOTIV_OPTS[motivMode()][1].toLowerCase()} · Pausen-Timer ${restCfg().off ? 'aus' : 'an'} · Langhantel ${barKg()} kg` },
+    sub: () => `Motivation ${MOTIV_OPTS[motivMode()][1].toLowerCase()} | Pausen-Timer ${restCfg().off ? 'aus' : 'an'} | Langhantel ${barKg()} kg` },
   me: { icon: '👤', title: 'Profil & Ernährung', render: () => profileCard() + (typeof nutHintsCard === 'function' ? nutHintsCard() : '') + (typeof mcOptionsCard === 'function' ? mcOptionsCard() : ''),
-    sub: () => [(data.profile || {}).name || 'Name, Geschlecht', 'Hinweise zur Ernährung', typeof mcAvailable === 'function' && mcAvailable() ? 'Zykluskalender' : ''].filter(Boolean).join(' · ') },
+    sub: () => [(data.profile || {}).name || 'Name, Geschlecht', 'Hinweise zur Ernährung', typeof mcAvailable === 'function' && mcAvailable() ? 'Zykluskalender' : ''].filter(Boolean).join(' | ') },
   data: { icon: '💾', title: 'Deine Daten', render: () => dataSecHtml(),
-    sub: () => `${data.sessions.length} Trainings · ${data.lastExport ? `letzte Sicherung vor ${daysSinceISO(data.lastExport)} Tag${daysSinceISO(data.lastExport) === 1 ? '' : 'en'}` : 'noch nie gesichert'}`,
+    sub: () => `${data.sessions.length} Trainings | ${data.lastExport ? `letzte Sicherung vor ${daysSinceISO(data.lastExport)} Tag${daysSinceISO(data.lastExport) === 1 ? '' : 'en'}` : 'noch nie gesichert'}`,
     warn: () => backupDue() && data.sessions.length >= 2 },
   info: { icon: 'ℹ️', title: 'Hilfe & Info', render: () => infoSecHtml(),
-    sub: () => { const n = errLoad().length; return `Feedback · Was ist neu · Fehlerprotokoll${n ? ` (${n})` : ''} · Über die App`; } },
+    sub: () => { const n = errLoad().length; return `Feedback | Was ist neu | Fehlerprotokoll${n ? ` (${n})` : ''} | Über die App`; } },
 };
 function renderData() {
   const rows = Object.entries(OPT_SECS).map(([k, s]) => `<button class="btn nav opt-row ${s.warn && s.warn() ? 'warn' : ''}" data-action="opt-open" data-sec="${k}">
@@ -6427,7 +6453,7 @@ function infoSecHtml() {
 function dataSecHtml() {
   return `<div class="card">
       <h2>Deine Daten</h2>
-      <p>${data.days.length} Trainingstage · ${data.sessions.length} gespeicherte Trainings</p>
+      <p>${data.days.length} Trainingstage | ${data.sessions.length} gespeicherte Trainings</p>
       <p class="hint">Alles wird nur auf diesem Gerät gespeichert. Mach regelmäßig eine Sicherung, z. B. in der Dateien-App oder iCloud Drive.</p>
       ${storageInfoHtml()}
       <p class="lbl">Sicherungen mit Passwort schützen</p>
@@ -6457,6 +6483,36 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 270, date: '2026-11-14', items: [
+    ['Ernährung, Aufbau: Die App vergleicht jetzt über vier Wochen statt zwei. Die Zunahme ist so klein, dass sich erst dann sicher erkennen lässt, wie es läuft.'],
+    ['Plan erstellen: Direkt nach der Wahl (automatisch, aus Excel oder eigener Plan) fragt die App, ob du mit ihrer Steigerungslogik trainieren möchtest (vorausgewählt) oder immer den gleichen Plan ohne Vorgaben.'],
+  ] },
+  { v: 269, date: '2026-11-14', items: [
+    ['Ernährung: Vorschläge zum Gewichtsverlauf kommen nur noch, wenn auch die Trendlinie der letzten drei Wochen dasselbe zeigt. Wer wie geplant zu- oder abnimmt, muss nichts ändern, Wasserschwankungen lösen keinen Vorschlag mehr aus.'],
+  ] },
+  { v: 268, date: '2026-11-14', items: [
+    ['Überall in der App trennt jetzt ein senkrechter Strich statt eines Punkts die Angaben, z. B. „10 Übungen | ca. 1 h 40 min“.'],
+  ] },
+  { v: 267, date: '2026-11-14', items: [
+    ['Plan-Assistent: Bei der Intensität wird erklärt, was Grundübungen, normale Übungen und Assistenzübungen sind. In der Übungsvorschau stehen oben Sätze und Dauer je Woche als Tabelle, bei jeder Übung die Sätze mit Wochen-Beschriftung, und „Übungen anpassen“ gibt es auch oben.'],
+    ['Die Zykluslänge stellst du jetzt mit einem Schieberegler ein (4 bis 12 Wochen). Die Frage, wie sich der Plan steigern soll, entfällt: Er steigert sich wie üblich und lässt sich später im Plan ändern.'],
+  ] },
+  { v: 266, date: '2026-11-14', items: [
+    ['Ernährung, Aufbau: Standard jetzt ca. +150 kcal, Ambitioniert ca. +300 kcal. Die App berücksichtigt, dass die Zunahme nach einigen Wochen abflacht, und meldet „zu schnell“ nur, wenn es schneller geht als zu diesem Zeitpunkt zu erwarten.'],
+    ['Bei deinen Angaben fragt die App jetzt, ob sie dir Hinweise zur Ernährung geben soll. Ohne Hinweise siehst du nur Tagesziel und Einträge.'],
+  ] },
+  { v: 265, date: '2026-11-14', items: [
+    ['Training: Der Name der Übung ist größer und steht in deiner Farbe. Die Zeile „Heute: …“ entfällt, die Werte stehen ja schon in den Feldern. „Scheiben je Seite“ klappst du bei Bedarf auf.'],
+  ] },
+  { v: 264, date: '2026-11-14', items: [
+    ['Android: Die Anleitung zum Installieren auf dem Startbildschirm passt jetzt für alle Browser, egal ob das Menü oben oder unten sitzt.'],
+  ] },
+  { v: 263, date: '2026-11-14', items: [
+    ['Plan: Die Reihenfolge der Trainingstage lässt sich jetzt ändern. Unter den Tagen auf „Reihenfolge der Tage ändern“ tippen und mit ↑ ↓ verschieben.'],
+  ] },
+  { v: 262, date: '2026-11-14', items: [
+    ['Ernährung: Aus „Phase“ wird „Ernährungsziel“. Die Karte steht oben im Reiter und erklärt in einem Satz, was gerade passiert. Mit dem großen Knopf wechselst du dein Ernährungsziel.'],
+  ] },
   { v: 261, date: '2026-11-14', items: [
     ['Ernährung: Unter Körpergewicht trägst du nur noch dein Gewicht ein. Verlauf, Veränderung und alle Einträge findest du unter Verlauf → Statistik → Gewicht.'],
     ['Neu im Verlauf: Gewicht und Kalorien in zwei Diagrammen untereinander. Fahr mit dem Finger darüber, dann siehst du für jeden Tag Gewicht und Kalorien.'],
@@ -6674,7 +6730,7 @@ const CHANGES = [
     ['Training kompakter: Oben siehst du, bei welcher Übung du bist. Mehr zu jeder Übung steht unter „Details“, erledigte Sätze werden grün.'],
   ] },
   { v: 199, date: '2026-11-10', items: [
-    ['Tank-Vorgaben je Satz als ganze Zahlen, von Satz zu Satz absteigend (z. B. 2 · 2 · 1). Alle Pläne gehen dabei etwas näher ans Muskelversagen.', 'tr-rir-input'],
+    ['Tank-Vorgaben je Satz als ganze Zahlen, von Satz zu Satz absteigend (z. B. 2 | 2 | 1). Alle Pläne gehen dabei etwas näher ans Muskelversagen.', 'tr-rir-input'],
     ['Die Sätze gehen jetzt etwas näher an „ging nichts mehr“. Die letzten Sätze einer Übung dürfen richtig hart sein.', '!tr-rir-input'],
   ] },
   { v: 198, date: '2026-11-10', items: [
@@ -6709,7 +6765,7 @@ function whatsNewOptionsCard() {
   return `<details class="card about-sec wn-opt"><summary><b>✨ Was ist neu</b></summary>
       ${CHANGES.map(c => {
         const items = c.items.filter(([, f]) => wnShow(f));
-        return items.length ? `<p class="lbl wn-v">Version ${c.v} · ${fmtDate(c.date + 'T12:00:00')}</p><ul class="wn-list">${items.map(([t]) => `<li>${t}</li>`).join('')}</ul>` : '';
+        return items.length ? `<p class="lbl wn-v">Version ${c.v} | ${fmtDate(c.date + 'T12:00:00')}</p><ul class="wn-list">${items.map(([t]) => `<li>${t}</li>`).join('')}</ul>` : '';
       }).join('')}</details>`;
 }
 
@@ -6720,18 +6776,18 @@ function deviceText() {
   const os = /iPhone|iPad|iPod/.test(ua) ? `${/iPad/.test(ua) ? 'iPad' : 'iPhone'} iOS ${((ua.match(/OS (\d+)[_.](\d+)/) || []).slice(1).join('.')) || '?'}`
     : /Android (\d+)/.test(ua) ? `Android ${ua.match(/Android (\d+)/)[1]}` : /Windows/.test(ua) ? 'Windows' : /Mac OS X/.test(ua) ? 'Mac' : 'anderes Gerät';
   const br = /Edg\//.test(ua) ? 'Edge' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
-  return `${os} · ${br}${isStandalone() ? ' · Home-Bildschirm' : ''}`;
+  return `${os} | ${br}${isStandalone() ? ' | Home-Bildschirm' : ''}`;
 }
 function errReport() {
   const list = errLoad();
-  return [`${APP_SHORT} Fehlerprotokoll · App-Version ${APP_V} · ${deviceText()} · Modus ${appMode()}`,
-    ...list.map((x, i) => `${i + 1}) ${fmtErrTime(x.t)} · ${x.view || '–'} · v${x.v || '?'} · ${x.msg}${x.n > 1 ? ` (${x.n}×)` : ''}${x.at ? `\n   ${x.at}` : ''}`)].join('\n');
+  return [`${APP_SHORT} Fehlerprotokoll | App-Version ${APP_V} | ${deviceText()} | Modus ${appMode()}`,
+    ...list.map((x, i) => `${i + 1}) ${fmtErrTime(x.t)} | ${x.view || '–'} | v${x.v || '?'} | ${x.msg}${x.n > 1 ? ` (${x.n}×)` : ''}${x.at ? `\n   ${x.at}` : ''}`)].join('\n');
 }
 function errCard() {
   const list = errLoad();
   return `<details class="card about-sec err-card"><summary><b>🧰 Fehlerprotokoll</b>
       <small>${list.length ? `${list.length} ${list.length === 1 ? 'Eintrag' : 'Einträge'}` : 'keine Fehler ✓'}</small></summary>
-    ${list.length ? `<ul class="err-list">${[...list].reverse().slice(0, 10).map(x => `<li><small>${fmtErrTime(x.t)} · ${esc(x.view || '–')}${x.n > 1 ? ` · ${x.n}×` : ''}</small>${esc(x.msg)}</li>`).join('')}</ul>
+    ${list.length ? `<ul class="err-list">${[...list].reverse().slice(0, 10).map(x => `<li><small>${fmtErrTime(x.t)} | ${esc(x.view || '–')}${x.n > 1 ? ` | ${x.n}×` : ''}</small>${esc(x.msg)}</li>`).join('')}</ul>
       <p class="hint">Hakt etwas? Schick das Protokoll an den Entwickler. Es enthält keine Trainingsdaten, nur Fehlertext, Ansicht, App-Version und Gerätetyp.</p>
       <div class="row"><button class="btn primary" data-action="err-share">Weitergeben</button>
         <button class="btn" data-action="err-clear">Löschen</button></div>`
@@ -8447,6 +8503,9 @@ const actions = {
     saveData(); render();
   },
   'day-reorder': () => { dayReorder = dayReorder === current.params.id ? null : current.params.id; render(); },
+  'pday-order': () => { planDayOrder = !planDayOrder; render(); },
+  'pday-up': el => planDayMove(Number(el.dataset.i), -1),
+  'pday-down': el => planDayMove(Number(el.dataset.i), 1),
   'ex-up': el => { moveExercise(findDay(current.params.id), +el.dataset.i, -1); saveData(); render(); },
   'ex-down': el => { moveExercise(findDay(current.params.id), +el.dataset.i, 1); saveData(); render(); },
   'plan-activate': el => {
@@ -9517,17 +9576,17 @@ function welcomeHtml() {
       ? `<p class="hint welcome-note">Im ${welc.phase === 'bulk' ? 'Aufbau' : 'Body Recomposition'} läuft dein Trainingsplan ganz normal.
           Eine Anpassung ist nur in Diät und Minicut vorgesehen.</p>` : '';
   return `${icon}${dots}
-      <h2 id="welcome-title">${welc.fresh || welcomeNeedsProfile() ? 'Deine Ernährungsphase' : `${esc(profileName()) ? esc(profileName()) + ', i' : 'I'}n welcher Phase bist du?`}</h2>
-      <p>${welc.fresh || welcomeNeedsProfile() ? 'In welcher Phase bist du gerade?' : 'Neu in der App:'} Davon hängt ab, wie viel du essen solltest, und
+      <h2 id="welcome-title">${welc.fresh || welcomeNeedsProfile() ? 'Dein Ernährungsziel' : `${esc(profileName()) ? esc(profileName()) + ', w' : 'W'}as ist dein Ernährungsziel?`}</h2>
+      <p>${welc.fresh || welcomeNeedsProfile() ? 'Was ist gerade dein Ernährungsziel?' : 'Neu in der App:'} Davon hängt ab, wie viel du essen solltest, und
         auf Wunsch passt die App in einer Diät auch deinen Trainingsplan an.</p>
       <div class="welcome-form wiz-q welcome-phases">
         ${Object.entries(NUT_PHASES).filter(([p]) => p !== 'minicut' || feat('nut-minicut')).map(([p, ph]) => opt(p, ph.icon, ph.label, ph.short)).join('')}
-        ${opt('', '🕓', 'Später festlegen', 'Kein Problem, du kannst die Phase jederzeit im Reiter „Ernährung“ wählen.')}
+        ${opt('', '🕓', 'Später festlegen', 'Kein Problem, du kannst dein Ernährungsziel jederzeit im Reiter „Ernährung“ wählen.')}
         <details class="nut-help">${NUT_HELP}</details>
       </div>
       <div id="welcome-train">${train}</div>
       ${welc.phase ? `<p class="hint welcome-note">Dein Kalorienziel berechnet die App, sobald du im Reiter „Ernährung“ noch Alter, Größe,
-        Gewicht und Aktivität ergänzt. Phase und Trainingsanpassung kannst du dort jederzeit ändern.</p>` : ''}
+        Gewicht und Aktivität ergänzt. Ernährungsziel und Trainingsanpassung kannst du dort jederzeit ändern.</p>` : ''}
       ${welc.fresh ? welcomeTabsHtml() : ''}
       <button class="btn primary" data-action="welcome-done">${welc.fresh ? "Los geht's 💪" : 'Speichern'}</button>`;
 }
@@ -9617,10 +9676,10 @@ actions['welcome-phase'] = el => {
 actions['welcome-train'] = el => { welc.trainAdapt = el.dataset.v === '1'; welcomeRedraw(); };
 
 actions['welcome-done'] = () => {
-  if (welc.phase == null) { alert('Bitte wähle deine Phase oder „Später festlegen“.'); return; }
+  if (welc.phase == null) { alert('Bitte wähle dein Ernährungsziel oder „Später festlegen“.'); return; }
   if ((welc.phase === 'diet' || welc.phase === 'minicut') && welc.trainAdapt == null && !feat('nut-train-q')) welc.trainAdapt = true;
   if ((welc.phase === 'diet' || welc.phase === 'minicut') && welc.trainAdapt == null) {
-    alert('Bitte noch auswählen, ob dein Trainingsplan an die Phase angepasst werden soll.');
+    alert('Bitte noch auswählen, ob dein Trainingsplan an dein Ernährungsziel angepasst werden soll.');
     return;
   }
   if (welc.phase && !data.nutrition) {
@@ -9982,7 +10041,7 @@ function moveCard() {
 }
 actions['beta-feedback'] = async () => {
   if (typeof LEGAL !== 'undefined' && LEGAL.email) { feedbackMail(true); return; }
-  const text = `Rückmeldung zur ${APP_NAME} Beta (Version ${APP_V} · ${deviceText()} · Modus ${appMode()}):
+  const text = `Rückmeldung zur ${APP_NAME} Beta (Version ${APP_V} | ${deviceText()} | Modus ${appMode()}):
 
 `;
   if (typeof LEGAL !== 'undefined' && LEGAL.email) {

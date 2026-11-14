@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Cardio: Ausdauereinheiten eintragen, Kalorienverbrauch schätzen ----------
    data.cardio = [{ id, date: 'JJJJ-MM-TT', type, level: 'easy'|'mid'|'hard', min, kcal, own, km? }]  (km: Strecke, freiwillig)
    kcal = Mehrverbrauch gegenüber Ruhe: (MET − 1) × kg × Stunden (MET-Werte nach dem Compendium of Physical Activities).
@@ -48,7 +48,7 @@ function cardioWeek() {
 function cardioStartHtml() {
   const w = cardioWeek();
   return `<button class="btn nav cardio-btn" data-action="cardio-open">🏃 Cardio eintragen
-      <small>${w.n ? `Diese Woche: ${w.n}× · ${w.min} min · ca. ${deNum(w.kcal)} kcal` : 'Joggen, Rad, Stepper, Rudergerät …'}</small></button>`;
+      <small>${w.n ? `Diese Woche: ${w.n}× | ${w.min} min | ca. ${deNum(w.kcal)} kcal` : 'Joggen, Rad, Stepper, Rudergerät …'}</small></button>`;
 }
 
 let cardioForm = null;  // { id?, date, type, level, min (Text), km (Text), kcal (Text), own }
@@ -116,8 +116,8 @@ function renderCardio() {
 // Eine Einheit als Zeile: im Cardio-Bildschirm mit Bearbeiten/Löschen, sonst als Knopf zum Bearbeiten (z. B. Kalendertag)
 function cardioRowHtml(c, edit = false) {
   const t = CARDIO_TYPES[c.type] || CARDIO_TYPES.other;
-  const info = `${fmtDate(c.date + 'T12:00:00')} · ${c.min} min${c.km != null ? ` · ${fmtNum(c.km)} km` : ''} · `
-    + `${CARDIO_LEVELS[c.level] ? CARDIO_LEVELS[c.level].label + ' · ' : ''}ca. ${deNum(c.kcal)} kcal${c.own ? ' (eigener Wert)' : ''}`;
+  const info = `${fmtDate(c.date + 'T12:00:00')} | ${c.min} min${c.km != null ? ` | ${fmtNum(c.km)} km` : ''} | `
+    + `${CARDIO_LEVELS[c.level] ? CARDIO_LEVELS[c.level].label + ' | ' : ''}ca. ${deNum(c.kcal)} kcal${c.own ? ' (eigener Wert)' : ''}`;
   if (!edit) return `<button class="btn nav" data-action="cardio-open-edit" data-id="${c.id}">${t.icon} ${t.label}<small>${info}</small></button>`;
   return `<li class="bw-row cardio-row"><span>${t.icon} ${t.label}<small class="hint">${info}</small></span>
       <button class="icon-btn" data-action="cardio-edit" data-id="${c.id}" aria-label="Bearbeiten">✎</button>
@@ -208,8 +208,8 @@ function renderCardioStats() {
   if (types.length) {
     h += `<h2>Nach Aktivität</h2><ul class="list">${types.map(([k, cs]) => {
       const t = CARDIO_TYPES[k] || CARDIO_TYPES.other, tkm = cardioSum(cs, 'km');
-      return `<li class="bw-row cardio-row"><span>${t.icon} ${t.label}<small class="hint">${cs.length}× · ${fmtDur(cardioSum(cs, 'min'))}${
-        cs.some(c => c.km != null) ? ` · ${fmtNum(round1(tkm))} km` : ''} · ca. ${deNum(cardioSum(cs, 'kcal'))} kcal</small></span></li>`;
+      return `<li class="bw-row cardio-row"><span>${t.icon} ${t.label}<small class="hint">${cs.length}× | ${fmtDur(cardioSum(cs, 'min'))}${
+        cs.some(c => c.km != null) ? ` | ${fmtNum(round1(tkm))} km` : ''} | ca. ${deNum(cardioSum(cs, 'kcal'))} kcal</small></span></li>`;
     }).join('')}</ul>`;
   }
   return h + add;
@@ -237,7 +237,7 @@ Object.assign(actions, {
     if (i >= 0) data.cardio[i] = entry; else data.cardio.push(entry);
     saveData();
     const added = data.nutrition && data.nutrition.cardioAdd && entry.date === todayISO();
-    toast(`${CARDIO_TYPES[entry.type].icon} Eingetragen: ${entry.min} min${entry.km ? ` · ${fmtNum(entry.km)} km` : ''} · ca. ${deNum(entry.kcal)} kcal${added ? ', Tagesziel erhöht' : ''}`);
+    toast(`${CARDIO_TYPES[entry.type].icon} Eingetragen: ${entry.min} min${entry.km ? ` | ${fmtNum(entry.km)} km` : ''} | ca. ${deNum(entry.kcal)} kcal${added ? ', Tagesziel erhöht' : ''}`);
     cardioForm = cardioFormFresh();
     cardioForm.type = entry.type;
     render();

@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Mikronährstoffe im Ernährungstagebuch (v214, User-Wunsch 2026-11-11) ----------
@@ -180,9 +180,9 @@ function microRow(k, s, c) {
       <summary><span class="mic-name">${label}${gap ? ' <small class="mic-gap">lückenhaft</small>' : ''}</span>
         <b class="mic-val">${microFmt(v)} ${u}</b>
         ${pct != null ? `<span class="mic-bar${r.max != null ? ' max' : ''}"><i style="width:${Math.min(100, Math.round(pct))}%"></i></span>` : ''}
-        <small class="mic-ref">${microRefText(r, u)}${pct != null && r.max == null ? ` · ${Math.round(pct)} %` : ''}</small></summary>
+        <small class="mic-ref">${microRefText(r, u)}${pct != null && r.max == null ? ` | ${Math.round(pct)} %` : ''}</small></summary>
       <div class="mic-info"><p>${MICRO_INFO[k]}</p>
-        ${top.length ? `<p class="hint nut-small"><b>Bei dir vor allem aus:</b> ${top.map(([nm, x]) => `${esc(nm)} (${microFmt(x / n)} ${u})`).join(' · ')}</p>` : ''}
+        ${top.length ? `<p class="hint nut-small"><b>Bei dir vor allem aus:</b> ${top.map(([nm, x]) => `${esc(nm)} (${microFmt(x / n)} ${u})`).join(' | ')}</p>` : ''}
         ${gap ? `<p class="hint nut-small">Für ${Math.round((1 - s.kc[k] / s.kcal) * 100)} % deiner Kalorien kennt die App diesen Wert nicht (z. B. gescannte Produkte), die Zahl ist eher zu niedrig.</p>` : ''}
         ${women ? `<p class="mic-women">♀ ${women}</p>` : ''}</div>
     </details>`;
@@ -207,7 +207,7 @@ function renderMicro(p) {
   }
   const cover = s.kcal ? s.coverKcal / s.kcal : 1;
   h += `<div class="card mic-cov"><p>${microRange === 'week' ? `Durchschnitt aus <b>${s.days} Tag${s.days === 1 ? '' : 'en'}</b> mit Einträgen` : 'Summe dieses Tages'}
-      · Mikros bekannt für <b>${Math.round(cover * 100)} %</b> deiner Kalorien${s.supp ? ` · ${s.supp} × Nahrungsergänzung eingerechnet` : ''}.</p>
+      | Mikros bekannt für <b>${Math.round(cover * 100)} %</b> deiner Kalorien${s.supp ? ` | ${s.supp} × Nahrungsergänzung eingerechnet` : ''}.</p>
     ${cover < MICRO_OK ? '<p class="hint nut-small">Ein Teil deiner Einträge hat keine Angaben dazu (z. B. gescannte Markenprodukte oder „Aufgefüllt“). Die Werte sind deshalb eher zu niedrig.</p>' : ''}
     ${microRange === 'day' ? '<p class="hint nut-small">Mikros schwanken von Tag zu Tag stark. Aussagekräftiger ist der Durchschnitt über 7 Tage.</p>' : ''}</div>`;
   for (const [g, title] of Object.entries(MICRO_GROUPS)) {

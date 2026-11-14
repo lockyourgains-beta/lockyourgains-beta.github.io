@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Ernährungstagebuch: Lebensmittel erfassen (Grundliste, Open Food Facts, Barcode, eigene) ----------
    data.foodLog = [{ id, date, meal: 'b'|'l'|'d'|'s', key, name, brand, g, per: [kcal, Eiweiß, Kohlenhydrate, Fett, Ballaststoffe, Zucker] je 100 g }]
    (Ballaststoffe/Zucker freiwillig: fehlen oder null = unbekannt, z. B. ältere Einträge – Anzeige ohne Tagesziel)
@@ -667,7 +667,7 @@ function foodCloseHtml(date, list) {
   if (foodClosed(date)) {
     const fill = list.find(e => e.key === FOOD_FILL);
     return `<div class="card food-closed">
-        <p><b>✔ Tag abgeschlossen</b>${fill ? ` · Rest aufgefüllt (${nutKcal(fill.per[0])} kcal)` : ''}</p>
+        <p><b>✔ Tag abgeschlossen</b>${fill ? ` | Rest aufgefüllt (${nutKcal(fill.per[0])} kcal)` : ''}</p>
         <button class="btn" data-action="food-reopen">Wieder öffnen</button></div>`;
   }
   if (foodCloseAsk !== date) {
@@ -679,7 +679,7 @@ function foodCloseHtml(date, list) {
   return `<div class="card food-close">
       <p><b>Hast du ${date === todayISO() ? 'heute' : 'an diesem Tag'} alles eingetragen?</b></p>
       ${miss.length ? `<p class="food-miss">⚠️ ${miss.join(' und ')} ${miss.length > 1 ? 'sind' : 'ist'} leer, sonst trägst du ${miss.length > 1 ? 'sie' : 'es'} fast immer ein.</p>` : ''}
-      <p class="hint nut-small">Eingetragen: ${nutKcal(foodTotals(real).kcal)} kcal${c ? ` · Tagesziel ${nutKcal(c.kcal)} kcal` : ''}.</p>
+      <p class="hint nut-small">Eingetragen: ${nutKcal(foodTotals(real).kcal)} kcal${c ? ` | Tagesziel ${nutKcal(c.kcal)} kcal` : ''}.</p>
       ${real.length ? '<button class="btn primary" data-action="food-close" data-fill="0">✔ Ja, alles eingetragen</button>' : ''}
       ${rest ? `<button class="btn" data-action="food-close" data-fill="1">➕ Rest mit Tagesziel auffüllen (+${nutKcal(rest.kcal)} kcal)</button>
         <p class="hint nut-small">Für Tage, an denen du nicht alles aufgeschrieben hast: Die App ergänzt, was bis zu deinem Tagesziel fehlt
@@ -732,7 +732,7 @@ function foodEatenHtml(date, c) {
 function foodSumHtml(t) {
   return `<div class="nut-goal-row food-sum"><span>Kalorien<b>${nutKcal(t.kcal)}</b></span><span>Eiweiß<b>${Math.round(t.p)} g</b></span>
       <span>Kohlenh.<b>${Math.round(t.c)} g</b></span><span>Fett<b>${Math.round(t.f)} g</b></span></div>
-    <p class="hint nut-small">Richte im Reiter „Ernährung“ deine Phase und Angaben ein, dann siehst du hier dein Tagesziel.</p>`;
+    <p class="hint nut-small">Richte im Reiter „Ernährung“ dein Ernährungsziel und deine Angaben ein, dann siehst du hier dein Tagesziel.</p>`;
 }
 
 // Ballaststoffe und Zucker: nur zum Mitverfolgen – keine Tagesziele, aufklappbar ein paar grobe Richtwerte
@@ -787,10 +787,10 @@ function renderFood(p) {
         <div class="food-meal-head"><b>${icon} ${label}</b><span class="hint">${items.length ? nutKcal(kcal) + ' kcal' : ''}</span></div>
         ${items.map(e => `<div class="food-row">
           <button class="food-pick" data-action="food-entry" data-id="${e.id}">
-            <span>${e.supp ? '💊 ' : ''}${esc(e.name)}<small>${e.brand ? esc(e.brand) + ' · ' : ''}${foodNum(e.g)} ${e.supp ? 'Stück' : 'g'}</small></span>
+            <span>${e.supp ? '💊 ' : ''}${esc(e.name)}<small>${e.brand ? esc(e.brand) + ' | ' : ''}${foodNum(e.g)} ${e.supp ? 'Stück' : 'g'}</small></span>
             <b>${e.supp ? 'Ergänzung' : foodKcal(foodVal(e.per, e.g)[0]) + ' kcal'}</b></button>
           <button class="icon-btn danger" data-action="food-del" data-id="${e.id}" aria-label="Entfernen">✕</button></div>`).join('')}
-        ${!items.length && planMeals[k] ? `<p class="hint nut-small np-plan-hint">📋 Plan: ${planMeals[k].map(i => `${esc(i.name)}${i.g ? ` ${fmtNum(i.g)} g` : ''}`).join(' · ')}</p>` : ''}
+        ${!items.length && planMeals[k] ? `<p class="hint nut-small np-plan-hint">📋 Plan: ${planMeals[k].map(i => `${esc(i.name)}${i.g ? ` ${fmtNum(i.g)} g` : ''}`).join(' | ')}</p>` : ''}
         <div class="row">
           ${!items.length && planMeals[k] ? `<button class="btn primary" data-action="food-plan-meal" data-meal="${k}">✔ Wie geplant</button>` : ''}
           <button class="btn" data-action="food-add" data-meal="${k}">＋ Hinzufügen</button>
@@ -804,7 +804,7 @@ function renderFood(p) {
     const [kc, pr, ca, fa] = fill.per;
     h += `<div class="card food-meal food-fill">
         <div class="food-meal-head"><b>➕ Aufgefüllt bis zum Tagesziel</b><span class="hint">${nutKcal(kc)} kcal</span></div>
-        <p class="hint nut-small">Nicht erfasst, geschätzt: Eiweiß ${pr} g · Kohlenhydrate ${ca} g · Fett ${fa} g</p></div>`;
+        <p class="hint nut-small">Nicht erfasst, geschätzt: Eiweiß ${pr} g | Kohlenhydrate ${ca} g | Fett ${fa} g</p></div>`;
   }
   h += foodCloseHtml(date, list);
   return h + `<p class="hint explain nut-small">Die Tagessumme zählt automatisch für deinen Tagesvergleich, die letzten 14 Tage und den gemessenen
@@ -815,13 +815,13 @@ function renderFood(p) {
 
 function foodHit(f) {
   return `<button class="btn nav food-hit" data-action="food-pick" data-key="${esc(f.key)}">
-      <span class="lib-txt">${f.fav ? '⭐ ' : ''}${f.supp ? '💊 ' : ''}${esc(f.name)}<small>${f.brand ? esc(f.brand) + ' · ' : ''}${f.supp ? 'Nahrungsergänzung'
-        : `je 100 g: ${foodKcal(f.per[0])} kcal · ${foodMacroMini(f.per)}`}</small></span></button>`;
+      <span class="lib-txt">${f.fav ? '⭐ ' : ''}${f.supp ? '💊 ' : ''}${esc(f.name)}<small>${f.brand ? esc(f.brand) + ' | ' : ''}${f.supp ? 'Nahrungsergänzung'
+        : `je 100 g: ${foodKcal(f.per[0])} kcal | ${foodMacroMini(f.per)}`}</small></span></button>`;
 }
 // v257 (User 2026-11-14): Schnellansicht in der Suche mit allen Makros, nicht nur Eiweiß
 function foodMacroMini(per) {
   const g = v => v == null || isNaN(v) ? '–' : foodNum(v) + ' g';
-  return `Eiweiß ${g(per[1])} · KH ${g(per[2])} · Fett ${g(per[3])}`;
+  return `Eiweiß ${g(per[1])} | KH ${g(per[2])} | Fett ${g(per[3])}`;
 }
 
 // Suchtext: Name, Name ohne Leerzeichen (so findet „Hähnchenbrust“ auch „Hähnchen Brust, ohne Haut, roh“ aus dem BLS),
@@ -882,7 +882,7 @@ function foodMealRow(m) {
   const kcal = foodTotals(m.items).kcal;
   return `<div class="food-savedmeal">
       <button class="btn food-hit" data-action="food-meal-add" data-id="${m.id}">
-        <span class="lib-txt">🍽️ ${esc(m.name)}<small>${m.items.length} Lebensmittel · ${nutKcal(kcal)} kcal · antippen zum Hinzufügen</small></span></button>
+        <span class="lib-txt">🍽️ ${esc(m.name)}<small>${m.items.length} Lebensmittel | ${nutKcal(kcal)} kcal | antippen zum Hinzufügen</small></span></button>
       <button class="icon-btn" data-action="food-meal-rename" data-id="${m.id}" aria-label="Umbenennen">✎</button>
       <button class="icon-btn danger" data-action="food-meal-delete" data-id="${m.id}" aria-label="Löschen">✕</button>
     </div>`;
@@ -1121,7 +1121,7 @@ function foodAmtSum(per, g) {
   const fs = per[4] != null || per[5] != null;
   return `<div class="nut-goal-row food-sum"><span>Kalorien<b>${foodKcal(kcal)}</b></span><span>Eiweiß<b>${foodNum(p)} g</b></span>
     <span>Kohlenh.<b>${foodNum(c)} g</b></span><span>Fett<b>${foodNum(f)} g</b></span></div>
-    ${fs ? `<p class="hint nut-small food-fs-amt">🌾 Ballaststoffe ${foodNum((per[4] || 0) * (g || 0) / 100)} g · 🍬 Zucker ${foodNum((per[5] || 0) * (g || 0) / 100)} g</p>` : ''}`;
+    ${fs ? `<p class="hint nut-small food-fs-amt">🌾 Ballaststoffe ${foodNum((per[4] || 0) * (g || 0) / 100)} g | 🍬 Zucker ${foodNum((per[5] || 0) * (g || 0) / 100)} g</p>` : ''}`;
 }
 
 // Nahrungsergänzung (v214): Menge in Stück, statt Makros die enthaltenen Nährstoffe
@@ -1129,7 +1129,7 @@ function suppMicText(f, n) {
   if (!f.mic || typeof MICROS === 'undefined') return '';
   // Folsäure wie auf der Packung (gespeichert als Folat-Äquivalent = doppelt, siehe microFromForm)
   return MICROS.filter(([k]) => f.mic[k] != null).map(([k, l, u]) => k === 'fol' ? `Folsäure ${microFmt(f.mic[k] * n / 200)} µg`
-    : `${l} ${microFmt(f.mic[k] * n / 100)} ${u}`).join(' · ');
+    : `${l} ${microFmt(f.mic[k] * n / 100)} ${u}`).join(' | ');
 }
 const foodAmtSumFor = (f, g) => f.supp ? `<p class="hint nut-small">${suppMicText(f, g || 0) || '–'}</p>` : foodAmtSum(f.per, g);
 
@@ -1157,13 +1157,13 @@ function renderFoodAmt(p) {
     : [...(f.portion ? [[`${f.portion.label} (${f.portion.g} g)`, f.portion.g], [`2 × (${f.portion.g * 2} g)`, f.portion.g * 2]] : []),
       ...[50, 100, 150, 200, 250].filter(x => !f.portion || (x !== f.portion.g && x !== f.portion.g * 2)).map(x => [`${x} g`, x])];
   const [kcal, pr, ca, fa, fib, sug] = f.per;
-  const fsTxt = fib != null || sug != null ? ` · Ballaststoffe ${foodNum(fib || 0)} g · Zucker ${foodNum(sug || 0)} g` : '';
-  const src = f.src === 'off' ? ' · aus Open Food Facts' : f.src === 'base' ? ' · Durchschnittswert'
-    : f.src === 'bls' ? ' · Durchschnittswert aus dem Bundeslebensmittelschlüssel (Max Rubner-Institut)' : ' · eigenes Lebensmittel';
+  const fsTxt = fib != null || sug != null ? ` | Ballaststoffe ${foodNum(fib || 0)} g | Zucker ${foodNum(sug || 0)} g` : '';
+  const src = f.src === 'off' ? ' | aus Open Food Facts' : f.src === 'base' ? ' | Durchschnittswert'
+    : f.src === 'bls' ? ' | Durchschnittswert aus dem Bundeslebensmittelschlüssel (Max Rubner-Institut)' : ' | eigenes Lebensmittel';
   return `<div class="card food-amt">
       <p class="food-amt-name"><b>${esc(f.name)}</b>${f.brand ? `<small>${esc(f.brand)}</small>` : ''}</p>
-      <p class="hint nut-small">${f.supp ? `💊 Nahrungsergänzung · je Stück: ${suppMicText(f, 1)}`
-        : `je 100 g: ${foodKcal(kcal)} kcal · Eiweiß ${foodNum(pr)} g · Kohlenhydrate ${foodNum(ca)} g · Fett ${foodNum(fa)} g${fsTxt}${src}`}</p>
+      <p class="hint nut-small">${f.supp ? `💊 Nahrungsergänzung | je Stück: ${suppMicText(f, 1)}`
+        : `je 100 g: ${foodKcal(kcal)} kcal | Eiweiß ${foodNum(pr)} g | Kohlenhydrate ${foodNum(ca)} g | Fett ${foodNum(fa)} g${fsTxt}${src}`}</p>
       <label class="row"><span>${f.supp ? 'Anzahl (Stück)' : 'Menge in Gramm'}</span>
         <input class="inp kg" id="food-g" type="text" inputmode="decimal" autocomplete="off" data-field="food-g" value="${esc(foodAmt.g)}"></label>
       <div class="variants food-chips">${chips.map(([l, v]) => `<button class="vchip ${g === v ? 'on' : ''}" data-action="food-g-set" data-g="${v}">${l}</button>`).join('')}</div>
@@ -1454,7 +1454,7 @@ function foodTopCard() {
   const T = todayISO(), v = foodDayVals(T), c = foodGoal(T);
   return `<div class="card food-top">
       <button class="food-top-main primary" data-action="food-open"><span class="food-top-ic" aria-hidden="true">🍎</span>
-        <span class="food-top-txt"><b>Essen eintragen</b><small>Ernährungstagebuch · ${v ? `heute ${nutKcal(v.kcal)}${c ? ` von ${nutKcal(c.kcal)}` : ''} kcal, Eiweiß ${v.p != null ? Math.round(v.p) : '–'} g`
+        <span class="food-top-txt"><b>Essen eintragen</b><small>Ernährungstagebuch | ${v ? `heute ${nutKcal(v.kcal)}${c ? ` von ${nutKcal(c.kcal)}` : ''} kcal, Eiweiß ${v.p != null ? Math.round(v.p) : '–'} g`
           : 'heute noch nichts eingetragen'}</small></span><span class="food-top-chev" aria-hidden="true">›</span></button>
     </div>`;  // v243: Kalender und Woche & Monat nur noch im Tagebuch
 }
@@ -1484,7 +1484,7 @@ function renderFoodCal(p) {
     </div>
     <div class="card"><label class="row"><span>Zu Datum springen</span>
       <input class="inp date" type="date" data-field="food-cal-date" value="${T}" max="${T}"></label></div>
-    ${n ? `<div class="card fcal-sum"><p>${n} Tag${n === 1 ? '' : 'e'} mit Einträgen · Ø <b>${nutKcal(sum / n)} kcal</b></p>
+    ${n ? `<div class="card fcal-sum"><p>${n} Tag${n === 1 ? '' : 'e'} mit Einträgen | Ø <b>${nutKcal(sum / n)} kcal</b></p>
       <button class="btn" data-action="food-stats" data-range="month" data-end="${lastDay}">📊 Monat im Detail</button></div>` : ''}`;
 }
 
@@ -1530,7 +1530,7 @@ function foodBarChart(days, metric, rangeKey) {
   svg += `<line class="fb-avg" x1="${L}" x2="${L + pw}" y1="${y(avg)}" y2="${y(avg)}"/>`;
   const head = sel != null
     ? `<small>${new Date(days[sel] + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}</small><b>${foodBarFmt(metric, vals[sel])}</b>`
-    : `<small>Ø pro Tag · ${have.length} von ${days.filter(d => d <= T).length} Tagen erfasst</small><b>${foodBarFmt(metric, avg)}</b>`;
+    : `<small>Ø pro Tag | ${have.length} von ${days.filter(d => d <= T).length} Tagen erfasst</small><b>${foodBarFmt(metric, avg)}</b>`;
   return `<div class="card fbar"><div class="seg four fb-metric">${Object.entries(FOOD_BAR_METRICS).map(([k, m]) =>
       `<button class="${k === metric ? 'on' : ''}" data-action="food-bar-metric" data-k="${k}">${m.label}</button>`).join('')}</div>
     <div class="fb-head">${head}</div>
@@ -1568,8 +1568,8 @@ function renderFoodStats(p) {
   h += `<div class="card fstat-sum"><h2>Ø pro Tag</h2>
       <div class="nut-goal-row food-sum"><span>Kalorien<b>${nutKcal(A.kcal)}</b></span><span>Eiweiß<b>${Math.round(A.p)} g</b></span>
         <span>Kohlenh.<b>${Math.round(A.c)} g</b></span><span>Fett<b>${Math.round(A.f)} g</b></span></div>
-      <p class="hint nut-small">${got.length} von ${past.length} Tag${past.length === 1 ? '' : 'en'} erfasst${goal ? ` · Tagesziel (aktuell) ${nutKcal(goal.kcal)} kcal, Eiweiß ${Math.round(goal.protein)} g${kcalDiff != null ? ` · im Schnitt ${kcalDiff > 0 ? '+' : ''}${deNum(kcalDiff)} kcal` : ''}` : ''}
-        · Anteile: Eiweiß ${pct(A.p * 4)} %, Kohlenhydrate ${pct(A.c * 4)} %, Fett ${pct(A.f * 9)} %</p></div>`;
+      <p class="hint nut-small">${got.length} von ${past.length} Tag${past.length === 1 ? '' : 'en'} erfasst${goal ? ` | Tagesziel (aktuell) ${nutKcal(goal.kcal)} kcal, Eiweiß ${Math.round(goal.protein)} g${kcalDiff != null ? ` | im Schnitt ${kcalDiff > 0 ? '+' : ''}${deNum(kcalDiff)} kcal` : ''}` : ''}
+        | Anteile: Eiweiß ${pct(A.p * 4)} %, Kohlenhydrate ${pct(A.c * 4)} %, Fett ${pct(A.f * 9)} %</p></div>`;
   h += foodBarChart(days, FOOD_BAR_METRICS[p.metric] ? p.metric : 'kcal', `${range}:${days[0]}`);
   if (range === 'month') {
     const weeks = {};

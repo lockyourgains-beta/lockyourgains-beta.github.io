@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Zykluskalender (nur für Frauen, freiwillig) ----------
    data.mcal = { on, starts: ['JJJJ-MM-TT', …] (erster Tag der Periode), len: übliche Zykluslänge, period: Dauer der Periode }
    Eingetragen wird nur der Beginn der Periode – Zyklustag, Phasen und die nächste Periode rechnet die App aus.
@@ -72,7 +72,7 @@ function mcCard() {
   const inDays = mcDiff(todayISO(), i.next);
   const water = mcWater(todayISO()) && nutHintsOn();
   return `<div class="card mc-card mc-${i.phase}">
-      <p><b>${ph.icon} Zyklustag ${i.day} · ${ph.label}</b></p>
+      <p><b>${ph.icon} Zyklustag ${i.day} | ${ph.label}</b></p>
       <p class="hint nut-small">${i.phase === 'late' ? ph.text : `Nächste Periode ca. am ${fmtDate(i.next + 'T12:00:00')}${inDays > 0 ? ` (in ${inDays} Tag${inDays === 1 ? '' : 'en'})` : ''}.`}
         ${water ? '<br>💧 In diesen Tagen lagert der Körper oft 0,5–2 kg Wasser ein. Die App lässt deine Gewichtswerte von heute beim Gewichtsverlauf und beim gemessenen Bedarf weg. Das ist kein Fett.' : ''}</p>
       <div class="row"><button class="btn" data-action="mc-open">📅 Kalender</button>
@@ -122,10 +122,10 @@ function renderMcal() {
   const cur = mcInfo();
   const list = s.slice().reverse().slice(0, 12).map((x, idx, arr) => {
     const next = s[s.indexOf(x) + 1];
-    return `<li class="bw-row"><span>${fmtDate(x + 'T12:00:00')}<small class="hint">${next ? ` · Zyklus ${mcDiff(x, next)} Tage` : ' · aktueller Zyklus'}</small></span>
+    return `<li class="bw-row"><span>${fmtDate(x + 'T12:00:00')}<small class="hint">${next ? ` | Zyklus ${mcDiff(x, next)} Tage` : ' | aktueller Zyklus'}</small></span>
       <button class="icon-btn danger" data-action="mc-del" data-d="${x}" aria-label="Löschen">✕</button></li>`;
   }).join('');
-  return `${cur ? `<div class="card mc-card mc-${cur.phase}"><p><b>${MC_PHASES[cur.phase].icon} Heute: Zyklustag ${cur.day} · ${MC_PHASES[cur.phase].label}</b></p>
+  return `${cur ? `<div class="card mc-card mc-${cur.phase}"><p><b>${MC_PHASES[cur.phase].icon} Heute: Zyklustag ${cur.day} | ${MC_PHASES[cur.phase].label}</b></p>
       <p class="hint nut-small">${MC_PHASES[cur.phase].text}</p></div>` : ''}
     <div class="card mc-cal">
       <div class="mc-head"><button class="icon-btn" data-action="mc-month" data-d="-1" aria-label="Voriger Monat">‹</button>
@@ -355,7 +355,7 @@ function renderMcCheck({ id, win }) {
       <b>${MC_LEVELS[l].label}${l === lvl && lvl ? ' (wie angegeben)' : ''}</b><small>${MC_LEVELS[l].text}</small></button>`;
   return `<div class="card wiz-q">
       <p class="sub">${esc(findDay(id).name)}</p>
-      <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🌸</span><h2>Zyklustag ${i.day} · ${MC_WINDOWS[win].label}</h2></div>
+      <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🌸</span><h2>Zyklustag ${i.day} | ${MC_WINDOWS[win].label}</h2></div>
       <p class="hint wiz-q-explain">${lvl ? `In diesen Tagen fühlst du dich laut deinen Angaben oft <b>${MC_LEVELS[lvl].short}</b>.`
         : 'Manche Frauen fühlen sich in diesen Tagen schwächer, andere merken nichts.'} Wie geht's dir heute? Die App passt die Vorgaben nur
         für dieses Training an. Dein „Max“ und die Steigerung der nächsten Woche bleiben davon unberührt.</p>
@@ -376,7 +376,7 @@ function renderMcTrain() {
       <p class="lbl">Gibt es Tage in deinem Zyklus, an denen du dich im Training deutlich schwächer fühlst?</p>
       <div class="seg three">${ans('yes', 'Ja')}${ans('no', 'Nein')}${ans('unknown', 'Weiß nicht')}</div>
       ${t.answer === 'yes' ? `<p class="lbl">Wann und wie stark?</p>${['pre', 'mens', 'ovu'].filter(w => w !== 'ovu' || !t.hormonal).map(winRow).join('')}
-        <p class="hint nut-small"><b>Etwas</b> = 1 Wdh. weniger pro Satz · <b>spürbar</b> = 2 Wdh. weniger · <b>stark</b> = 2 Wdh. weniger und
+        <p class="hint nut-small"><b>Etwas</b> = 1 Wdh. weniger pro Satz | <b>spürbar</b> = 2 Wdh. weniger | <b>stark</b> = 2 Wdh. weniger und
           bei Übungen mit 3 oder mehr Sätzen 1 Satz weniger.</p>` : ''}
       ${t.answer === 'unknown' ? '<p class="hint nut-small">Kein Problem: An den typischen Tagen fragt die App kurz vor dem Training, wie es dir geht. So findest du es zusammen mit der App heraus.</p>' : ''}
       ${t.answer === 'no' ? '<p class="hint nut-small">Dann bleibt dein Training wie geplant. Die App schaut trotzdem im Hintergrund auf deine Werte und sagt dir Bescheid, falls sich doch ein Muster zeigt.</p>' : ''}
@@ -512,7 +512,7 @@ function mcTrainEntryHtml() {
   const sum = !t || !t.asked ? 'Noch nicht eingestellt. Erzähl der App, ob dein Zyklus dein Training beeinflusst.'
     : t.answer === 'no' ? 'Keine Anpassung. Die App schaut im Hintergrund auf deine Werte.'
     : t.answer === 'unknown' ? 'Die App fragt an den typischen Tagen nach, wie es dir geht.'
-    : ['pre', 'mens', 'ovu'].filter(w => t.win[w]).map(w => `${MC_WINDOWS[w].label}: ${MC_LEVELS[t.win[w]].short}`).join(' · ') || 'Keine Anpassung eingestellt.';
+    : ['pre', 'mens', 'ovu'].filter(w => t.win[w]).map(w => `${MC_WINDOWS[w].label}: ${MC_LEVELS[t.win[w]].short}`).join(' | ') || 'Keine Anpassung eingestellt.';
   return `<button class="btn nav" data-action="mct-open">🏋️ Zyklus und Training<small>${sum}</small></button>`;
 }
 

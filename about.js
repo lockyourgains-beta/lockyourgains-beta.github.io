@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Über die App: Gesundheitshinweis, Datenschutz, Impressum, Feedback (v188, 2026-11-09) ---------- */
@@ -109,7 +109,7 @@ async function feedbackMail(beta = false) {
     }
   }
   const rep = log ? errReport() : '';
-  const body = `\n\n\n---\n${APP_NAME}${beta || IS_BETA ? ' Beta' : ''} · Version ${APP_V} · Modus ${APP_MODES[appMode()].label} · ${deviceText()}`
+  const body = `\n\n\n---\n${APP_NAME}${beta || IS_BETA ? ' Beta' : ''} | Version ${APP_V} | Modus ${APP_MODES[appMode()].label} | ${deviceText()}`
     + (rep ? `\n\n${rep.length > 1500 ? rep.slice(0, 1500) + '\n…' : rep}` : '');
   const subject = `${beta || IS_BETA ? 'Beta-Rückmeldung' : 'Feedback'} zu ${APP_NAME}`;
   location.href = `mailto:${LEGAL.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -126,7 +126,7 @@ function renderAbout() {
     <details class="card about-sec"><summary><b>🔒 Datenschutz</b></summary>${aboutDatenschutz()}</details>
     ${aboutImpressum()}
     <details class="card about-sec"><summary><b>© Rechte & Quellen</b></summary>${aboutRights()}</details>
-    <p class="hint about-copy">© 2026 Alex Hundt · Alle Rechte vorbehalten</p>`;
+    <p class="hint about-copy">© 2026 Alex Hundt | Alle Rechte vorbehalten</p>`;
 }
 
 // Urheberrecht (siehe LICENSE im Repository) und Pflichtangaben der fremden Bestandteile

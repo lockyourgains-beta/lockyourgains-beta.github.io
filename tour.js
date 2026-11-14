@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 // Einführung („Spotlight“): Beim ersten Öffnen eines Fensters wird der Bildschirm abgedunkelt, ein Knopf bleibt hell
@@ -56,10 +56,8 @@ const TOURS = {
       text: 'Meldet sich bei einer Übung etwas, tipp hier und halte fest, wo und wie stark. Das landet in deinem Beschwerde-Tagebuch. So siehst du mit der Zeit, welche Übungen sich melden.' },
     { id: 'tr-warm', sel: 'section.card .warmup', title: 'Aufwärmen',
       text: 'Vor der ersten schweren Übung schlägt die App Aufwärmsätze vor. Antippen klappt sie auf. Sie zählen nicht als Arbeitssätze.' },
-    { id: 'tr-target', sel: 'section.card .target', title: 'Ziel für heute',
-      text: () => feat('tr-tank-target')
-        ? 'Sätze × Wiederholungen und der Tank: So viele Wiederholungen sollten am Ende eines Satzes noch gehen.'
-        : 'Sätze × Wiederholungen und wie anstrengend die Sätze sein sollen.' },
+    { id: 'tr-target', sel: 'section.card .setgrid', title: 'Ziel für heute',
+      text: 'Gewicht und Wiederholungen für jeden Satz stehen schon in den Feldern. Das ist deine Vorgabe für heute. Schaffst du etwas anderes, trag einfach die echten Werte ein.' },
     { id: 'tr-max', sel: 'section.card .max-mini', feat: 'tr-max', title: 'Max. kg bei 10 Wdh.',
       text: 'Das Gewicht, mit dem du frisch gerade so 10 saubere Wiederholungen schaffst, also als erste Übung für diesen Muskel. Steht die Übung weiter hinten, zieht die App die Vorermüdung selbst ab. Unbekannt? Leer lassen, die App errechnet es aus deinem ersten Satz.' },
     { id: 'tr-step', sel: 'section.card [data-action="tr-step-open"]', feat: 'tr-step', title: 'Steigerung',
@@ -160,9 +158,9 @@ const TOURS = {
     { id: 'nut-basics', sel: '.nut-basics > summary', title: 'Grundlagen',
       text: 'Die wichtigsten Regeln für gute, ausgewogene Ernährung. Antippen klappt sie auf und zu.' },
     { id: 'nut-setup', sel: '[data-action="nut-setup"]', title: 'Ernährung einrichten',
-      text: 'Wähle deine Phase: Aufbau, Recomp, Diät oder Minicut. Die App schätzt dann deinen Bedarf und dein Tagesziel.' },
-    { id: 'nut-phase', sel: '.nut-phase-head', title: 'Deine Phase',
-      text: 'Welche Phase du gerade machst, seit wann und in welchem Tempo.' },
+      text: 'Wähle dein Ernährungsziel: Aufbau, Recomp, Diät oder Minicut. Die App schätzt dann deinen Bedarf und dein Tagesziel.' },
+    { id: 'nut-phase', sel: '.nut-goal-card', title: 'Dein Ernährungsziel',
+      text: 'Was du gerade mit deiner Ernährung erreichen willst, seit wann und in welchem Tempo, und was die App dafür tut. Mit dem großen Knopf wechselst du zu einem anderen Ziel.' },
     { id: 'nut-food', sel: '[data-action="food-open"]', title: 'Ernährungstagebuch',
       text: 'Trag ein, was du isst, mit Suche, Barcode-Scanner und gespeicherten Mahlzeiten.' },
     { id: 'nut-health', sel: '[data-action="health-paste"]', title: 'Aus Health',
@@ -175,8 +173,8 @@ const TOURS = {
       text: 'Dein Ziel und wie weit du schon gekommen bist.' },
     { id: 'nut-train', sel: '.card.nut-train', title: 'Training anpassen',
       text: 'In der Diät kann die App das Training etwas leichter planen, damit du trotzdem gut regenerierst.' },
-    { id: 'nut-edit', sel: '.nut-actions', title: 'Angaben und Phase',
-      text: 'Hier änderst du deine Angaben (z. B. Aktivität oder Tempo) oder wechselst in eine andere Phase.' },
+    { id: 'nut-edit', sel: '.nut-goal-btns .link-btn', title: 'Angaben ändern',
+      text: 'Hier änderst du deine Angaben, z. B. Gewicht, Aktivität oder Tempo.' },
     { id: 'nut-bw', sel: '#bw-kg', title: 'Körpergewicht',
       text: 'Trag dein Gewicht regelmäßig ein, am besten morgens. Die Linie zeigt den Trend. Schwankungen von Tag zu Tag sind normal (Wasser, Essen).' },
   ],

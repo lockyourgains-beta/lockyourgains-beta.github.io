@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Fortschrittsfotos und Technik-Videos (v213, User-Wunsch 2026-11-11) ----------
@@ -149,7 +149,7 @@ function phaseAt(day) {
   const s = starts[starts.length - 1];
   return s && NUT_PHASES[s.p] ? NUT_PHASES[s.p].label : null;
 }
-const phInfo = day => [bwNear(day) != null ? `${fmtNum(bwNear(day))} kg` : null, phaseAt(day)].filter(Boolean).join(' · ');
+const phInfo = day => [bwNear(day) != null ? `${fmtNum(bwNear(day))} kg` : null, phaseAt(day)].filter(Boolean).join(' | ');
 
 function phThumb(p, label) {
   return `<button class="ph-thumb${photoCfg().blur ? ' blur' : ''}" data-action="ph-open" data-id="${p.id}" aria-label="${label || POSES[p.pose]} ansehen">
@@ -230,7 +230,7 @@ function renderPhoto({ id }) {
   const p = phCache.find(x => x.id === id);
   if (!p) return '<p class="hint">Dieses Foto gibt es nicht mehr.</p>';
   return `<div class="ph-full"><img src="${mUrl(p.blob)}" alt="${POSES[p.pose]} am ${dayText(p.date)}"></div>
-    <p class="sub">${POSES[p.pose]} · ${dayText(p.date)}${phInfo(p.date) ? ` · ${phInfo(p.date)}` : ''}</p>
+    <p class="sub">${POSES[p.pose]} | ${dayText(p.date)}${phInfo(p.date) ? ` | ${phInfo(p.date)}` : ''}</p>
     <button class="btn primary" data-action="ph-save" data-id="${p.id}">📥 In Fotos speichern</button>
     <button class="btn danger outline" data-action="ph-del" data-id="${p.id}">Foto löschen</button>`;
 }
@@ -370,7 +370,7 @@ fields['ph-cmp-b'] = el => { phCmp.b = el.value; render(); };
 function photoBtnHtml() {
   const last = photoCfg().last;
   return `<button class="link-btn meas-link ph-link" data-action="ph-open-list">${last
-    ? `📷 Fortschrittsfotos · zuletzt am ${dayText(last)} ›` : '📷 Fortschrittsfotos festhalten ›'}</button>`;
+    ? `📷 Fortschrittsfotos | zuletzt am ${dayText(last)} ›` : '📷 Fortschrittsfotos festhalten ›'}</button>`;
 }
 // Zyklus-Rückblick: nur wenn schon Fotos gemacht wurden und das letzte mindestens 3 Wochen her ist
 function photoReviewCard() {
