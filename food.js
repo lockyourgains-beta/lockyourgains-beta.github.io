@@ -705,6 +705,29 @@ function foodGoal(date = todayISO()) {
   return n && nutReady(n) && kg != null ? nutForDay(nutCalc(n, kg), date) : null;  // inkl. Cardio (wenn eingerechnet)
 }
 
+/* v243 (User 2026-11-14): Gegessen im Stil der Tagesziel-Karte – große kcal-Zahl, Makro-Kacheln mit Fortschritt, Anteile-Balken.
+   Ersetzt im Tagebuch die schlichten Balken; „Heute gegessen“ steht nicht mehr im Reiter Ernährung. */
+function foodEatenHtml(date, c) {
+  const v = foodDayVals(date) || { kcal: 0, p: 0, c: 0, f: 0, src: null };
+  const hints = nutHintsOn();
+  const ok = (val, goal, tol, lo) => hints && goal && val != null && (lo != null ? val >= lo : Math.abs(val / goal - 1) <= tol);
+  const pct = (a, b) => b ? Math.min(100, Math.round((a || 0) / b * 100)) : 0;
+  const tile = (k, label, val, goal, tol, lo = null) => `<div class="nut-macro ${k} fe-tile"><span>${label}</span>
+      <b>${val != null ? deNum(Math.round(val)) : '–'} g</b><small>von ${lo != null ? `${deNum(lo)}+` : deNum(goal)} g${ok(val, goal, tol, lo) ? ' ✓' : ''}</small>
+      <i class="fe-bar" aria-hidden="true"><i style="width:${pct(val, lo != null ? lo : goal)}%"></i></i></div>`;
+  const all = feat('nut-macros');
+  const tiles = [tile('p', 'Eiweiß', v.p, c.protein, 0, c.pLo)].concat(all ? [tile('f', 'Fett', v.f, c.fat, 0.25), tile('c', 'Kohlenhydrate', v.c, c.carbs, 0.25)] : []);
+  const mk = (v.p || 0) * 4 + (v.f || 0) * 9 + (v.c || 0) * 4;
+  const split = all && mk > 0 ? `<div class="nut-bar" aria-hidden="true">${[['p', (v.p || 0) * 4], ['f', (v.f || 0) * 9], ['c', (v.c || 0) * 4]]
+    .map(([k, x]) => `<div class="${k}" style="flex:${x}"></div>`).join('')}</div>
+    <p class="hint nut-small fe-split">Anteile: Eiweiß ${Math.round((v.p || 0) * 400 / mk)} %, Fett ${Math.round((v.f || 0) * 900 / mk)} %, Kohlenhydrate ${Math.round((v.c || 0) * 400 / mk)} %</p>` : '';
+  const src = v.src && v.src !== 'food' ? `<p class="hint nut-small">${{ health: 'Aus Health übernommen', auto: 'Mit dem Tagesziel nachgetragen' }[v.src] || 'Von Hand eingetragen'}</p>` : '';
+  return `<span class="lbl">Gegessen</span>
+    <div class="nut-kcal-row fe-kcal"><b class="nut-kcal">${nutKcal(v.kcal || 0)} kcal</b><small>von ${nutKcal(c.kcal)} kcal${ok(v.kcal, c.kcal, 0.1) ? ' ✓' : ''}</small></div>
+    <div class="fe-kbar" aria-hidden="true"><div style="width:${pct(v.kcal, c.kcal)}%"></div></div>
+    <div class="nut-macros${all ? '' : ' one'}">${tiles.join('')}</div>${split}${src}`;
+}
+
 function foodSumHtml(t, c) {
   if (c) {
     return `${nutIntakeBar('Kalorien', Math.round(t.kcal), c.kcal, 'kcal', 0.1)}
@@ -751,8 +774,11 @@ function renderFood(p) {
     </div>
     <div class="row food-nav-btns"><button class="btn" data-action="food-cal">📅 Kalender</button>
       <button class="btn" data-action="food-stats">📊 Woche & Monat</button></div>
-    <div class="card nut-intake">${foodSumHtml(t, foodGoal(date))}${list.some(e => e.key !== FOOD_FILL) ? foodFsHtml(t, foodGoal(date)) : ''}
-      ${typeof microBtnHtml === 'function' ? microBtnHtml() : ''}</div>
+    <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) : foodSumHtml(t, null)}${list.some(e => e.key !== FOOD_FILL) ? foodFsHtml(t, foodGoal(date)) : ''}
+      ${typeof microBtnHtml === 'function' ? microBtnHtml() : ''}
+      ${nutIntakeForm ? nutIntakeFormHtml() : `<div class="row fe-src-btns">${feat('nut-health') ? '<button class="btn" data-action="health-paste">❤️ Aus Health</button>' : ''}
+        <button class="btn" data-action="nut-intake-open" data-date="${date}">✏️ Von Hand</button></div>
+      ${feat('nut-health') ? healthPasteBox() : ''}`}</div>
     ${date === todayISO() ? foodOpenCard() : ''}`;
   const planDay = typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanDay(date) : null;
   const planMeals = (planDay && planDay.meals) || {};
@@ -784,7 +810,7 @@ function renderFood(p) {
         <p class="hint nut-small">Nicht erfasst, geschätzt: Eiweiß ${pr} g · Kohlenhydrate ${ca} g · Fett ${fa} g</p></div>`;
   }
   h += foodCloseHtml(date, list);
-  return h + `<p class="hint explain nut-small">Die Tagessumme zählt automatisch für „Heute gegessen“, die letzten 14 Tage und den gemessenen
+  return h + `<p class="hint explain nut-small">Die Tagessumme zählt automatisch für deinen Tagesvergleich, die letzten 14 Tage und den gemessenen
     Bedarf. Werte der Grundliste sind Durchschnittswerte. Bei Markenprodukten ist der Barcode genauer.</p>`;
 }
 
@@ -1427,9 +1453,7 @@ function foodTopCard() {
       <button class="food-top-main primary" data-action="food-open"><span class="food-top-ic" aria-hidden="true">🍎</span>
         <span class="food-top-txt"><b>Essen eintragen</b><small>Ernährungstagebuch · ${v ? `heute ${nutKcal(v.kcal)}${c ? ` von ${nutKcal(c.kcal)}` : ''} kcal, Eiweiß ${v.p != null ? Math.round(v.p) : '–'} g`
           : 'heute noch nichts eingetragen'}</small></span><span class="food-top-chev" aria-hidden="true">›</span></button>
-      <div class="row food-top-btns"><button class="btn" data-action="food-cal">📅 Kalender</button>
-        <button class="btn" data-action="food-stats">📊 Woche & Monat</button></div>
-    </div>`;
+    </div>`;  // v243: Kalender und Woche & Monat nur noch im Tagebuch
 }
 
 /* ----- Kalender ----- */

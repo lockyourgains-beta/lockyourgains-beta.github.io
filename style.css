@@ -3374,3 +3374,23 @@ p.cali-tr { margin: -4px 0 8px; font-size: 14px; }
 .food-top-main.primary .food-top-txt small { color: rgba(255, 255, 255, .88); }
 .food-top-main.primary .food-top-chev { color: #fff; }
 .food-top-main.primary .food-top-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, .2); font-size: 24px; }
+
+/* v240: Plan-Knöpfe und Wochenansicht */
+.plan-new-btn, .plan-end-btn { margin-top: 4px; }
+.plan-end-btn { margin-top: 24px; }
+.week-ses .badge { margin-left: 6px; }
+div.btn.week-ses { cursor: default; }
+
+/* v243: „Gegessen“ im Tagebuch im Stil der Tagesziel-Karte */
+.food-eaten .nut-kcal-row.fe-kcal { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.food-eaten .fe-kcal small { color: var(--muted); font-size: 15px; }
+.fe-kbar { height: 8px; margin: 8px 0 2px; border-radius: 999px; background: var(--fill); overflow: hidden; }
+.fe-kbar div { height: 100%; border-radius: inherit; background: var(--accent); }
+.fe-tile { position: relative; padding-bottom: 16px !important; }
+.fe-bar { position: absolute; left: 12px; right: 12px; bottom: 6px; height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--text) 10%, transparent); overflow: hidden; }
+.fe-bar i { display: block; height: 100%; border-radius: inherit; }
+.fe-tile.p .fe-bar i { background: var(--accent); }
+.fe-tile.f .fe-bar i { background: var(--warn); }
+.fe-tile.c .fe-bar i { background: var(--success); }
+.fe-split { margin-top: 6px; }
+.fe-src-btns { margin-top: 12px; }

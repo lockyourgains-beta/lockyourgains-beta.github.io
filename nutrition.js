@@ -423,7 +423,7 @@ function nutHintsCard() {
       <div class="seg two"><button class="${on ? 'on' : ''}" data-action="nut-hints" data-v="1">An</button>
         <button class="${on ? '' : 'on'}" data-action="nut-hints" data-v="0">Aus</button></div>
       <p class="hint explain nut-small">Die App bewertet, was du isst, und schlägt Änderungen vor: Gewichtsverlauf, gemessener Bedarf
-        und die grünen und orangen Balken bei „Heute gegessen“. Manche Menschen setzt so etwas unter Druck, etwa,
+        und die Haken bei „Gegessen“ im Ernährungstagebuch. Manche Menschen setzt so etwas unter Druck, etwa,
         wenn man ohnehin sehr auf Zahlen achtet oder schon einmal Schwierigkeiten mit dem Essen hatte. <b>Aus</b> heißt: Die App zeigt
         nur noch dein Tagesziel und was du eingetragen hast, ohne Bewertung, ohne Warnungen und ohne Vorschläge. Phasen,
         Erhaltungswochen und dein Training laufen ganz normal weiter. Du kannst es jederzeit wieder einschalten.</p>
@@ -1191,14 +1191,16 @@ function renderNutrition() {
   const n = data.nutrition;
   const kg = nutWeight();
   // v218 (User): Ernährungstagebuch ganz oben
-  let h = (typeof foodTopCard === 'function' ? foodTopCard() : '') + (typeof foodOpenCard === 'function' ? foodOpenCard() : '') + (typeof mcCard === 'function' ? mcCard() : '');
+  let h = (typeof foodTopCard === 'function' ? foodTopCard() : '')
+    + (nutIntakeForm ? `<div class="card nut-intake-edit">${nutIntakeFormHtml()}</div>` : '')  // v243: „Von Hand“ aus „Die letzten Tage“
+    + (typeof foodOpenCard === 'function' ? foodOpenCard() : '') + (typeof mcCard === 'function' ? mcCard() : '');
   const planOn = typeof nutPlanActive === 'function' && nutPlanActive();
   // Grundlagen-Karte ganz oben (mit dem Tagesziel für die persönliche Ballaststoff-Menge, falls bekannt)
   const dayKcal = n && nutPaused(n) ? null : planOn ? nutForDay(null).kcal : n && nutReady(n) && kg != null ? nutForDay(nutCalc(n, kg)).kcal : null;
   // v207: Grundlagen als eingeklappte Zeile ganz unten; Körpergewicht direkt unter „Heute gegessen“ (bwBlock), Einträge zuklappbar
   const paused = n && nutPaused(n);
   const intakeShown = !paused && (planOn || (n && nutReady(n) && kg != null));
-  const bwBlock = `<h2>Körpergewicht</h2>${intakeShown ? '<p class="hint nut-small">Wiege dich 3–4× pro Woche, am besten morgens nach dem Aufstehen. Die App braucht das für ihre Kalorienvorschläge.</p>' : ''}${bwCard()}${feat('nut-health') && !intakeShown ? healthCard() : ''}${rangeRow()}
+  const bwBlock = `<h2>Körpergewicht</h2>${intakeShown ? '<p class="hint nut-small">Wiege dich 3–4× pro Woche, am besten morgens nach dem Aufstehen. Die App braucht das für ihre Kalorienvorschläge.</p>' : ''}${bwCard()}${feat('nut-health') ? healthCard() : ''}${rangeRow()}
     <div id="chart-area" class="chart-area"></div><div id="chart-extra"></div>`;
   let bwDone = false;
   if (n && nutPaused(n)) {
@@ -1206,7 +1208,7 @@ function renderNutrition() {
   } else if (planOn && !(n && nutReady(n) && kg != null)) {
     // Ernährungsplan ohne eingerichtete Phase: Ziele kommen nur aus dem Plan
     const pc = nutForDay(null);
-    h += nutIntakeCard(n || {}, pc) + nutPlanCard() + (feat('nut-history') ? nutHistoryCard(n || {}, pc) : '');
+    h += nutPlanCard() + (feat('nut-history') ? nutHistoryCard(n || {}, pc) : '');
   } else if (n && !nutReady(n)) {
     h += nutPhaseOnly(n);
   } else if (!n) {
@@ -1226,8 +1228,8 @@ function renderNutrition() {
     const weekText = !stage ? `Woche ${week}` : stage === 'cut'
       ? `Woche ${week} von ${Math.min(n.weeks, NUT_MINICUT_MAX)}${n.round === 2 ? ' · 2. Durchgang' : ''}` : stage === 'maint' ? 'Erhaltungswoche' : 'abgeschlossen';
     // v238 (User 2026-11-14): „Heute gegessen“ ganz oben (unter dem Tagebuch-Knopf), direkt darunter das Tagesziel, dann Phase und Hinweise
-    h += `${nutIntakeCard(n, c)}
-      ${typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanCard() : nutTargetCard(n, c, true)}
+    // v243: „Heute gegessen“ steht im Tagebuch (im Stil der Tagesziel-Karte), hier nur noch das Tagesziel
+    h += `${typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanCard() : nutTargetCard(n, c, true)}
       <div class="nut-phase-head"><span class="wiz-q-icon" aria-hidden="true">${ph.icon}</span>
         <div><b>${ph.label}</b><small>seit ${fmtDate(n.since + 'T12:00:00')} · ${weekText} · ${nutPace(n).label}</small></div></div>
       ${nutLowCard(n, nutForDay(c))}
@@ -1241,6 +1243,7 @@ function renderNutrition() {
       ${nutTrainCard(n)}
       <div class="row nut-actions"><button class="btn" data-action="nut-edit">Angaben ändern</button>
         <button class="btn" data-action="nut-setup">Phase wechseln</button></div>
+      ${typeof nutPlanActive === 'function' && nutPlanActive() ? '' : NP_OPEN_BTN}
       ${!n.pause && !nutPauseForm && (!stage || stage === 'cut') ? '<button class="btn nav" data-action="nut-pause-open">⏸ Phase unterbrechen<small>Zum Beispiel im Urlaub: kein Tagesziel, keine Hinweise, die Werte zählen nicht</small></button>' : ''}
       ${feat('nut-explain') ? nutExplain(n, c, kg) : ''}
       ${nutHintsCard()}

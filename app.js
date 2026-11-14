@@ -1064,7 +1064,7 @@ function recalcSets(ei) {
   if (en.holdSec) { holdDiffSync(ei); return; }  // Halteübung (v236): nur über/unter anzeigen, nichts neu planen
   if (t.own) return;  // eigener Plan: folgende Sätze nicht anpassen
   const tt = { step: 2.5, ...t };
-  let first = null, firstJ = -1, firstLast = -1, firstCap = null, firstReduced = false;
+  let first = null, firstJ = -1, firstLast = -1, firstCap = null, firstReduced = false, firstFat = FATIGUE;
   for (let j = 0; j < en.sets.length; j++) {
     const s = en.sets[j];
     if (!s.auto || isDone(s)) continue;  // Wdh. selbst geändert oder schon erledigt -> nicht anfassen
@@ -1075,7 +1075,13 @@ function recalcSets(ei) {
     if (last < 0) continue;
     const ttj = tAt(tt, j);  // Tank dieses Satzes (v199)
     const done = en.sets[last];
-    const cap = parseNum(done.reps) + parseNum(done.rir);
+    const cap0 = parseNum(done.reps) + parseNum(done.rir);
+    // v241 (Fehler, User 2026-11-14): Abfall zwischen den Sätzen aus dem Vorschlag übernehmen statt pauschal FATIGUE je Satz.
+    // Satz genau wie geplant → folgende Sätze bleiben unverändert; sonst verschieben sie sich um die Abweichung.
+    const plL = en.planned[last], plJ = en.planned[j];
+    const planDrop = plL && plJ && plL.reps != null && plJ.reps != null && plL.weight === plJ.weight
+      ? (plL.reps + rirAt(t, last)) - (plJ.reps + rirAt(t, j)) : null;
+    const cap = planDrop != null ? cap0 - (planDrop - FATIGUE * (j - last)) : cap0;
     const w = parseNum(done.weight);
     // Ausgangsgewicht: laut Vorschlag – wurde im letzten Satz über den Vorschlag hinaus gesteigert, nie darunter
     const pl = en.planned[last];
@@ -1122,7 +1128,7 @@ function recalcSets(ei) {
         reps: Math.min(p.reps, t.bodyweight && pl && pl.reps != null ? pl.reps : t.reps),
       };
     }
-    if (!first) { first = p; firstJ = j; firstLast = last; firstCap = cap; firstReduced = reduced; }
+    if (!first) { first = p; firstJ = j; firstLast = last; firstCap = cap0; firstReduced = reduced; firstFat = cap0 - cap + FATIGUE * (j - last); }
     const weight = p.weight != null ? fmtNum(p.weight) : s.weight;
     if (weight !== s.weight) { s.weight = weight; setInput('tr-weight', ei, j, weight); }
     if (String(p.reps) !== s.reps) { s.reps = String(p.reps); setInput('tr-reps', ei, j, s.reps); }
@@ -1133,7 +1139,7 @@ function recalcSets(ei) {
     (first.weight != null ? `${fmtNum(first.weight)} kg × ` : '') + `${first.reps} Wdh. ` +
     (firstReduced
       ? `(Ziel um mind. ${MISS_REPS} Wdh. verfehlt → weniger Gewicht statt weniger Wdh.)`
-      : `(${fmtNum(rirAt(t, firstJ))} im Tank, −${FATIGUE} Ermüdung, mind. ${minReps()} Wdh.)`);
+      : `(${fmtNum(rirAt(t, firstJ))} im Tank, −${fmtNum(firstFat)} Ermüdung${firstFat !== FATIGUE * (firstJ - last) ? ' wie im Vorschlag' : ''}, mind. ${minReps()} Wdh.)`);
   const note = $view.querySelector(`[data-note="${ei}"]`);
   if (note) { note.textContent = en.note; note.hidden = false; }
 }
@@ -3170,6 +3176,11 @@ function ssPickHtml(day, i) {
       ${c.length ? `<div class="quick-picks">${c.map(j => { const b = day.exercises[j];
         return `<button class="vchip" data-action="ss-pair" data-i="${i}" data-j="${j}">${esc(b.name)}<small>${ssAntag(ex, b) ? 'Gegenspieler · ' : ''}${ssSaveText(ex, b)}</small></button>`; }).join('')}</div>`
         : '<p class="hint">An diesem Tag passt keine Übung dazu.</p>'}
+      <p class="hint quick-title">… oder eine andere Übung wählen (sie kommt direkt dahinter in den Plan):</p>
+      <input class="inp" type="text" data-field="ss-pick-name" data-i="${i}" autocomplete="off" autocorrect="off" spellcheck="false"
+        placeholder="Übung eintippen, z. B. Face Pulls …">
+      <div class="suggest" hidden></div>
+      <button class="btn primary ss-pick-add" data-action="ss-pick-add" data-i="${i}">🔗 Hinzufügen und koppeln</button>
       <p class="hint">Erlaubt sind Gegenspieler (z. B. Brust und Rücken) und Muskelgruppen, die nichts miteinander zu tun haben
         (z. B. Bauch und Waden), nicht zwei Drück- oder zwei Zugübungen und keine schweren Grundübungen der Beine. Pause nach jedem
         Satz: 2 min, bei zwei Isolationsübungen 90 s. Die zweite Übung rückt direkt hinter die erste.</p>
@@ -3905,11 +3916,19 @@ const explainId = p => p.textContent.replace(/\s+/g, ' ').trim().slice(0, 80);
 function explainFold() {
   if (explainKeep()) return;
   if ((visitsLoad()[visitKey(current.view, current.params)] || 0) <= EXPLAIN_AFTER) return;
+  let n = 0;
   $view.querySelectorAll('.explain').forEach(p => {
     if (explainOpen.has(explainId(p))) return;
     p.classList.add('folded');
     p.insertAdjacentHTML('beforebegin', '<button class="explain-q" data-action="explain-show" aria-expanded="false">? Erklärung</button>');
+    n++;
   });
+  // v239 (User 2026-11-14): beim ersten Zuklappen einmal sagen, was passiert ist
+  if (n && !data.foldHintSeen) {
+    data.foldHintSeen = true;
+    saveData();
+    setTimeout(() => { if ($toast.hidden) toast('Erklärungen sind ab jetzt eingeklappt, damit die Seiten übersichtlich bleiben. Tipp auf „? Erklärung“, um sie wieder zu lesen.'); }, 700);
+  }
 }
 function explainCard() {
   const keep = explainKeep();
@@ -4367,8 +4386,8 @@ function startHintCard() {
 function renderStart() {
   const hint = startHintCard();
   let h = (typeof sportSwitch === 'function' ? sportSwitch('kraft') : '')  // v224 Beta-Entwurf: Kraft | Hyrox
-    + greeting() + moveCard() + betaCard()  // v217: Umzugshilfe (alte Adresse) bzw. Beta-Hinweis
-    + (typeof caliUpCards === 'function' ? caliUpCards() : '');  // v225: Calisthenics – nächste Stufe? (nur nach Rückfrage)
+    + greeting() + moveCard();  // v217: Umzugshilfe (alte Adresse); v240: Beta-Hinweis steht in den Optionen
+  const caliUp = typeof caliUpCards === 'function' ? caliUpCards() : '';  // v225: Calisthenics – nächste Stufe? (nur nach Rückfrage)
   if (draft) {
     h += `<div class="card highlight">
       <h2>Laufendes Training: ${esc(draft.dayName)}</h2>
@@ -4377,7 +4396,7 @@ function renderStart() {
     </div>`;
   }
   if (!hasActivePlan()) {
-    return h + hint + `<div class="card no-plan">
+    return h + caliUp + hint + `<div class="card no-plan">
         <div class="check-emoji" aria-hidden="true">🏁</div>
         <h2>${data.plans.length ? 'Kein Plan aktiv' : 'Noch kein Plan'}</h2>
         <p class="hint">${data.plans.length ? 'Erstelle einen neuen Plan oder aktiviere einen bisherigen im Reiter „Plan“. Deine Trainings und Erfolge bleiben erhalten.'
@@ -4387,7 +4406,7 @@ function renderStart() {
       </div>`;
   }
   if (!data.days.length) {
-    return h + hint + `<p class="hint">Noch kein Trainingsplan vorhanden. Lege zuerst deine Trainingstage und Übungen an.</p>
+    return h + caliUp + hint + `<p class="hint">Noch kein Trainingsplan vorhanden. Lege zuerst deine Trainingstage und Übungen an.</p>
       <button class="btn primary" data-action="tab" data-tab="plan">Trainingsplan anlegen</button>`;
   }
   const limit = data.timeLimit && data.timeLimit.min;
@@ -4422,20 +4441,15 @@ function renderStart() {
       <span class="day-txt">${next ? '<span class="badge next-badge">▶ Steht als Nächstes an</span>' : ''}${esc(day.name)}${skipped ? '<span class="badge skip">diese Woche ausgelassen</span>'
         : done ? '<span class="badge done">diese Woche erledigt</span>' : ''}<small>${info}</small></span></button>`;
   };
-  // 1. nächster Tag ganz oben (bei laufendem Training steht dort die Karte „Fortsetzen“)
-  if (nextDay) h += dayBtn(nextDay, data.days.indexOf(nextDay));
-  // Zeitlimit: aktiv bzw. in Bearbeitung direkt unter dem nächsten Tag, sonst als kleiner Knopf unten
+  // v240 (User 2026-11-14): 1. Zyklus ganz oben, 2. Hinweise, 3. alle Trainingstage untereinander in Plan-Reihenfolge
+  // (der nächste bleibt hervorgehoben), Zeitlimit direkt darunter
+  h += cycleCard(ci) + caliUp + (typeof hxTaperCard === 'function' ? hxTaperCard(ci) : '') + hint
+    + (typeof reviewStartCard === 'function' ? reviewStartCard() : '') + hintsCard();
+  h += `<h2 class="start-days-h">Trainingstage <small class="hint">· ${esc(activePlan().name)}</small></h2>`
+    + data.days.map((d, i) => dayBtn(d, i)).join('');
   const tlShown = !draft && (timeEdit || limit);
   if (tlShown) h += timeLimitHtml();
-  // 2. eine Hinweis-Karte, 3. Zyklus und Co.
-  h += hint + (typeof hxTaperCard === 'function' ? hxTaperCard(ci) : '') + cycleCard(ci) + (typeof reviewStartCard === 'function' ? reviewStartCard() : '') + hintsCard();
   h += nutStartLine();  // Ernährungsphase kurz anzeigen (nutrition.js)
-  // 4. übrige Tage
-  const rest = data.days.filter(d => d !== nextDay);
-  if (rest.length) {
-    h += `<h2 class="start-days-h">${nextDay ? 'Weitere Trainingstage' : 'Welcher Trainingstag?'} <small class="hint">· ${esc(activePlan().name)}</small></h2>`
-      + rest.map(d => dayBtn(d, data.days.indexOf(d))).join('');
-  }
   // 5. kleine Knöpfe „Wenig Zeit?“ und „Tage auslassen“ nebeneinander (aufgeklappte Auswahl darunter in voller Breite)
   if (!draft) {
     const tb = tlShown ? '' : timeLimitHtml(), sk = skipHtml(ci);
@@ -4443,6 +4457,8 @@ function renderStart() {
     else if (tb || sk) h += `<div class="start-mini">${tb}${sk}</div>`;
   }
   if (typeof cardioStartHtml === 'function') h += `<h2>Cardio</h2>${cardioStartHtml()}`;
+  // v240: Plan beenden steht hier statt im Plan-Reiter
+  h += `<button class="btn outline center plan-end-btn" data-action="plan-end">⏹ Aktuell laufenden Plan beenden</button>`;
   return h;
 }
 
@@ -4858,8 +4874,7 @@ function renderPlan() {
   const c = data.cycle;
   const active = activePlan();
   let h = feat('plans-multi') ? '<h2>Meine Pläne</h2>' : '<h2>Mein Plan</h2>';
-  // v225 Calisthenics (Beta)
-  if (typeof caliOn === 'function' && caliOn()) h = `<button class="btn nav cali-entry" data-action="cali-open" data-from="plan">🤸 Calisthenics<small>Plan nach deinem Schwerpunkt oder selbst zusammengestellt · Skill-Stufen</small></button>` + h;
+  // v225 Calisthenics (Beta) – v240: Einstieg nur noch im Plan-Assistenten (User 2026-11-14)
   // Einfach: nur der aktive Plan („Neuen Plan erstellen“ ersetzt ihn)
   for (const p of data.plans.filter(x => feat('plans-multi') || x.id === active.id)) {
     const isActive = p.id === active.id;
@@ -4885,9 +4900,9 @@ function renderPlan() {
       : 'Noch kein Plan vorhanden. Erstelle deinen ersten Plan.'}</p>
       <button class="btn primary" data-action="wiz-start">✨ Neuen Plan erstellen</button>${libBtn}`;
   }
-  // v207: Neuer Plan / Beenden dezent – bei aktivem Plan selten gebraucht
-  h += `<div class="row plan-btns"><button class="btn outline" data-action="wiz-start">✨ Neuer Plan</button>
-      <button class="btn outline" data-action="plan-end">⏹ Beenden</button></div>
+  // v240 (User 2026-11-14): „Neuen Plan erstellen“ in voller Breite; Beenden steht unten im Trainings-Reiter
+  h += `<button class="btn outline center plan-new-btn" data-action="wiz-start">✨ Neuen Plan erstellen</button>
+    ${active.cali && typeof caliOn === 'function' && caliOn() ? '<button class="btn nav" data-action="cali-skills-plan">🤸 Skill-Stufen<small>Wo du in jeder Calisthenics-Leiter stehst</small></button>' : ''}
     ${libBtn}
     <h2>Trainingstage · ${esc(active.name)}</h2>`;
   if (!data.days.length) {
@@ -5802,9 +5817,18 @@ function renderWeek({ key }) {
     h += `<div class="stats two"><div class="stat"><span>Trainings</span><b>${sessions.length}</b></div>
       <div class="stat"><span>Bewegt</span><b>${fmtTons(tons)}</b></div></div>`;
   }
+  // v240 (User 2026-11-14): Trainings mit Haken und „absolviert“; in vergangenen Wochen auch ausgelassene Tage
   for (const s of sessions) {
-    h += `<button class="btn nav" data-action="open-session" data-id="${s.id}" data-week="${esc(key)}">
-      ${esc(s.dayName)}<small>${fmtDate(s.date)} · ${s.entries.length} Übungen · ${fmtTons(sessionTonnage(s))}${s.duration ? ' · ⏱ ' + fmtDur(s.duration) : ''}</small></button>`;
+    h += `<button class="btn nav day-btn done week-ses" data-action="open-session" data-id="${s.id}" data-week="${esc(key)}">
+      <span class="day-no">✓</span><span class="day-txt">${esc(s.dayName)}<span class="badge done">absolviert</span>
+      <small>${fmtDate(s.date)} · ${s.entries.length} Übungen · ${fmtTons(sessionTonnage(s))}${s.duration ? ' · ⏱ ' + fmtDur(s.duration) : ''}</small></span></button>`;
+  }
+  if (!isNow && !ahead) {
+    for (const id of roundSkipped(start, week)) {
+      const d = findDay(id);
+      if (d && !sessions.some(s => s.dayId === id)) h += `<div class="btn nav day-btn skipped week-ses"><span class="day-no">⏭</span>
+        <span class="day-txt">${esc(d.name)}<span class="badge skip">ausgelassen</span></span></div>`;
+    }
   }
   if (!sessions.length && !ahead && !isNow) h += '<p class="hint">In dieser Woche wurde nicht trainiert.</p>';
   if (isNow && data.days.length) h += `<p class="hint">🔄 ${roundStatus(ci)}</p>`;
@@ -6299,7 +6323,7 @@ const OPT_SECS = {
 function renderData() {
   const rows = Object.entries(OPT_SECS).map(([k, s]) => `<button class="btn nav opt-row ${s.warn && s.warn() ? 'warn' : ''}" data-action="opt-open" data-sec="${k}">
       <span class="opt-ico" aria-hidden="true">${s.icon}</span><span class="opt-txt">${s.title}<small>${esc(s.sub())}</small></span></button>`).join('');
-  return modeCard() + `<div class="opt-list">${rows}</div><p class="hint app-version" id="app-version"></p>`;
+  return betaCard() + modeCard() + `<div class="opt-list">${rows}</div><p class="hint app-version" id="app-version"></p>`;
 }
 views.opt = { title: p => (OPT_SECS[p.sec] || { title: 'Optionen' }).title, tab: 'data', back: 'data',
   render: p => OPT_SECS[p.sec] ? OPT_SECS[p.sec].render() : '<p class="hint">Bereich nicht gefunden.</p>',
@@ -6344,6 +6368,23 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 243, date: '2026-11-14', items: [
+    ['Ernährungstagebuch: Was du gegessen hast, steht jetzt oben im Stil des Tagesziels, mit großer Kalorienzahl, Makro-Kacheln mit Fortschritt und dem Anteile-Balken. „Aus Health“ und „Von Hand“ findest du dort auch. Der Reiter Ernährung zeigt dafür nur noch „Essen eintragen“ und dein Tagesziel. Kalender und Woche & Monat gibt es im Tagebuch.'],
+  ] },
+  { v: 242, date: '2026-11-14', items: [
+    ['Supersatz im Plan: Neben den passenden Übungen des Tages kannst du jetzt jede Übung eintippen. Sie kommt direkt hinter die erste und wird gleich gekoppelt.', 'supersets'],
+  ] },
+  { v: 241, date: '2026-11-14', items: [
+    ['Fehler behoben: Hast du einen Satz genau wie vorgeschlagen geschafft, ändert die App die folgenden Sätze nicht mehr. Bisher konnte z. B. Satz 2 von 6 auf 8 Wdh. springen, weil die Neuberechnung im Training pauschal nur 1 Wdh. Ermüdung zwischen den Sätzen ansetzte und nicht deinen Abfall vom letzten Mal.'],
+  ] },
+  { v: 240, date: '2026-11-14', items: [
+    ['Trainings-Reiter neu sortiert: Der Zyklus steht ganz oben, darunter alle Trainingstage untereinander. Der nächste Tag bleibt hervorgehoben. „Aktuell laufenden Plan beenden“ steht jetzt unten im Trainings-Reiter.'],
+    ['Plan-Reiter: Der Knopf heißt jetzt „Neuen Plan erstellen“ und geht über die ganze Breite.'],
+    ['Woche im Zyklus antippen: Erledigte Trainings haben einen Haken und den Vermerk „absolviert“, ausgelassene Tage stehen auch dabei.'],
+  ] },
+  { v: 239, date: '2026-11-14', items: [
+    ['Am Anfang erklärt die App alles ausführlich. Damit die Seiten danach übersichtlich bleiben, klappen die Erklärungen nach dem zweiten Lesen zu „? Erklärung“ zusammen. Ein Tipp darauf zeigt sie wieder. Beim ersten Zuklappen sagt dir die App das jetzt auch.'],
+  ] },
   { v: 238, date: '2026-11-14', items: [
     ['Reiter Ernährung aufgeräumt: Ganz oben der Knopf „Essen eintragen“, direkt darunter „Heute gegessen“ und dein Tagesziel. Das Ernährungstagebuch gibt es nur noch einmal, und die Erklärungen unter dem Tagesziel klappen nach dem zweiten Lesen zu.'],
   ] },
@@ -8711,6 +8752,7 @@ const fields = {
   },
   'rep-name': el => { showSuggestions(el); fillReplaceMax(el); },
   'plan-swap-name': el => showSuggestions(el),
+  'ss-pick-name': el => showSuggestions(el),  // v242
   'add-name': el => { showSuggestions(el); fillReplaceMax(el); },
   'libc-name': el => { libForm.name = el.value; },
   'libc-note': el => { libForm.note = el.value; },
@@ -9249,6 +9291,8 @@ function welcomeHtml() {
         <li>Dein <b>Plan in wenigen Minuten</b>, fürs Studio, an Maschinen oder zu Hause. Oder du übernimmst deinen eigenen.</li>
         <li>Auf Wunsch auch <b>Ernährung</b>: Kalorienziel, Tagebuch und Barcode-Scanner.</li>
         <li><b>Ohne Konto, ohne Werbung</b>: Deine Daten bleiben auf deinem Handy.</li>
+        <li><b>Am Anfang erklärt dir die App alles ausführlich.</b> Damit die Seiten danach übersichtlich bleiben, klappen die Erklärungen
+          nach dem zweiten Lesen zu „? Erklärung“ zusammen. Ein Tipp darauf holt sie jederzeit zurück.</li>
       </ul>
       <details class="welcome-health"><summary>⚕️ Wichtig: Gesundheitshinweis</summary>${typeof healthListHtml === 'function' ? healthListHtml() : ''}</details>`
       : `<h2 id="welcome-title">Etwas persönlicher</h2>
@@ -9435,6 +9479,31 @@ actions['sub-del'] = el => {
 // Supersätze (v210)
 actions['ss-pick-open'] = el => { planSwap = null; exRename = null; ssPick = { day: current.params.id, i: +el.dataset.i }; render(); };
 actions['ss-pick-cancel'] = () => { ssPick = null; render(); };
+// v242 (User 2026-11-14): Partner frei wählen – steht die Übung schon im Tag, wird sie gekoppelt, sonst direkt dahinter eingefügt
+actions['ss-pick-add'] = el => {
+  const day = findDay(current.params.id), i = +el.dataset.i, a = day.exercises[i];
+  const input = $view.querySelector(`[data-field="ss-pick-name"][data-i="${i}"]`);
+  const name = String((input && input.value) || '').trim();
+  if (!name) { alert('Bitte eine Übung eintippen oder aus den Vorschlägen wählen.'); return; }
+  if (nameKey(name) === nameKey(a.name)) { alert('Das ist dieselbe Übung. Bitte eine andere wählen.'); return; }
+  const have = day.exercises.findIndex(x => nameKey(x.name) === nameKey(name));
+  const b = have >= 0 ? day.exercises[have] : withDefaults(ownPlan() ? { id: uid(), name, sets: 3 } : { id: uid(), name, sets: 2, setsEnd: 3, max10: knownMax10(name) });
+  if (!ssExOk(b)) {
+    alert(`„${name}“ kennt die App noch nicht. Leg sie zuerst als eigene Übung mit Muskelgruppe an (Bibliothek → Eigene Übung hinzufügen), dann kann sie in einen Supersatz.`);
+    return;
+  }
+  if (!ssPairOk(a, b)) {
+    alert(`„${a.name.trim()}“ und „${name}“ passen nicht als Supersatz: Beide belasten dieselben Muskeln. Erlaubt sind Gegenspieler (z. B. Brust und Rücken) und Muskelgruppen, die nichts miteinander zu tun haben.`);
+    return;
+  }
+  if (have >= 0 && dayPairs(day.exercises).has(have)) { alert(`„${name}“ ist schon Teil eines anderen Supersatzes. Löse ihn zuerst.`); return; }
+  let j = have;
+  if (j < 0) { day.exercises.splice(i + 1, 0, b); j = i + 1; }
+  ssCouple(day, i, j);
+  ssPick = null;
+  saveData(); render();
+  toast(`🔗 Supersatz: ${a.name.trim()} + ${b.name.trim()}${have < 0 ? ' (neu im Plan)' : ''}`);
+};
 actions['ss-pair'] = el => {
   const day = findDay(current.params.id), a = day.exercises[+el.dataset.i], b = day.exercises[+el.dataset.j];
   ssCouple(day, +el.dataset.i, +el.dataset.j);

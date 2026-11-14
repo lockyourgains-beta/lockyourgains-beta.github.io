@@ -167,8 +167,6 @@ const TOURS = {
       text: 'So viele Kalorien und so viel Eiweiß, Fett und Kohlenhydrate passen pro Tag zu deinem Ziel.' },
     { id: 'nut-kcal', sel: '.nut-kcal-btn', title: 'Selbst festlegen',
       text: 'Möchtest du eine andere Kalorienzahl? Hier legst du sie selbst fest. Die Makros rechnen sich passend dazu.' },
-    { id: 'nut-intake', sel: '.card.nut-intake', title: 'Heute gegessen',
-      text: 'Hier vergleichst du, was du heute gegessen hast, mit deinem Ziel.' },
     { id: 'nut-food', sel: '[data-action="food-open"]', title: 'Ernährungstagebuch',
       text: 'Trag ein, was du isst, mit Suche, Barcode-Scanner und gespeicherten Mahlzeiten.' },
     { id: 'nut-health', sel: '[data-action="health-paste"]', title: 'Aus Health',

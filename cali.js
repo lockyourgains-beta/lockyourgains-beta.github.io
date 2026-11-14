@@ -266,6 +266,7 @@ views.caliskills = { title: 'Skill-Stufen', tab: 'plan', back: p => ['cali', { f
 Object.assign(actions, {
   'cali-open': el => { caliForm = null; go('cali', { from: el.dataset.from || 'plan' }); },
   'cali-skills': () => go('caliskills', { from: current.params.from }),
+  'cali-skills-plan': () => go('caliskills', { from: 'plan' }),  // v240: aus dem Plan-Reiter, wenn ein Calisthenics-Plan aktiv ist
   'cali-prio': el => { const lv = caliForm.lv, days = caliForm.days; caliFormInit(el.dataset.k); Object.assign(caliForm, { lv, days }); render(); },
   'cali-range': el => { caliForm.range = el.dataset.k.split('-').map(Number); render(); },
   'cali-skn': el => { caliForm.skills = Number(el.dataset.k); render(); },
