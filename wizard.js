@@ -160,6 +160,7 @@ const VOL_STYLES = {
   high: { vol: 1.2, rir: 0.5, label: 'Mehr Volumen, mehr im Tank' },  // v231: ±0,5 im Tank (normale Übungen höchstens 2)
   mid: { vol: 1, rir: 0, label: 'Ausgewogen' },
   low: { vol: 0.8, rir: -0.5, label: 'Weniger Volumen, näher am Muskelversagen' },
+  hard: { vol: 1.2, rir: -0.5, label: 'Mehr Volumen und näher am Muskelversagen' },  // v247 (User 2026-11-14): für Hartgesottene
 };
 const wizStyle = () => VOL_STYLES[wiz.style] || VOL_STYLES.mid;
 // Obergrenze Sätze pro Training: bei „Mehr Volumen“ im selben Verhältnis höher (25 → 30), sonst würde sie das Mehr wieder kappen
@@ -719,8 +720,9 @@ function wizFlow() {
   // Modi: Einfach endet nach der Aufteilung (die App stellt den Rest selbst zusammen, siehe wizQuick),
   // Standard ohne Volumen-Variante und RIR-Tabelle
   const steps = ['mode', ...eq, 'level', 'sessions', 'time', 'split'];  // time: Höchstdauer (alle Modi, gleich nach „wie oft“)
-  if (feat('wiz-style')) steps.push('style');  // style: Volumen-Variante direkt nach der Aufteilung
+  // v247 (User 2026-11-14): erst der Intensitätsverlauf, dann die Volumen-Variante
   if (feat('tr-rir-input')) steps.push('course');  // v230: Intensitätsverlauf im Zyklus (ab Standard; Einfach endet nach der Aufteilung)
+  if (feat('wiz-style')) steps.push('style');  // style: Volumen-Variante
   if (custom) steps.push('days', 'freq');
   else {
     if (tpl && tpl.pairs && feat('wiz-freq')) steps.push('freq');
@@ -911,7 +913,10 @@ function renderWizMode() {
   return `<div class="card wiz-q">
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🧭</span><h2>Wie möchtest du deinen Plan erstellen?</h2></div>
       <p class="hint wiz-q-explain">Die App kann einen Plan für dich zusammenstellen, oder du übernimmst einfach einen Plan, den du schon hast.</p>
-      ${opt('app', '📈', 'Automatisch erstellter Plan', 'Die App erstellt mit deiner Hilfe automatisiert einen Plan, der auf dich abgestimmt ist und den du später immer weiter für dich komplett individualisieren kannst. Sie arbeitet nach dem Prinzip des Progressive Overload: Im Training schlägt sie dir passende Steigerungen vor, in Zyklen mit leichten Deload-Wochen.')}
+      ${feat('tr-rir-input') ? `<p class="wiz-free-note">✏️ <b>Du legst dich mit nichts fest.</b> Alles, was du hier auswählst, kannst du später im Plan
+        komplett ändern: Übungen, Reihenfolge, Sätze, Wiederholungen, Tank, Intensitätsverlauf und Supersätze. Merkst du beim Training,
+        dass dir etwas nicht passt, stellst du es einfach um.</p>` : ''}
+      ${opt('app', '📈', 'Automatisch erstellter Plan', 'Die App erstellt mit deiner Hilfe automatisiert einen Plan, der auf dich abgestimmt ist und den du später immer weiter für dich komplett individualisieren kannstst. Sie arbeitet nach dem Prinzip des Progressive Overload: Im Training schlägt sie dir passende Steigerungen vor, in Zyklen mit leichten Deload-Wochen.')}
       ${opt('import', '📄', 'Plan aus Excel / Google Sheets', 'Dein Plan steht schon in einer Tabelle, z. B. vom Trainer? Die App liest Tage, Übungen, Sätze, Wiederholungen und Gewichte ein, wahlweise mit oder ohne ihre Steigerung (Progressive Overload).')}
       ${opt('own', '✍️', 'Eigenen Plan übernehmen', 'Du hast schon einen Plan? Trag deine Tage und Übungen mit Sätzen × Wdh. ein. Am Ende wählst du: selbst steigern wie gewohnt oder die App übernimmt die Steigerung (Progressive Overload).')}
     </div>${overloadHtml()}${navRow(wizPrev(), null)}`;
@@ -1167,7 +1172,10 @@ function renderWizStyle() {
     opt('mid', 'Ausgewogen', `Sätze und Tank genau so, wie die App sie für deine Erfahrung berechnet (normale Übungen: Tank ${tank('mid')}), der Mittelweg aus beiden Varianten.`) +
     opt('low', 'Weniger Volumen, näher am Muskelversagen', `Jede Muskelgruppe bekommt <strong>20 % weniger Arbeitssätze</strong> als bei „Ausgewogen“.
         Dafür bleibt in jedem Satz <strong>0,5 Wdh. weniger im Tank</strong> (normale Übungen: ${tank('low')} von Intro bis Woche 4). Alle Übungen behalten dabei mindestens 0,5 im Tank.
-        Die Obergrenze der Sätze pro Training bleibt, wie sie zu deiner Trainingsdauer passt.`),
+        Die Obergrenze der Sätze pro Training bleibt, wie sie zu deiner Trainingsdauer passt.`) +
+    opt('hard', 'Beides: mehr Volumen und näher am Muskelversagen', `Für Hartgesottene: <strong>20 % mehr Arbeitssätze</strong> und
+        <strong>0,5 Wdh. weniger im Tank</strong> (normale Übungen: ${tank('hard')} von Intro bis Woche 4, alle Übungen mindestens 0,5).
+        Die höchste Belastung, die die App plant. Das braucht gute Erholung: genug Schlaf, genug Essen und den Deload. Das Training dauert etwas länger.`),
     true,
     `<p class="hint">Die genauen Sätze und Tank-Werte siehst du später in den Schritten „Volumen“ und „RIR“ und kannst sie dort noch
       selbst anpassen. Grundübungen behalten wie immer 0,5 Wdh. mehr im Tank, Assistenzübungen 0,5 weniger (nie unter 0).</p>`);
@@ -1441,7 +1449,7 @@ function renderWizard() {
           dein Ziel je Muskelgruppe und Woche: Von Woche zu Woche wird der Tank kleiner. Du trainierst näher am Versagen, der Zyklus
           wird intensiver. Die Werte gelten für <b>normale</b> Übungen; bei Grundübungen (z. B. Kniebeugen, Bankdrücken) bleibt
           0,5 Wdh. mehr im Tank, bei Assistenzübungen (z. B. Curls, Seitheben) 0,5 weniger, nie unter 0. In der Deload-Woche
-          immer mindestens ${DELOAD_RIR}. Gewählte Variante: <b>${wizStyle().label}</b>${wiz.style === 'low' ? ' (0,5 Wdh. weniger im Tank, alle Übungen mindestens 0,5)' : wiz.style === 'high' ? ' (0,5 Wdh. mehr im Tank, normale Übungen höchstens 2)' : ''}.</p>
+          immer mindestens ${DELOAD_RIR}. Gewählte Variante: <b>${wizStyle().label}</b>${wiz.style === 'low' || wiz.style === 'hard' ? ' (0,5 Wdh. weniger im Tank, alle Übungen mindestens 0,5)' : wiz.style === 'high' ? ' (0,5 Wdh. mehr im Tank, normale Übungen höchstens 2)' : ''}.</p>
         <table class="rir vol view">${weekHead()}`;
       for (const g of groups) h += `<tr><td>${MUSCLES[g]}</td>${wiz.rir[g].map(v => `<td>${fmtNum(v)}</td>`).join('')}</tr>`;
       const low = wiz.rirEdited ? rirLowNote(groups.map(g => wiz.rir[g])) : '';
@@ -1527,15 +1535,20 @@ function renderWizard() {
     const open = e => wiz.swapOpen && wiz.swapOpen.d === di && nameKey(wiz.swapOpen.n) === nameKey(e.name);
     h += `<div class="card"><h2>${esc(day.name)}</h2>
       <p class="hint">Sätze: Intro · W2 · W3 · W4 · Deload</p>
-      <ul class="list reorder">${day.exercises.map((e, ei) => `<li class="wiz-ex${techOn() ? ' tb' : ''}${pairsOf(day).has(ei) ? ` ss ss-${pairsOf(day).get(ei).role}` : ''}"><div>${pairsOf(day).has(ei)
-        ? `<small class="ss-tag">🔗 Supersatz ${pairsOf(day).get(ei).role} · mit ${esc(day.exercises[ei + (pairsOf(day).get(ei).role === 'A' ? 1 : -1)].name)}</small><br>` : ''}<b>${esc(e.name)}</b><br>
+      <ul class="list reorder">${day.exercises.map((e, ei) => { const pp = pairsOf(day).get(ei);
+        // v247: Supersatz als eine Karte mit beiden Übungen (ohne A/B), Start mit der Übung mit mehr Sätzen (siehe ssOrder)
+        const ssOpen = pp && pp.role === 'A' ? `<li class="wiz-ss-box"><p class="ss-box-head">🔗 Supersatz · im Wechsel, Pause je ${ssRestText(pp.rest)}${
+          (() => { const more = weeks.some(m => m.get(day.exercises[pp.j].id) > m.get(day.exercises[pp.i].id)) ? day.exercises[pp.j] : weeks.some(m => m.get(day.exercises[pp.i].id) > m.get(day.exercises[pp.j].id)) ? day.exercises[pp.i] : null;
+            return more ? ` · in Wochen, in denen ${esc(more.name)} mehr Sätze hat, beginnst du damit` : ''; })()}</p><ul class="list reorder">` : '';
+        const ssClose = pp && pp.role === 'B' ? '</ul></li>' : '';
+        return ssOpen + `<li class="wiz-ex${techOn() ? ' tb' : ''}"><div><b>${esc(e.name)}</b><br>
         <small class="hint">${MUSCLES[e.group]} · ${KIND_SHORT[kindOf(e)]} · Sätze ${weeks.map(m => m.get(e.id)).join(' · ')} · D ${dl.get(e.id)}</small></div>
         ${libInfoBtn(e.name)}
         ${techOn() ? `<button class="icon-btn swap ${wizTech(e.name) ? 'on' : ''}" data-action="wiz-tech-open" data-n="${esc(e.name)}" aria-label="Intensitätstechnik für ${esc(e.name)}">⚡<small>Technik</small></button>` : ''}
         <button class="icon-btn swap" data-action="wiz-swap-open" data-d="${di}" data-n="${esc(e.name)}" aria-label="${esc(e.name)} ersetzen">⇄<small>Ersetzen</small></button></li>
         ${wizTech(e.name) && wiz.techOpen !== nameKey(e.name) ? `<li class="wiz-tech-note">⚡ ${TECHS[wizTech(e.name).k]} im letzten Satz</li>` : ''}
         ${wiz.techOpen === nameKey(e.name) ? `<li class="wiz-swap wiz-tech">${wizTechPanel(e)}</li>` : ''}
-        ${open(e) ? `<li class="wiz-swap">${wizSwapPanel(e.name, day)}</li>` : ''}`).join('') ||
+        ${open(e) ? `<li class="wiz-swap">${wizSwapPanel(e.name, day)}</li>` : ''}` + ssClose; }).join('') ||
         '<li class="hint">Keine Übungen</li>'}</ul>
       <p class="hint">Summe pro Training: ${weeks.map(m => [...m.values()].reduce((a, b) => a + b, 0)).join(' · ')}
         · Dauer am Ende des Zyklus ${estText(estDuration(day, 4, { volume: wiz.volume }))}${pairsOf(day).size ? ' mit Supersätzen' : ''}</p>
@@ -2015,7 +2028,7 @@ Object.assign(actions, {
     const plan = newPlan(wiz.name.trim() || 'Neuer Plan', days);
     plan.volume = wiz.volume;
     if (wiz.rirEdited) Object.assign(plan, { rirPlan: wiz.rir, rirMode: 'table' });  // selbst bearbeitete Tabelle
-    else Object.assign(plan, { rirPlan: {}, rirMode: 'auto', rirCourse: wiz.course || 'strong', rirStyle: wizStyle().rir });
+    else Object.assign(plan, { rirPlan: {}, rirMode: 'auto', rirCourse: wiz.course || 'strong', rirStyle: wizStyle().rir, volStyle: wiz.style || 'mid' });
     plan.progression = { ...wiz.progression };
     plan.perWeek = wiz.rotate ? 1 : wiz.perWeek;
     if (wiz.rotate) plan.rotate = wiz.rotate;  // Wechsel-Plan (siehe dayTimes in app.js)

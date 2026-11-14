@@ -3255,23 +3255,23 @@ p.cali-tr { margin: -4px 0 8px; font-size: 14px; }
 :root[data-look="bw"] { --f-body: "LYG Schibsted", -apple-system, "Segoe UI", Roboto, sans-serif; --f-head: var(--f-body); --f-num: var(--f-body); }
 
 /* gemeinsam: flach, einfarbige Akzente, eine Schrift überall */
-:root:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) { --accent-2: var(--accent) !important; --shadow-accent: none !important; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) body { font-family: var(--f-body); letter-spacing: 0; font-synthesis: none; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(button, input, select, textarea) { font-family: inherit; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) * { text-transform: none !important; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(table.rir th, .warm-title, .setgrid .head, .stat span, .nut-goal-row span,
+:root:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) { --accent-2: var(--accent) !important; --shadow-accent: none !important; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) body { font-family: var(--f-body); letter-spacing: 0; font-synthesis: none; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) :is(button, input, select, textarea) { font-family: inherit; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) * { text-transform: none !important; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) :is(table.rir th, .warm-title, .setgrid .head, .stat span, .nut-goal-row span,
   .warm-toggle, .welcome-step, .tour-count, .fstat-row.head, .lib-sub, .hx-kicker, .hx-tab span, .cali-day, .notify-head) { letter-spacing: 0; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(header h1, main h2, main h3, .dlg-title, .wiz-q-head h2, .welcome-card h2, .ex-head h2) {
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) :is(header h1, main h2, main h3, .dlg-title, .wiz-q-head h2, .welcome-card h2, .ex-head h2) {
   font-family: var(--f-head); letter-spacing: 0; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(.setgrid input, .nut-kcal, .trh-rest-t b, .stat b, .nut-goal-row b, .sessions-opt b) {
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) :is(.setgrid input, .nut-kcal, .trh-rest-t b, .stat b, .nut-goal-row b, .sessions-opt b) {
   font-family: var(--f-num); letter-spacing: 0; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) .btn.primary::before,
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) .card.cycle::before { display: none; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(.btn.primary, .day-btn.next, .sessions-opt.on) { box-shadow: none; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) .card.cycle.is-deload { background: #56606b; box-shadow: none; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) .award-row.done .award-icon { background: #f2a516; box-shadow: none; }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) .review-card { background: var(--card); }
-:is([data-look="kraft"], [data-look="log"], [data-look="bw"]) :is(.ex-card.tint-0, .ex-card.tint-1, .ex-card.tint-2, .ex-card.tint-3) { background: var(--card); }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) .btn.primary::before,
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) .card.cycle::before { display: none; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) :is(.btn.primary, .day-btn.next, .sessions-opt.on) { box-shadow: none; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) .card.cycle.is-deload { background: #56606b; box-shadow: none; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) .award-row.done .award-icon { background: #f2a516; box-shadow: none; }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) .review-card { background: var(--card); }
+:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) :is(.ex-card.tint-0, .ex-card.tint-1, .ex-card.tint-2, .ex-card.tint-3) { background: var(--card); }
 
 /* neutrale Hintergründe statt der getönten Farbwelt-Hintergründe (die Akzentfarbe bleibt) */
 [data-look="kraft"] body { --bg: #eceef0; --card: #ffffff; --fill: #eef0f2; --input: #f4f5f6; --line-strong: #d6d9dd; --shadow: 0 1px 0 #d6d9dd; --bar: rgba(236, 238, 240, .88); }
@@ -3394,3 +3394,91 @@ div.btn.week-ses { cursor: default; }
 .fe-tile.c .fe-bar i { background: var(--success); }
 .fe-split { margin-top: 6px; }
 .fe-src-btns { margin-top: 12px; }
+
+/* v244: Reihenfolge direkt auf der Übungskarte */
+.det-btn.ord-btn { padding: 0 11px; font-size: 17px; }
+.reorder li.ord-from { background: var(--accent-soft); border-radius: 10px; }
+
+/* v245: Zeitlimit prüfen und anpassen */
+.time-edit h2 { margin-bottom: 4px; }
+.tc-list { display: grid; gap: 6px; margin: 10px 0; }
+.tc-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--fill); }
+.tc-row.off .tc-name { opacity: .6; }
+.tc-row .tc-name { flex: 1; min-width: 0; font-size: 16px; }
+.tc-row .tc-name small { display: block; font-size: 13px; color: var(--muted); }
+.tc-row b { min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; }
+.tc-est { margin: 4px 0 10px; }
+.tc-btns { display: flex; gap: 8px; margin-top: 8px; }
+.tc-btns .btn { flex: 1; margin: 0; }
+
+/* v246: „Wenig Zeit?“ direkt am nächsten Trainingstag */
+.tl-attach { margin: -6px 0 14px; }
+.tl-attach .time-btn { min-height: 0; padding: 10px 16px; font-size: 16px; text-align: center; }
+.tl-attach .time-btn small { display: inline; margin: 0 0 0 6px; font-size: 14px; }
+.tl-attach .time-strip, .tl-attach .time-card { margin-top: 0; }
+
+/* v247: Plan-Assistent – Hinweis „alles änderbar“ und Supersatz-Karte in der Vorschau */
+.wiz-free-note { margin: 10px 0 12px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); font-size: 16px; line-height: 1.45; }
+.wiz-ss-box { display: block !important; margin: 8px 0; padding: 10px 10px 4px; border-radius: 14px; box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-soft); }
+.wiz-ss-box > .list { margin: 0; }
+.wiz-ss-box .wiz-ex { background: var(--card); border-radius: 10px; margin-bottom: 6px; }
+.ss-box-head { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: var(--accent-text); }
+
+/* ---------- v248: Stil „Puristen“ (User 2026-11-14): so einfach wie eine Tabelle in Excel / Google Sheets ----------
+   Gitterlinien statt Karten, eckige Zellen, grau hinterlegte Kopfzeilen, Tabellen-Grün, blauer Rahmen ums aktive Feld,
+   untere Leiste wie Tabellenblatt-Reiter, keine Emojis (wie Schlicht, siehe emojiOff). Schrift Arimo (wie Arial, OFL). */
+@font-face { font-family: "LYG Arimo"; src: url(fonts/arimo.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "LYG Arimo"; src: url(fonts/arimo.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+:root[data-look="sheet"] { --f-body: "LYG Arimo", Arial, Helvetica, sans-serif; --f-head: var(--f-body); --f-num: var(--f-body); --radius: 0px !important; --head: var(--text); }
+[data-look="sheet"] body {
+  --bg: #f8f9fa; --card: #ffffff; --fill: #f3f3f3; --input: #ffffff; --line: #e2e2e2; --line-strong: #c7c7c7; --bar: rgba(248, 249, 250, .96);
+  --text: #202124; --muted: #5f6368;
+  --accent: #188038; --accent-2: #188038; --accent-soft: #e6f4ea; --accent-text: #137333;
+  --success: #188038; --success-soft: #e6f4ea; --warn: #f9ab00; --warn-soft: #fef7e0; --warn-text: #b06000;
+  --danger: #d93025; --danger-soft: #fce8e6; --shadow: none; --shadow-accent: none; --sel: #1a73e8;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-look="sheet"]:not([data-theme="light"]) body {
+    --bg: #1f1f1f; --card: #262626; --fill: #303030; --input: #262626; --line: #3a3a3a; --line-strong: #4d4d4d; --bar: rgba(31, 31, 31, .96);
+    --text: #e8eaed; --muted: #9aa0a6; --accent: #2e7d32; --accent-2: #2e7d32; --accent-soft: rgba(129, 201, 149, .14); --accent-text: #81c995;
+    --success: #81c995; --success-soft: rgba(129, 201, 149, .14); --warn-soft: rgba(249, 171, 0, .14); --warn-text: #fdd663; --danger-soft: rgba(242, 139, 130, .14); --sel: #8ab4f8;
+  }
+}
+:root[data-look="sheet"][data-theme="dark"] body {
+  --bg: #1f1f1f; --card: #262626; --fill: #303030; --input: #262626; --line: #3a3a3a; --line-strong: #4d4d4d; --bar: rgba(31, 31, 31, .96);
+  --text: #e8eaed; --muted: #9aa0a6; --accent: #2e7d32; --accent-2: #2e7d32; --accent-soft: rgba(129, 201, 149, .14); --accent-text: #81c995;
+  --success: #81c995; --success-soft: rgba(129, 201, 149, .14); --warn-soft: rgba(249, 171, 0, .14); --warn-text: #fdd663; --danger-soft: rgba(242, 139, 130, .14); --sel: #8ab4f8;
+}
+[data-look="sheet"] * { border-radius: 0 !important; }
+/* Emojis aus wie bei Schlicht */
+[data-look="sheet"] .plain-empty, [data-look="sheet"] .check-emoji, [data-look="sheet"] .wiz-q-icon, [data-look="sheet"] .award-icon,
+[data-look="sheet"] .notify-icon, [data-look="sheet"] .nut-strip-icon, [data-look="sheet"] .cat-icon, [data-look="sheet"] .food-top-ic { display: none !important; }
+/* Karten = umrandete Zellbereiche */
+[data-look="sheet"] .card { box-shadow: none; border: 1px solid var(--line-strong); padding: 14px; }
+[data-look="sheet"] .card.cycle { border-color: var(--accent); }
+[data-look="sheet"] .card.hints, [data-look="sheet"] .review-card { background: var(--card); }
+[data-look="sheet"] :is(header h1, main h2, main h3) { font-weight: 700; letter-spacing: 0; }
+[data-look="sheet"] header { background: var(--fill); box-shadow: 0 1px 0 var(--line-strong); }
+/* Knöpfe = schlichte Zellen mit Rahmen */
+[data-look="sheet"] .btn { box-shadow: none; border: 1px solid var(--line-strong); background: var(--card); }
+[data-look="sheet"] .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+[data-look="sheet"] .btn.danger { background: var(--card); border-color: var(--danger); }
+[data-look="sheet"] .day-btn.next { border-color: var(--accent); }
+[data-look="sheet"] :is(.vchip, .chip, .step-chip, .det-btn, .split-opt, .sessions-opt, .pill, .badge, .icon-btn) { box-shadow: inset 0 0 0 1px var(--line-strong); }
+[data-look="sheet"] :is(.vchip.on, .chip.on, .split-opt.on) { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); color: var(--accent-text); }
+[data-look="sheet"] .seg { box-shadow: inset 0 0 0 1px var(--line-strong); background: var(--fill); }
+[data-look="sheet"] .seg button.on { background: var(--card); box-shadow: inset 0 0 0 1px var(--accent); color: var(--accent-text); }
+/* Eingabefelder = Zellen, aktives Feld mit blauem Zellrahmen */
+[data-look="sheet"] :is(.inp, .setgrid input, input[type="text"], input[type="date"], input[type="number"], input:not([type]), select, textarea) { background: var(--input); box-shadow: inset 0 0 0 1px var(--line-strong); border: 0; }
+[data-look="sheet"] :is(.inp, .setgrid input, input[type="text"], input[type="date"], input[type="number"], input:not([type]), select, textarea):focus { outline: 2px solid var(--sel); outline-offset: -2px; box-shadow: none; }
+[data-look="sheet"] .setgrid .head { background: var(--fill); box-shadow: inset 0 0 0 1px var(--line); padding: 4px 0; font-size: 13px; color: var(--muted); }
+[data-look="sheet"] .setgrid input { margin: 0; }
+[data-look="sheet"] :is(.setgrid input.done, .setno.done) { background: var(--success-soft); }
+/* Tabellen mit Gitterlinien */
+[data-look="sheet"] :is(table.rir, .last-sets) { border-collapse: collapse; }
+[data-look="sheet"] :is(table.rir th, table.rir td, .last-sets td) { border: 1px solid var(--line); }
+[data-look="sheet"] table.rir th { background: var(--fill); }
+/* untere Leiste wie Tabellenblatt-Reiter */
+[data-look="sheet"] nav { background: var(--fill); box-shadow: 0 -1px 0 var(--line-strong); }
+[data-look="sheet"] nav button.active { background: var(--card); color: var(--accent-text); box-shadow: inset 0 -3px 0 var(--accent); }
+[data-look="sheet"] nav button.active svg { background: none; }

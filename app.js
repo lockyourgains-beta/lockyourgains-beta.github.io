@@ -1564,7 +1564,7 @@ function planIntensityCard(bw) {
   const prev = [...Array(Math.max(1, Math.min(bw, 8)))].map((_, i) => `${i ? 'W' + (i + 1) : 'Intro'} ${fmtNum(rirAutoRange('normal', i + 1, p)[0])}`).join(' · ');
   return `<div class="int-card"><p class="lbl">Wie stark soll die Intensität im Zyklus steigen?</p>
       <div class="variants">${Object.entries(RIR_COURSES).map(([k, x]) => chip('plan-course', k, x.label, (p.rirCourse || 'strong') === k)).join('')}</div>
-      <p class="hint">${esc(RIR_COURSES[p.rirCourse || 'strong'].text)}${p.rirStyle ? ` Dazu ${p.rirStyle > 0 ? '0,5 mehr' : '0,5 weniger'} im Tank aus der Volumen-Variante „${p.rirStyle > 0 ? 'Mehr' : 'Weniger'} Volumen“${p.rirStyle < 0 ? ' (alle Übungen mindestens 0,5)' : ''}.` : ''} Tank normaler Übungen: ${prev}.</p></div>`;
+      <p class="hint">${esc(RIR_COURSES[p.rirCourse || 'strong'].text)}${p.rirStyle ? ` Dazu ${p.rirStyle > 0 ? '0,5 mehr' : '0,5 weniger'} im Tank aus der Volumen-Variante „${p.volStyle === 'hard' ? 'Beides' : p.rirStyle > 0 ? 'Mehr Volumen' : 'Weniger Volumen'}“${p.rirStyle < 0 ? ' (alle Übungen mindestens 0,5)' : ''}.` : ''} Tank normaler Übungen: ${prev}.</p></div>`;
 }
 
 function rirTable(buildWeeks) {
@@ -1961,11 +1961,13 @@ function entryPairs(entries, withSolo = false) {
 }
 const draftPairs = () => entryPairs(draft ? draft.entries : []);
 // Sätze im Supersatz der Reihe nach: A1, B1, A2, B2 … (übrige Sätze der längeren Übung am Ende)
+// v247 (User 2026-11-14): haben beide unterschiedlich viele Sätze, beginnt die Übung mit mehr Sätzen (B1, A1, B2, A2, B3)
 function ssOrder(p) {
   const a = draft.entries[p.i], b = draft.entries[p.j], out = [];
-  for (let k = 0; k < Math.max(a.sets.length, b.sets.length); k++) {
-    if (k < a.sets.length) out.push([p.i, k]);
-    if (k < b.sets.length) out.push([p.j, k]);
+  const [x, xi, y, yi] = b.sets.length > a.sets.length ? [b, p.j, a, p.i] : [a, p.i, b, p.j];
+  for (let k = 0; k < Math.max(x.sets.length, y.sets.length); k++) {
+    if (k < x.sets.length) out.push([xi, k]);
+    if (k < y.sets.length) out.push([yi, k]);
   }
   return out;
 }
@@ -3099,6 +3101,7 @@ function trMenuHtml() {
   const items = [];
   if (!draft.reorder) items.push(['reorder-toggle', '⇅ Reihenfolge ändern']);
   items.push(['trm-details-all', draft.entries.every(detOpen) ? '▴ Alle Details zuklappen' : '▾ Alle Details aufklappen']);
+  items.push(['trm-swipe', trSwipeOn() ? '↕ Alle Übungen untereinander' : '↔ Eine Übung je Bildschirm (wischen)']);  // v244
   if (!draft.own) items.push(['trm-entry-help', 'ℹ️ So trägst du dein Training ein']);
   if (prefatToday()) items.push(['trm-prefat', '💤 Vorermüdung: So rechnet die App']);
   return `<div class="trh-menu" role="menu">${items.map(([a, t]) => `<button role="menuitem" data-action="${a}">${t}</button>`).join('')}
@@ -3146,8 +3149,10 @@ function ssSyncNow() {
 function ssHeadHtml(p, first = true) {
   return `<div class="ss-head"><span class="ss-title">🔗 Supersatz<small data-ss-round="${p.i}">${ssRoundText(p)}</small></span>
       <button class="btn small outline" data-action="ss-solo" data-ei="${p.i}">Heute einzeln</button></div>` + (first
-    ? `<p class="hint explain ss-how">Immer im Wechsel: Satz A, Pause, Satz B, Pause, dann wieder A. Der nächste Satz ist markiert,
-      der Pausen-Timer zeigt, was danach dran ist. Ist ein Gerät besetzt: „Heute einzeln“.</p>` : '');
+    ? `<p class="hint explain ss-how">Immer im Wechsel: Satz A, ${ssRestText(p.rest)} Pause, Satz B, ${ssRestText(p.rest)} Pause, dann wieder A.
+      Die Pause ist kürzer als bei einzelnen Übungen, weil sich die eine Muskelgruppe erholt, während die andere arbeitet
+      (2 min, bei zwei Isolationsübungen 90 s). Der nächste Satz ist markiert, der Pausen-Timer zeigt, was danach dran ist.
+      Ist ein Gerät besetzt: „Heute einzeln“.</p>` : '');
 }
 // Paar heute einzeln (z. B. Gerät besetzt): normale Pausen, der Plan bleibt
 function ssSoloHtml(p, hidden) {
@@ -4446,13 +4451,15 @@ function renderStart() {
   h += cycleCard(ci) + caliUp + (typeof hxTaperCard === 'function' ? hxTaperCard(ci) : '') + hint
     + (typeof reviewStartCard === 'function' ? reviewStartCard() : '') + hintsCard();
   h += `<h2 class="start-days-h">Trainingstage <small class="hint">· ${esc(activePlan().name)}</small></h2>`
-    + data.days.map((d, i) => dayBtn(d, i)).join('');
-  const tlShown = !draft && (timeEdit || limit);
+    // v246 (User 2026-11-14): „Wenig Zeit?“ hängt direkt am nächsten Trainingstag (ohne nächsten Tag wie bisher unten)
+    + data.days.map((d, i) => dayBtn(d, i) + (d === nextDay && !draft ? `<div class="tl-attach">${timeLimitHtml()}</div>` : '')).join('');
+  const tlAttached = !draft && !!nextDay;
+  const tlShown = !draft && !tlAttached && (timeEdit || limit);
   if (tlShown) h += timeLimitHtml();
   h += nutStartLine();  // Ernährungsphase kurz anzeigen (nutrition.js)
   // 5. kleine Knöpfe „Wenig Zeit?“ und „Tage auslassen“ nebeneinander (aufgeklappte Auswahl darunter in voller Breite)
   if (!draft) {
-    const tb = tlShown ? '' : timeLimitHtml(), sk = skipHtml(ci);
+    const tb = tlShown || tlAttached ? '' : timeLimitHtml(), sk = skipHtml(ci);
     if (skipPick) h += (tb ? `<div class="start-mini">${tb}</div>` : '') + sk;
     else if (tb || sk) h += `<div class="start-mini">${tb}${sk}</div>`;
   }
@@ -4471,15 +4478,87 @@ function setRows(cols, head = false, name) {
 }
 
 // Im Training: was das Zeitlimit gekürzt hat
+/* v245 (User 2026-11-14): Zeitlimit prüfen und frei anpassen. Beim Start zeigt die Karte „So wird heute gekürzt“ jede Übung des
+   ganzen Trainings mit − / + (0 = fällt weg) und der geschätzten Dauer; „Ganzes Training“ holt alles zurück – auch mitten im Training.
+   draft.timeFull = Übungen vor dem Kürzen (Kopie), draft.timePick = { Index in timeFull: Sätze } während der Bearbeitung,
+   draft.timeOk = bestätigt (dann nur noch die kleine Zeile mit „Anpassen“). Eingetragene Sätze bleiben immer erhalten. */
+const tcDone = en => en ? en.sets.filter(isDone).length : 0;
+const tcFind = full => draft.entries.find(e => nameKey(e.name) === nameKey(full.name)) || null;
+function tcMinutes(list) {  // list: [{ en, n }]
+  const items = list.filter(x => x.n > 0).map(x => {
+    const kind = kindOf(planExercise(x.en.name) || { name: x.en.name });
+    return { n: x.n, rest: REST_MIN[kind] || 3, extra: techMinutes(x.en.sets.slice(0, x.n)) };
+  });
+  return seqMinutes(items, new Map());
+}
+function tcPickInit() {
+  draft.timePick = {};
+  draft.timeFull.forEach((f, k) => { const cur = tcFind(f); draft.timePick[k] = cur ? cur.sets.length : 0; });
+}
+function timeEditHtml() {
+  if (!draft.timePick) tcPickInit();
+  const full = draft.timeFull, pick = draft.timePick;
+  const est = tcMinutes(full.map((f, k) => ({ en: f, n: pick[k] })));
+  const rows = full.map((f, k) => {
+    const n = pick[k], max = f.sets.length, min = tcDone(tcFind(f));
+    return `<div class="tc-row${n ? '' : ' off'}"><span class="tc-name">${esc(f.name)}<small>${n ? `${n} von ${max} Sätzen` : 'fällt heute weg'}</small></span>
+      <button class="icon-btn" data-action="tc-step" data-k="${k}" data-d="-1" ${n <= min ? 'disabled' : ''} aria-label="Ein Satz weniger">−</button>
+      <b>${n}</b>
+      <button class="icon-btn" data-action="tc-step" data-k="${k}" data-d="1" ${n >= max ? 'disabled' : ''} aria-label="Ein Satz mehr">＋</button></div>`;
+  }).join('');
+  const c = draft.timeCut || {};
+  return `<div class="card time-edit">
+      <h2>⏱ So wird heute gekürzt</h2>
+      <p class="hint">Zeitlimit ${draft.timeLimit} min${c.before ? `, das ganze Training dauert ca. ${fmtDur(c.before)}` : ''}. Passt es so? Mit − und ＋
+        änderst du die Sätze je Übung, 0 heißt: fällt heute weg.</p>
+      <div class="tc-list">${rows}</div>
+      <p class="tc-est">Geschätzt: <b>ca. ${fmtDur(est)}</b>${est > draft.timeLimit + 2 ? ` <small>(${Math.round(est - draft.timeLimit)} min über dem Limit)</small>` : ''}</p>
+      <div class="row"><button class="btn" data-action="tc-full">Ganzes Training</button>
+        <button class="btn primary" data-action="tc-ok">✔ Passt so</button></div>
+    </div>`;
+}
+// Auswahl übernehmen: vorhandene Übungen behalten (mit Werten), Sätze ergänzen bzw. unberührte am Ende streichen, weggefallene wieder einfügen
+function tcApply(pick) {
+  const full = draft.timeFull;
+  const keep = [];
+  for (const en of draft.entries) {
+    const k = full.findIndex(f => nameKey(f.name) === nameKey(en.name));
+    if (k < 0) { keep.push(en); continue; }  // heute hinzugefügte Übung
+    const n = Math.max(pick[k], tcDone(en));
+    if (!n) continue;
+    const f = full[k];
+    while (en.sets.length > n && !isDone(en.sets[en.sets.length - 1]) && !en.sets[en.sets.length - 1].touched) en.sets.pop();
+    for (let j = en.sets.length; j < n; j++) { en.sets.push(JSON.parse(JSON.stringify(f.sets[j] || f.sets[f.sets.length - 1]))); if (f.planned[j]) en.planned[j] = { ...f.planned[j] }; }
+    en.planned.length = Math.min(en.planned.length, en.sets.length);
+    en.target = { ...en.target, sets: en.sets.length };
+    keep.push(en);
+  }
+  full.forEach((f, k) => {
+    if (!pick[k] || keep.some(e => nameKey(e.name) === nameKey(f.name))) return;
+    const en = JSON.parse(JSON.stringify(f));
+    en.sets.length = Math.min(en.sets.length, pick[k]);
+    en.planned.length = Math.min(en.planned.length, pick[k]);
+    en.target = { ...en.target, sets: en.sets.length };
+    let at = 0;
+    for (let q = k - 1; q >= 0; q--) { const i = keep.findIndex(e => nameKey(e.name) === nameKey(full[q].name)); if (i >= 0) { at = i + 1; break; } }
+    keep.splice(at, 0, en);
+  });
+  draft.entries = keep;
+  refreshPrefat();
+}
+
 function timeCutNote() {
   const c = draft.timeCut;
   if (!draft.timeLimit) return '';
+  if (draft.timeFull && !draft.timeOk) return timeEditHtml();
+  const btns = draft.timeFull ? `<span class="tc-btns"><button class="btn small" data-action="tc-edit">Anpassen</button>
+    <button class="btn small" data-action="tc-full">Ganzes Training</button></span>` : '';
   const ss = (draft.ssToday || []).length ? `<br><small>🔗 Heute im Supersatz: ${draft.ssToday.map(([a, b]) => `${esc(a)} + ${esc(b)}`).join(' · ')}</small>` : '';
   if (ss && !c) return `<p class="intro-note time-note">⏱ Zeitlimit ${draft.timeLimit} min: Mit Supersätzen passt das Training ohne Kürzen.${ss}</p>`;
   if (!c) return `<p class="intro-note time-note">⏱ Zeitlimit ${draft.timeLimit} min: Das Training passt schon so, nichts gekürzt.</p>`;
   return `<p class="intro-note time-note">⏱ Auf ca. ${fmtDur(c.after)} gekürzt (Zeitlimit ${c.limit} min, sonst ca. ${fmtDur(c.before)}).
     ${c.cut.length ? `<br><small>Weniger Sätze: ${c.cut.map(x => `${esc(x.name)} ${x.from} → ${x.to}`).join(' · ')}</small>` : ''}
-    ${c.dropped.length ? `<br><small>Heute ausgelassen: ${c.dropped.map(esc).join(' · ')}</small>` : ''}${ss}</p>`;
+    ${c.dropped.length ? `<br><small>Heute ausgelassen: ${c.dropped.map(esc).join(' · ')}</small>` : ''}${ss}${btns}</p>`;
 }
 
 function renderTraining() {
@@ -4508,7 +4587,7 @@ function renderTraining() {
   // Reihenfolge nur für dieses Training ändern (der Plan bleibt, wie er ist)
   if (draft.reorder) {
     return h + `<div class="card"><h2>Reihenfolge heute</h2><ul class="list reorder">` +
-      draft.entries.map((en, ei) => `<li class="bw-row">
+      draft.entries.map((en, ei) => `<li class="bw-row${ei === draft.reorderFrom ? ' ord-from' : ''}">
         <span>${ei + 1}. ${esc(en.name)}</span>
         <button class="icon-btn" data-action="tr-move" data-ei="${ei}" data-dir="-1" aria-label="Nach oben" ${ei === 0 ? 'disabled' : ''}>↑</button>
         <button class="icon-btn" data-action="tr-move" data-ei="${ei}" data-dir="1" aria-label="Nach unten" ${ei === draft.entries.length - 1 ? 'disabled' : ''}>↓</button>
@@ -4537,6 +4616,7 @@ function renderTraining() {
       <div class="ex-head">
         <h2>${pr ? `<span class="ss-badge" aria-label="Übung ${pr.role} im Supersatz">${pr.role}</span>` : ''}${libEntry(en.name) ? `<button class="lib-link" data-action="lib-open" data-name="${esc(en.name)}"
           aria-label="Ausführung ansehen">${exTitleHtml(en.name)} <span class="info-dot">i</span></button>` : exTitleHtml(en.name)}</h2>
+        <button class="det-btn ord-btn" data-action="reorder-toggle" data-ei="${ei}" aria-label="Reihenfolge ändern">⇅</button>
         <button class="det-btn" data-action="ex-details" data-ei="${ei}" aria-expanded="${det}">Details${hasComment && !det ? ' · 💬' : ''}
           <span class="chev" aria-hidden="true">▾</span></button>
         ${det ? `<div class="ex-tools">
@@ -6368,6 +6448,24 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 248, date: '2026-11-14', items: [
+    ['Neuer Stil „Puristen“ unter Optionen → Aussehen: so schlicht wie eine Tabelle in Excel oder Google Sheets. Gitterlinien, eckige Zellen, Tabellen-Grün und keine Emojis.'],
+  ] },
+  { v: 247, date: '2026-11-14', items: [
+    ['Plan-Assistent: Erst fragt die App, wie stark die Intensität im Zyklus steigen soll, dann nach mehr Volumen oder mehr Intensität. Neu ist die Variante „Beides“ für Hartgesottene: 20 % mehr Sätze und 0,5 Wdh. weniger im Tank.', 'tr-rir-input'],
+    ['Plan-Assistent: Gleich am Anfang steht jetzt, dass du alles später im Plan noch komplett ändern kannst.', 'tr-rir-input'],
+    ['Supersätze in der Plan-Vorschau stehen zusammen in einer Karte, jede Übung mit ihren eigenen Knöpfen. Haben beide unterschiedlich viele Sätze, beginnst du im Training mit der Übung mit mehr Sätzen.', 'supersets'],
+  ] },
+  { v: 246, date: '2026-11-14', items: [
+    ['„⏱ Wenig Zeit?“ steht jetzt direkt unter dem Trainingstag, der als Nächstes dran ist.'],
+  ] },
+  { v: 245, date: '2026-11-14', items: [
+    ['„Wenig Zeit?“: Beim Start zeigt die App jetzt, wie gekürzt wird. Mit − und ＋ änderst du die Sätze je Übung selbst, mit „Ganzes Training“ holst du alles zurück, auch mitten im Training. Eingetragene Sätze bleiben erhalten.'],
+    ['Supersatz im Training: Die Erklärung nennt jetzt die Pausenlänge und warum sie kürzer ist als bei einzelnen Übungen.', 'supersets'],
+  ] },
+  { v: 244, date: '2026-11-14', items: [
+    ['Im Training hat jede Übungskarte jetzt den Knopf ⇅: ein Tipp, und du änderst die Reihenfolge für heute. „Untereinander oder Wischen“ kannst du auch direkt im Menü ⋯ oben rechts umschalten.'],
+  ] },
   { v: 243, date: '2026-11-14', items: [
     ['Ernährungstagebuch: Was du gegessen hast, steht jetzt oben im Stil des Tagesziels, mit großer Kalorienzahl, Makro-Kacheln mit Fortschritt und dem Anteile-Balken. „Aus Health“ und „Von Hand“ findest du dort auch. Der Reiter Ernährung zeigt dafür nur noch „Essen eintragen“ und dein Tagesziel. Kalender und Woche & Monat gibt es im Tagebuch.'],
   ] },
@@ -6789,8 +6887,10 @@ function startDay(id, readiness = { sleptWell: true, stress: false }) {
   const tl = data.timeLimit;
   if (tl && tl.min) {
     draft.timeLimit = tl.min;
+    const fullCopy = JSON.parse(JSON.stringify(draft.entries));  // v245: für „Anpassen“ und „Ganzes Training“
     if (tl.ss) ssForTime(tl.min);  // Supersätze (v210): erst Pausen sparen, dann Sätze kürzen
     draft.timeCut = trimToTime(draft.entries, tl.min);
+    if (draft.timeCut) draft.timeFull = fullCopy;
     refreshPrefat();
     if (tl.once) { delete data.timeLimit; saveData(); }
   }
@@ -7768,6 +7868,34 @@ const actions = {
     toast(`⏱ Zeitlimit ${m} min, ${data.timeLimit.once ? 'gilt für das nächste Training' : 'gilt, bis du es änderst'}`);
     render();
   },
+  'tc-step': el => {
+    const k = Number(el.dataset.k), f = draft.timeFull[k], min = tcDone(tcFind(f));
+    draft.timePick[k] = Math.max(min, Math.min(f.sets.length, draft.timePick[k] + Number(el.dataset.d)));
+    saveDraft(); render();
+  },
+  'tc-edit': () => { draft.timeOk = false; tcPickInit(); saveDraft(); render(); window.scrollTo(0, 0); },
+  'tc-ok': () => {
+    tcApply(draft.timePick);
+    const c = draft.timeCut, full = draft.timeFull;
+    if (c) {
+      const now = full.map(f => ({ f, en: tcFind(f) }));
+      Object.assign(c, { after: tcMinutes(draft.entries.map(en => ({ en, n: en.sets.length }))),
+        dropped: now.filter(x => !x.en).map(x => x.f.name),
+        cut: now.filter(x => x.en && x.en.sets.length < x.f.sets.length).map(x => ({ name: x.f.name, from: x.f.sets.length, to: x.en.sets.length })) });
+    }
+    draft.timeOk = true; draft.timePick = null;
+    saveDraft(); render();
+  },
+  'tc-full': () => {
+    const pick = {}; draft.timeFull.forEach((f, k) => { pick[k] = f.sets.length; });
+    tcApply(pick);
+    // Supersätze, die nur fürs Zeitlimit gekoppelt wurden, wieder lösen (wie im Plan)
+    draft.entries.forEach(en => { const f = draft.timeFull.find(x => nameKey(x.name) === nameKey(en.name)); if (!f) return;
+      if (f.ss) Object.assign(en, { ss: f.ss, ssRest: f.ssRest }); else { delete en.ss; delete en.ssRest; } });
+    Object.assign(draft, { timeLimit: null, timeCut: null, timeFull: null, timePick: null, timeOk: false, ssToday: [] });
+    saveDraft(); render();
+    toast('Wieder das ganze Training');
+  },
   'time-off': () => { delete data.timeLimit; timeEdit = null; saveData(); toast('Zeitlimit aus, wieder das ganze Training'); render(); },
   'skip-open': () => {
     const ci = cycleInfo();
@@ -7893,8 +8021,9 @@ const actions = {
   'tr-go': el => trGo(Number(el.dataset.d)),
   'tr-go-to': el => trGo(0, Number(el.dataset.i)),
   'tr-to-save': () => { const b = $view.querySelector('[data-action="tr-save"]'); if (b) b.scrollIntoView({ block: 'center', behavior: 'smooth' }); },
-  'reorder-toggle': () => {
+  'reorder-toggle': el => {
     draft.reorder = !draft.reorder;
+    draft.reorderFrom = draft.reorder && el && el.dataset && el.dataset.ei != null ? Number(el.dataset.ei) : null;  // v244: Übung hervorheben
     saveDraft(); render();
     if (draft.reorder) window.scrollTo(0, 0);
   },
@@ -7977,6 +8106,13 @@ const actions = {
   },
   'trm-entry-help': () => { entryHelpOpen = true; render(); window.scrollTo(0, 0); },
   'trm-prefat': () => { prefatHelpOpen = true; render(); window.scrollTo(0, 0); },
+  'trm-swipe': () => {
+    data.profile = data.profile || {};
+    data.profile.swipe = !trSwipeOn();
+    trMenuOpen = false;
+    saveData(); render(); syncTrHead();
+    toast(trSwipeOn() ? 'Eine Übung je Bildschirm: nach links wischen für die nächste' : 'Alle Übungen untereinander');
+  },
   'trm-details-all': () => {
     const open = !draft.entries.every(detOpen);
     draft.entries.forEach(en => { en.detOpen = open; });
@@ -9057,7 +9193,7 @@ function applyTheme() {
   plainSync();
   iconSync();
   // Statusleiste des Handys in der Hintergrundfarbe der Farbwelt einfärben
-  const LOOK_BG = { plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], bw: ['#ffffff', '#101010'] };
+  const LOOK_BG = { plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], bw: ['#ffffff', '#101010'], sheet: ['#f8f9fa', '#1f1f1f'] };
   const [light, dark] = LOOK_BG[currentLook()] || PROFILE_COLORS[profileColor()].bg;  // Schlicht und die neuen Designs (v234): neutral
   document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
     const isDark = /dark/.test(m.getAttribute('media') || '');
@@ -9070,6 +9206,7 @@ function applyTheme() {
 // Mitteilungen und Rückfragen. Einfache Zeichen (✔ ✕ ✎ ↑ ↓ ★ …) bleiben – mit U+FE0E immer einfarbig.
 // Behälter, die danach leer sind (z. B. das große Symbol über einer Frage), werden ausgeblendet (.plain-empty).
 const plainOn = () => !!(data.profile && data.profile.look === 'plain');
+const emojiOff = () => plainOn() || (typeof currentLook === 'function' && currentLook() === 'sheet');  // v248: Puristen ohne Emojis
 // Schlicht (v219): Tagesnummern zweistellig wie „01“
 const dayNoText = i => plainOn() ? String(i + 1).padStart(2, '0') : i + 1;
 const PLAIN_KEEP = new Set([...'✔✓✕✎★☆↑↓⇅⇄↔↕⬆⬇▶◀‹›→←↘↗↩−+']);  // ↘ = Reduktions-Teil-Satz (v212)
@@ -9105,7 +9242,7 @@ function plainNode(root) {
 }
 let plainObs = null;
 function plainSync() {
-  const on = plainOn();
+  const on = emojiOff();
   const look = currentLook();
   if (look) document.documentElement.dataset.look = look; else delete document.documentElement.dataset.look;
   if (on && !plainObs && typeof MutationObserver === 'function') {
@@ -9126,10 +9263,10 @@ function plainSync() {
 // Rückfragen und Hinweise des Browsers ebenfalls ohne Emojis
 for (const k of ['alert', 'confirm', 'prompt']) {
   const orig = window[k];
-  if (typeof orig === 'function') window[k] = function (msg, ...rest) { return orig.call(window, plainOn() ? plainStrip(String(msg)) : msg, ...rest); };
+  if (typeof orig === 'function') window[k] = function (msg, ...rest) { return orig.call(window, emojiOff() ? plainStrip(String(msg)) : msg, ...rest); };
 }
 // Stile (v234): drei neue Designs, dazu die bisherigen „Standard“ und „Schlicht“. Ohne Angabe im Profil (neue Nutzer): Kraftraum.
-const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', bw: 'Schwarzweiß', '': 'Standard', plain: 'Schlicht' };
+const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', bw: 'Schwarzweiß', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht' };  // v248: Puristen = Tabellen-Optik
 const currentLook = () => {
   const p = data.profile;
   const l = p && p.look !== undefined ? p.look || '' : 'kraft';
@@ -9178,7 +9315,7 @@ function appearanceCard() {
       <div class="variants look-pick">${Object.entries(LOOKS).map(([k, l]) =>
         `<button class="vchip ${currentLook() === k ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`).join('')}</div>
       <p class="hint explain">„Kraftraum“: sportlich mit kräftigen, schmalen Überschriften und großen Zahlen. „Logbuch“: wie ein Trainingsbuch,
-        Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Schwarzweiß“: nur Schwarz und Weiß, dicke Linien statt Karten.
+        Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Schwarzweiß“: nur Schwarz und Weiß, dicke Linien statt Karten. „Puristen“: so einfach wie eine Tabelle in Excel oder Google Sheets, ohne Emojis.
         Kraftraum und Logbuch übernehmen deine Farbwelt. Ohne eigene Wahl ist Kraftraum orange und Logbuch grün.
         „Standard“ und „Schlicht“ sind die bisherigen Stile.</p>
       <p class="lbl">Übungen im Training</p>
