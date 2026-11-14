@@ -53,6 +53,35 @@ function tpGuess() {
   Object.assign(tpImport, { head, map });
 }
 
+/* v252 (User 2026-11-14): freier Text statt Tabelle, z. B. mit der Texterkennung des Handys aus einem Foto oder Screenshot kopiert.
+   Je Zeile eine Übung („Bankdrücken 3x12 60 kg“, „Dips 3 Sätze AMRAP“), Zeilen ohne Zahlen = Trainingstag („Tag 1 – Push“).
+   AMRAP (auch AMREP geschrieben) = so viele Wdh. wie möglich, also Tank 0. Ergebnis: Zeilen wie aus einer Tabelle (tpStart). */
+const TP_AMRAP = /\bamr[ae]p\b/i;
+const tpIsTable = text => text.split(/\r?\n/).filter(l => l.trim()).some(l => l.includes('\t'));
+function tpTextToRows(text) {
+  const rows = [['Übung', 'Sätze', 'Gewicht (kg)', 'Hinweis']];
+  for (let line of text.split(/\r?\n/)) {
+    line = line.replace(/^\s*(?:[-•*·–]|\d+[.)])\s+/, '').trim();
+    if (!line) continue;
+    const amrap = TP_AMRAP.test(line);
+    const sr = line.match(/(\d+)\s*(?:[x×*]|sätze?\s*(?:à|a|zu|x|mit)?)\s*(\d+(?:\s*[-–]\s*\d+)?|amr[ae]p)?/i);
+    const kg = line.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    const wdh = line.match(/(\d+(?:\s*[-–]\s*\d+)?)\s*(?:wdh|wiederholungen|reps?)\b/i);
+    if (!sr && !kg && !wdh && !amrap) {
+      if (line.length <= 40 && !/\d{3,}/.test(line)) rows.push([line.replace(/[:：]\s*$/, '')]);  // Tag-Überschrift
+      continue;
+    }
+    let name = line;
+    for (const m of [sr, kg, wdh]) if (m) name = name.replace(m[0], ' ');
+    name = name.replace(TP_AMRAP, ' ').replace(/\b(sätze?|satz|wdh\.?|wiederholungen|reps?|je|à|mit|pause\s*\d+\s*(s|sek|min)?)\b/gi, ' ')
+      .replace(/[|:;,()@\[\]]+/g, ' ').replace(/\s[-–]\s/g, ' ').replace(/\s+/g, ' ').trim().replace(/[-–]$/, '').replace(/^[.\s]+|[.\s]+$/g, '').trim();
+    if (!name) continue;
+    const sets = sr ? sr[1] : '', reps = sr && sr[2] && !TP_AMRAP.test(sr[2]) ? sr[2] : wdh ? wdh[1] : '';
+    rows.push([name, sets && reps ? `${sets}x${reps}` : sets ? `${sets} Sätze` : reps ? `1x${reps}` : '', kg ? kg[1] : '', amrap ? 'AMRAP' : '']);
+  }
+  return rows;
+}
+
 // „3×10“, „3 x 8-12“, „4 Sätze à 10“ -> { sets, reps }; Bereich „8–12“ -> erste Zahl
 function tpSetsReps(setsCell, repsCell) {
   const both = String(setsCell || '').match(/(\d+)\s*(?:[x×*]|sätze?\s*(?:à|a|zu|x)?)\s*(\d+)/i)
@@ -71,12 +100,12 @@ function tpRows(sheet, head, fixedDay) {
     const get = k => map[k] != null ? String(r[map[k]] || '').trim() : '';
     const filled = r.filter(c => String(c).trim() !== '');
     // ohne Tag-Spalte: Zeile mit nur einem (Text-)Eintrag = Überschrift eines neuen Tages
-    if (map.day == null && !fixedDay && filled.length === 1 && npNum(filled[0]) == null) { day = filled[0].trim(); continue; }
+    if (map.day == null && !fixedDay && filled.length === 1 && !/^[\d\s.,]+$/.test(filled[0])) { day = filled[0].trim(); continue; }  // v252: auch „Tag 1 – Push“
     if (map.day != null && get('day')) day = get('day');
     const ex = get('ex');
     if (!ex || npNum(ex) != null) continue;
     const { sets, reps } = tpSetsReps(get('sets'), get('reps'));
-    out.push({ day: day || 'Trainingstag', ex, sets, reps, kg: npNum(get('kg')) });
+    out.push({ day: day || 'Trainingstag', ex, sets, reps, kg: npNum(get('kg')), amrap: r.some(c => TP_AMRAP.test(String(c))) });
   }
   return out;
 }
@@ -112,7 +141,7 @@ function tpBuild() {
     let d = days.find(x => x.name === r.day);
     if (!d) days.push(d = { name: r.day, exercises: [] });
     d.exercises.push({ orig: r.ex, name: im.swaps[r.ex] || r.ex, sets: Math.min(20, Math.max(1, r.sets || 3)), reps: Math.min(50, Math.max(1, r.reps || 10)),
-      kg: r.kg != null && r.kg > 0 ? r.kg : null, guessedSets: !r.sets, guessedReps: !r.reps });
+      kg: r.kg != null && r.kg > 0 ? r.kg : null, guessedSets: !r.sets, guessedReps: !r.reps && !r.amrap, amrap: !!r.amrap });
   }
   return days;
 }
@@ -124,8 +153,19 @@ function renderTrainPlan() {
       <p class="hint wiz-q-explain explain">Du hast deinen Plan schon als Tabelle, z. B. vom Trainer, aus Excel oder Google Sheets? Übernimm ihn einmal:
         Die App liest Trainingstage, Übungen, Sätze, Wiederholungen und Gewichte ein und erkennt die Übungen aus ihrer Bibliothek.</p>
       <button class="btn primary" data-action="tp-pick">📄 Datei wählen (Excel oder CSV)</button>
-      <button class="btn" data-action="tp-paste-open">📋 Tabelle einfügen</button>
-      ${tpPasteOpen ? `<textarea class="inp comment" id="tp-paste" rows="6" placeholder="In Excel oder Google Sheets die Zellen markieren (mit Überschriften), kopieren und hier einfügen"></textarea>
+      <button class="btn" data-action="tp-paste-open">📋 Text oder Tabelle einfügen<small>auch Text aus einem Foto oder Screenshot</small></button>
+      ${tpPasteOpen ? `<textarea class="inp comment" id="tp-paste" rows="8" placeholder="Zum Beispiel:
+Tag 1 Push
+Bankdrücken 3x10 60 kg
+Schulterdrücken 3x12
+Dips 3x AMRAP
+
+Tag 2 Pull
+…"></textarea>
+        <p class="hint nut-small"><b>Plan als Foto oder Screenshot?</b> Den Text kopiert dein Handy für dich: iPhone: Foto öffnen, auf den Text
+          tippen und halten, „Alle auswählen“ → „Kopieren“. Android: Foto mit Google Lens öffnen → „Text“ → „Alles kopieren“. Dann hier einfügen.
+          Je Zeile eine Übung mit Sätzen × Wdh. (z. B. 3x12), Zeilen ohne Zahlen werden zu Trainingstagen. AMRAP heißt: so viele Wdh. wie möglich.
+          Excel- oder Sheets-Zellen kannst du genauso einfügen.</p>
         <button class="btn primary" data-action="tp-paste-go">Übernehmen</button>` : ''}
       <p class="hint nut-small explain"><b>Google Sheets:</b> Datei → Herunterladen → Microsoft Excel (.xlsx) bzw. am Handy „Teilen und exportieren →
         Kopie senden“ oder einfach die Zellen kopieren und oben einfügen. Die Datei wird nur auf deinem Handy gelesen, nichts wird hochgeladen.</p>
@@ -154,7 +194,7 @@ function tpMappingHtml() {
     const sugg = !m.known && m.suggest
       ? `<button class="vchip tp-sugg" data-action="tp-swap" data-from="${esc(e.orig)}" data-to="${esc(m.suggest)}">→ ${esc(m.suggest)}?</button>` : '';
     const undo = im.swaps[e.orig] ? `<button class="link-btn" data-action="tp-swap" data-from="${esc(e.orig)}" data-to="">↩ „${esc(e.orig)}“</button>` : '';
-    return `<li>${tag} <b>${esc(e.name)}</b> · ${e.sets} × ${e.reps}${e.kg != null ? ` · ${fmtNum(e.kg)} kg` : ''}
+    return `<li>${tag} <b>${esc(e.name)}</b> · ${e.sets} × ${e.amrap ? 'AMRAP (so viele Wdh. wie möglich, Tank 0)' : e.reps}${e.kg != null ? ` · ${fmtNum(e.kg)} kg` : ''}
       ${e.guessedSets || e.guessedReps ? '<small class="hint">(fehlende Werte: 3 × 10 angenommen)</small>' : ''}${sugg}${undo}</li>`;
   };
   const unknown = days.flatMap(d => d.exercises).filter(e => !tpMatch(e.name).known).length;
@@ -240,9 +280,9 @@ Object.assign(actions, {
   'tp-paste-open': () => { tpPasteOpen = !tpPasteOpen; render(); },
   'tp-paste-go': () => {
     const t = (document.getElementById('tp-paste') || {}).value || '';
-    if (!t.trim()) { alert('Bitte zuerst die Tabelle einfügen.'); return; }
+    if (!t.trim()) { alert('Bitte zuerst den Plan einfügen.'); return; }
     tpPasteOpen = false;
-    tpStart([{ name: 'Eingefügt', rows: npParseDelimited(t) }], 'Importierter Plan');
+    tpStart([{ name: 'Eingefügt', rows: tpIsTable(t) ? npParseDelimited(t) : tpTextToRows(t) }], 'Importierter Plan');  // v252: auch freier Text
   },
   'tp-template': () => tpTemplate(),
   'tp-cancel': () => { tpImport = null; render(); },
@@ -267,7 +307,7 @@ Object.assign(actions, {
     if (draft && !askOk(`Es läuft noch ein Training (${draft.dayName}). Trotzdem den neuen Plan aktiv setzen?`)) return;
     const days = tpBuild().map(d => ({
       id: uid(), name: d.name, intensity: '',
-      exercises: d.exercises.map(e => withDefaults({ id: uid(), name: e.name, sets: e.sets, setsEnd: e.sets, reps: e.reps, startWeight: e.kg,
+      exercises: d.exercises.map(e => withDefaults({ id: uid(), name: e.name, sets: e.sets, setsEnd: e.sets, reps: e.reps, startWeight: e.kg, ...(e.amrap ? { amrap: true } : {}),
         // mit Steigerung rechnet die App mit „Max. bei 10 Wdh.“: aus Gewicht × Wdh. geschätzt (etwa 2 Wdh. im Tank),
         // sofern dafür noch nichts bekannt ist
         max10: im.prog === 'app' && e.kg != null && knownMax10(e.name) == null

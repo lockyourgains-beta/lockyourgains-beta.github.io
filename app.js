@@ -4665,7 +4665,8 @@ function renderTraining() {
     if (en.caliInfo && typeof caliTargetHtml === 'function') {
       h += caliTargetHtml(en);
     } else if (en.target && en.target.own) {
-      h += `<p class="target">Plan: ${en.target.sets} × ${en.target.reps} ${typeof holdUnit === 'function' ? holdUnit(en.name) : 'Wdh.'}</p>`;
+      h += en.target.amrap ? `<p class="target">Plan: ${en.target.sets} × AMRAP · so viele Wdh. wie möglich (Tank 0)</p>`
+        : `<p class="target">Plan: ${en.target.sets} × ${en.target.reps} ${typeof holdUnit === 'function' ? holdUnit(en.name) : 'Wdh.'}</p>`;
     } else if (en.target) {
       const t = en.target;
       // Heute: wirklich vorgeschlagene Wdh. (User-Regel 2026-11-06), nicht der Startwert des Plans
@@ -4749,7 +4750,7 @@ function renderTraining() {
     h += `<p class="adjust ${feat('tr-rir-input') ? '' : 'simple-off'}" data-note="${ei}" ${en.note ? '' : 'hidden'}>${esc(en.note)}</p>`;
     const rirInput = feat('tr-rir-input');
     h += `<div class="setgrid"><span class="head">Satz</span><span class="head">kg</span><span class="head">${typeof holdHead === 'function' ? holdHead(en.name) : 'Wdh.'}</span><span class="head">${en.holdSec ? 'Ziel' : rirInput ? 'Tank' : 'Gefühl'}</span>`;
-    const tankHint = si => !en.target || en.target.own ? '–' : en.target.deload || !en.target.rirSplit
+    const tankHint = si => en.target && en.target.amrap && !en.target.deload ? '0' : !en.target || en.target.own ? '–' : en.target.deload || !en.target.rirSplit
       ? targetRirText(en.target).replace('mind. ', '≥') : fmtNum(rirAt(en.target, si));  // Tank je Satz (v199)
     const next = feat('tr-next') ? nextPreview(en) : [];
     const bodyKg = body ? currentBodyweight() : null;
@@ -5454,6 +5455,7 @@ function ownExerciseCard(ex, i) {
     <div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
       `<button class="vchip ${(ex.variant || '') === v ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
     </div>
+    <div class="variants plan amrap-row"><span>AMRAP</span><button class="vchip ${ex.amrap ? 'on' : ''}" data-action="plan-amrap" data-i="${i}">${ex.amrap ? 'An: so viele Wdh. wie möglich (Tank 0)' : 'Aus'}</button></div>
     <div class="row">
       <button class="icon-btn danger" data-action="ex-del" data-i="${i}">Entfernen</button>
     </div>
@@ -5547,6 +5549,7 @@ function renderDay({ id }) {
       ${feat('tr-variants') ? `<div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
         `<button class="vchip ${(ex.variant || '') === v ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
       </div>${ex.name.trim() ? techPlanHtml(ex, i) : ''}` : ''}
+      ${feat('tr-rir-input') || ex.amrap ? `<div class="variants plan amrap-row"><span>AMRAP</span><button class="vchip ${ex.amrap ? 'on' : ''}" data-action="plan-amrap" data-i="${i}">${ex.amrap ? 'An: so viele Wdh. wie möglich (Tank 0)' : 'Aus'}</button></div>` : ''}
       ${bodyweightRow(ex, i)}
       ${isBodyweight(ex) || !feat('tr-max') ? '' : `<label class="row">
         <span>Max. kg bei 10 Wdh.<br><small class="hint">frisch, ohne Vorermüdung</small></span>
@@ -6454,6 +6457,13 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 253, date: '2026-11-14', items: [
+    ['Begrüßung für neue Nutzer: Die fünf Reiter werden jetzt in großen Kacheln erklärt, jeweils mit dem Symbol aus der unteren Leiste.'],
+  ] },
+  { v: 252, date: '2026-11-14', items: [
+    ['Plan übernehmen: Beim Trainings- und beim Ernährungsplan kannst du jetzt auch einfachen Text einfügen, z. B. aus einem Foto oder Screenshot (die Texterkennung deines Handys kopiert ihn). Zeilen wie „Bankdrücken 3x12 60 kg“ oder „80 g Haferflocken“ werden erkannt.'],
+    ['AMRAP (so viele Wiederholungen wie möglich) wird beim Übernehmen erkannt und lässt sich im Plan je Übung einschalten. Im Training gilt dann Tank 0.'],
+  ] },
   { v: 251, date: '2026-11-14', items: [
     ['Übersichtlicher: Alles zum Zyklus steht jetzt auf einer Seite „Zyklus“: Woche wechseln, Länge, Deload, Intensität und Zyklus beenden. Du erreichst sie über „⚙️ Zyklus anpassen“ an der Zykluskarte oder im Plan-Reiter.'],
     ['Ernährung kürzer: Zielgewicht, gemessener Bedarf und Anpassungsvorschläge stehen gemeinsam in „📈 Dein Verlauf“. Die letzten Tage zeigen kein eigenes Diagramm mehr, dafür gibt es den Knopf zu Woche & Monat.'],
@@ -6936,14 +6946,15 @@ function draftEntries(day) {
     const en = { name: ex.name.trim(), ...(ex.ss ? { ss: ex.ss, ssRest: ex.ssRest } : {}) };  // Supersatz (v210)
     // Ziel im Tank aus Zykluswoche und Übungsart (Deload: Wert der letzten Trainingswoche, dann mind. 3)
     const week = draft.deload ? bw : draft.week;
-    const [lo, hi] = adapt ? dietRirRange(kindOf(ex), week) : rirRange(kindOf(ex), week, bw, groupOf(ex));  // Diät: eigene Tank-Regel (v229)
+    // v252: AMRAP („as many reps as possible“) = Tank 0 – außer im Deload
+    const [lo, hi] = ex.amrap && !draft.deload ? [0, 0] : adapt ? dietRirRange(kindOf(ex), week) : rirRange(kindOf(ex), week, bw, groupOf(ex));  // Diät: eigene Tank-Regel (v229)
     const rir = (lo + hi) / 2;
     const rirText = lo === hi ? fmtNum(lo) : `${fmtNum(lo)}–${fmtNum(hi)}`;
     // Sätze: automatisch aus dem Muskelgruppen-Volumen, sonst laut Wochenplan der Übung
     // (Deload: Sätze der letzten Woche, werden dort halbiert)
     const fixedSets = auto.has(ex.id);
     const sets = fixedSets ? auto.get(ex.id) : setsForWeek(ex, draft.deload ? bw : setsWeek, bw, adapt);
-    const target = { sets, fixedSets, reps: repsFor(day, ex), rir, rirText, max10: ex.max10, step: stepFor(ex), weights: weightsFor(ex.name),
+    const target = { sets, fixedSets, reps: repsFor(day, ex), rir, rirText, max10: ex.max10, step: stepFor(ex), weights: weightsFor(ex.name), ...(ex.amrap ? { amrap: true } : {}),
       fat: draft.own ? 0 : preFatigue(nList, xi) };
     if (!draft.deload && !prog.load) target.hold = true;  // Gewicht/Wdh. vom letzten Mal halten
     if (adapt) target.noLoadUp = true;  // Diät/Minicut angepasst: Gewicht nicht steigern, höchstens 1 Wdh. mehr
@@ -8605,6 +8616,11 @@ const actions = {
     if (el.dataset.v === '1') ex.bwLoad = true; else delete ex.bwLoad;
     saveData(); render();
   },
+  'plan-amrap': el => {  // v252: AMRAP = so viele Wdh. wie möglich (Tank 0)
+    const ex = findDay(current.params.id).exercises[Number(el.dataset.i)];
+    if (ex.amrap) delete ex.amrap; else ex.amrap = true;
+    saveData(); render();
+  },
   'plan-variant': el => {
     findDay(current.params.id).exercises[el.dataset.i].variant = el.dataset.v;
     saveData(); render();
@@ -9488,12 +9504,23 @@ function welcomeHtml() {
       <div id="welcome-train">${train}</div>
       ${welc.phase ? `<p class="hint welcome-note">Dein Kalorienziel berechnet die App, sobald du im Reiter „Ernährung“ noch Alter, Größe,
         Gewicht und Aktivität ergänzt. Phase und Trainingsanpassung kannst du dort jederzeit ändern.</p>` : ''}
-      ${welc.fresh ? `<ul class="welcome-tips">
-        <li><b>Plan:</b> Mit dem Assistenten in wenigen Schritten deinen Trainingsplan erstellen.</li>
-        <li><b>Training:</b> Trainingstag antippen und loslegen. Die App schlägt Gewichte und Wiederholungen vor.</li>
-        <li><b>Optionen:</b> Farbwelt und hell/dunkel wählen, Name und Geschlecht ändern und deine Daten sichern. Alles bleibt nur auf deinem Handy, sichere es ab und zu.</li>
-      </ul>` : ''}
+      ${welc.fresh ? welcomeTabsHtml() : ''}
       <button class="btn primary" data-action="welcome-done">${welc.fresh ? "Los geht's 💪" : 'Speichern'}</button>`;
+}
+
+// v253 (User 2026-11-14): die fünf Reiter in großen Kacheln erklären, mit demselben Symbol wie in der unteren Leiste
+const WELCOME_TABS = [
+  ['start', 'Training', 'Hier startest du deine Trainings und trägst sie ein. Die App sagt dir für jeden Satz Gewicht und Wiederholungen und zeigt dir, wo du im Zyklus stehst.'],
+  ['plan', 'Plan', 'Hier erstellst du deine Trainingspläne und verwaltest sie später: Übungen tauschen, Sätze und Wiederholungen ändern, Zyklus und Intensität einstellen.'],
+  ['history', 'Verlauf', 'Hier findest du alle bisherigen Trainings im Kalender, die Entwicklung jeder Übung, deine Statistik und deine Erfolge.'],
+  ['nutrition', 'Ernährung', 'Hier stehen dein Kalorienziel und das Ernährungstagebuch mit Barcode-Scanner, außerdem dein Körpergewicht und Fortschrittsfotos.'],
+  ['data', 'Optionen', 'Hier stellst du Aussehen und Modus ein, änderst dein Profil und sicherst deine Daten. Alles bleibt nur auf deinem Handy, sichere es ab und zu.'],
+];
+function welcomeTabsHtml() {
+  const icon = k => { const svg = document.querySelector(`#tabs [data-tab="${k}"] svg`); return svg ? svg.outerHTML : ''; };
+  return `<p class="lbl welcome-tabs-h">So ist die App aufgebaut: Unten findest du fünf Reiter.</p>
+    <div class="welcome-tabs">${WELCOME_TABS.map(([k, t, x]) => `<div class="welcome-tab"><span class="wt-ico">${icon(k)}</span>
+      <div><b>${t}</b><p>${x}</p></div></div>`).join('')}</div>`;
 }
 
 // Inhalt neu zeichnen, Scroll-Position behalten

@@ -3488,3 +3488,12 @@ div.btn.week-ses { cursor: default; }
 .nut-progress h2 + .nut-sec { margin-top: 4px; padding-top: 0; border-top: 0; }
 .nut-progress .nut-sec.nut-check.off { margin-left: -6px; margin-right: -6px; padding: 12px; border-top: 0; border-radius: 12px; background: var(--warn-soft); }
 .nut-progress .nut-sec.nut-check.ok p:first-child b::after { content: ' ✓'; color: var(--success); }
+
+/* v253: Begrüßung – die fünf Reiter als große Kacheln */
+.welcome-tabs-h { margin: 14px 0 8px; }
+.welcome-tabs { display: grid; gap: 10px; margin: 0 0 18px; text-align: left; }
+.welcome-tab { display: flex; gap: 14px; align-items: flex-start; padding: 14px; border-radius: 16px; background: var(--fill); }
+.welcome-tab .wt-ico { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: var(--accent-soft); color: var(--accent-text); }
+.welcome-tab .wt-ico svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.welcome-tab b { display: block; font-size: 19px; }
+.welcome-tab p { margin: 3px 0 0; font-size: 16px; line-height: 1.4; color: var(--muted); }

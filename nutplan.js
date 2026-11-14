@@ -60,6 +60,42 @@ function nutPlanTarget(date = todayISO()) {
 
 /* ----- Einlesen: CSV, eingefügter Text, Excel (.xlsx) ----- */
 
+/* v252 (User 2026-11-14): Ernährungsplan als freier Text (z. B. aus einem Foto kopiert). Zeilen wie „Montag“, „Tag 1“, „Trainingstag“ = Plantag,
+   „Frühstück“ / „Mittagessen: …“ = Mahlzeit, „80 g Haferflocken“ / „Haferflocken 80 g (300 kcal)“ = Lebensmittel.
+   Mehrere Lebensmittel in einer Zeile mit Komma oder + getrennt. Ergebnis: Zeilen wie aus einer Tabelle (npStart). */
+const NP_MEAL_WORDS = /^(frühstück|fruhstuck|mittag(essen)?|abend(essen|brot)?|snacks?|zwischenmahlzeit|vormittag|nachmittag|spätmahlzeit|pre[- ]?workout|post[- ]?workout|vor dem training|nach dem training)\b/i;
+const NP_DAY_WORDS = /^(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|tag\s*\d+|trainingstag|ruhetag|trainingsfrei|wochenende)\b/i;
+function npTextToRows(text) {
+  const rows = [['Tag', 'Mahlzeit', 'Lebensmittel', 'Menge (g)', 'Kalorien (kcal)']];
+  let day = '', meal = '';
+  const item = s => {
+    s = s.replace(/^\s*(?:[-•*·–]|\d+[.)])\s+/, '').trim();
+    if (!s) return;
+    const g = s.match(/(\d+(?:[.,]\d+)?)\s*(g|gr|gramm|ml)\b/i), kc = s.match(/(\d+(?:[.,]\d+)?)\s*kcal\b/i);
+    let name = s;
+    for (const m of [g, kc]) if (m) name = name.replace(m[0], ' ');
+    name = name.replace(/[()\[\]|:]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^(à|a|je)\s+/i, '')
+      .replace(/^\d+([.,]\d+)?\s*(scheiben?|stück|stk\.?|el|tl|portion(en)?|becher|dosen?|packungen?|x)?\s+/i, '');  // „2 Scheiben Vollkornbrot“ → „Vollkornbrot“
+    if (!name || (!g && !kc)) return;
+    rows.push([day || 'Jeden Tag', meal, name, g ? g[1] : '', kc ? kc[1] : '']);
+  };
+  for (let line of text.split(/\r?\n/)) {
+    line = line.trim();
+    if (!line) continue;
+    const bare = line.replace(/^\s*(?:[-•*·–]|\d+[.)])\s+/, '');
+    if (NP_DAY_WORDS.test(bare) && !/\d+\s*(g|gr|ml|kcal)\b/i.test(bare)) { day = bare.replace(/[:：].*$/, '').trim(); meal = ''; continue; }
+    const mm = bare.match(NP_MEAL_WORDS);
+    if (mm) {
+      meal = mm[0];
+      const rest = bare.slice(mm[0].length).replace(/^\s*[:：–-]\s*/, '');
+      rest.split(/\s*[,+;]\s*/).forEach(item);
+      continue;
+    }
+    bare.split(/\s*[,+;]\s*/).forEach(item);
+  }
+  return rows;
+}
+
 function npParseDelimited(text) {
   text = text.replace(/^﻿/, '');
   const first = text.split(/\r?\n/).find(l => l.trim()) || '';
@@ -262,8 +298,17 @@ function renderNutPlan() {
         dann zeigt die App an jedem Tag automatisch die Ziele aus deinem Plan. Enthält er auch die Lebensmittel, kannst du im Tagebuch
         jede Mahlzeit mit einem Tipp „wie geplant“ eintragen.</p>
       <button class="btn primary" data-action="np-pick">📄 Datei wählen (Excel oder CSV)</button>
-      <button class="btn" data-action="np-paste-open">📋 Tabelle einfügen</button>
-      ${npPasteOpen ? `<textarea class="inp comment" id="np-paste" rows="6" placeholder="In Excel oder Google Sheets die Zellen markieren (mit Überschriften), kopieren und hier einfügen"></textarea>
+      <button class="btn" data-action="np-paste-open">📋 Text oder Tabelle einfügen<small>auch Text aus einem Foto oder Screenshot</small></button>
+      ${npPasteOpen ? `<textarea class="inp comment" id="np-paste" rows="8" placeholder="Zum Beispiel:
+Montag
+Frühstück: 80 g Haferflocken, 200 ml Milch
+Mittagessen
+150 g Hähnchenbrust
+200 g Reis
+…"></textarea>
+        <p class="hint nut-small"><b>Plan als Foto oder Screenshot?</b> Den Text kopiert dein Handy für dich: iPhone: Foto öffnen, auf den Text
+          tippen und halten, „Alle auswählen“ → „Kopieren“. Android: Foto mit Google Lens öffnen → „Text“ → „Alles kopieren“. Dann hier einfügen.
+          Lebensmittel mit Menge in g oder ml, Tage und Mahlzeiten als eigene Zeile. Excel- oder Sheets-Zellen kannst du genauso einfügen.</p>
         <button class="btn primary" data-action="np-paste-go">Übernehmen</button>` : ''}
       <p class="hint nut-small explain"><b>Google Sheets:</b> Datei → Herunterladen → Microsoft Excel (.xlsx) bzw. am Handy „Teilen und exportieren →
         Kopie senden“ oder einfach die Zellen kopieren und oben einfügen. Die Datei wird nur auf deinem Handy gelesen, nichts wird hochgeladen.</p>
@@ -365,9 +410,10 @@ Object.assign(actions, {
   'np-paste-open': () => { npPasteOpen = !npPasteOpen; render(); },
   'np-paste-go': () => {
     const t = (document.getElementById('np-paste') || {}).value || '';
-    if (!t.trim()) { alert('Bitte zuerst die Tabelle einfügen.'); return; }
+    if (!t.trim()) { alert('Bitte zuerst den Plan einfügen.'); return; }
     npPasteOpen = false;
-    npStart([{ name: 'Eingefügt', rows: npParseDelimited(t) }], 'Ernährungsplan');
+    const table = t.split(/\r?\n/).filter(l => l.trim()).some(l => l.includes('\t'));
+    npStart([{ name: 'Eingefügt', rows: table ? npParseDelimited(t) : npTextToRows(t) }], 'Ernährungsplan');  // v252: auch freier Text
   },
   'np-assign': el => { npImport.assign = el.dataset.k; render(); },
   'np-cancel': () => { npImport = null; render(); },
