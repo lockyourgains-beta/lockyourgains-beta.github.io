@@ -96,7 +96,7 @@ function caliApply(en, ex) {
   const range = plan.cali.range || [6, 12];
   const cap = hold ? Math.max(g.v, round5(g.v * 1.5)) : Math.max(g.v, range[1]);
   const hist = caliHistory(ex.name);
-  const monday = mondayISO(new Date(todayISO() + 'T12:00:00'));
+  const monday = thisMonday();
   const thisWeek = hist.find(h => h.date.slice(0, 10) >= monday);  // schon diese Woche trainiert: gleiches Ziel, keine Steigerung
   const n = en.sets.length;
   for (let i = 0; i < n; i++) {

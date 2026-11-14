@@ -1149,6 +1149,8 @@ function recalcSets(ei) {
 const WEEK_MS = 7 * 86400000;
 const DELOAD_RIR = 3;  // in der Deload-Woche mindestens so viele Wdh. im Tank
 
+// Montag dieser Woche (v251: gemeinsame Hilfsfunktion statt mehrfach einzeln berechnet)
+const thisMonday = () => mondayISO(new Date(todayISO() + 'T12:00:00'));
 // Montag der Woche als JJJJ-MM-TT
 function mondayISO(date) {
   const d = new Date(date);
@@ -3873,6 +3875,7 @@ const views = {
   exercise: { title: p => p.name,     tab: 'history', back: p => [p.from || 'history', p.fromParams || {}], render: renderExercise,
     after: () => drawChart() },  // v203: Diagramm der Übung oben (charts.js)
   week:     { title: 'Trainingswoche', tab: 'start',  back: 'start', render: renderWeek },
+  cycle:    { title: 'Zyklus', tab: p => p.from === 'plan' ? 'plan' : 'start', back: p => [p.from === 'plan' ? 'plan' : 'start', {}], render: () => renderCyclePage() },  // v251
   library:  { title: 'Übungsbibliothek', tab: 'plan', back: 'plan', render: renderLibrary },
   homeeq:   { title: 'Deine Ausrüstung', tab: 'plan', back: 'plan', render: () => renderHomeEq() },  // steht in wizard.js (später geladen)
   // Übung aus der Bibliothek: zurück dorthin, woher sie geöffnet wurde (from/fromParams)
@@ -4228,7 +4231,7 @@ function iosMoveCard() {
 
 // Nach dem Speichern eines Trainings: Sicherung anbieten, wenn sie fällig ist (ab dem 2. Training)
 function backupAfterTrainingCard() {
-  if (data.sessions.length < 2 || !backupDue()) return '';
+  if (data.sessions.length < 2 || !backupDue() || daysSinceISO(data.backupSnooze) < BACKUP_SNOOZE) return '';  // v251: „Später“ gilt auch hier
   return `<div class="card hints backup-after"><p><b>💾 Gleich mitsichern?</b></p>
       <p class="hint">${backupAgoText()} Ein Tipp genügt. Auf dem iPhone dann „In Dateien sichern“ wählen.</p>
       <button class="btn primary" data-action="export">Jetzt sichern</button></div>`;
@@ -4296,8 +4299,7 @@ function motivStartCard() {
   if (days < from || days >= to || !nd) return '';
   const est = estDuration(nd, ci.week, activePlan(), ci.deload);
   return `<div class="card hints motiv-card ${motivMode()}">${x}<p>${motivText('back', esc(nd.name), days)}</p>
-    ${est > 60 && !(data.timeLimit && data.timeLimit.min) ? `<p class="hint">${motivText('short')}</p>
-      <button class="btn small" data-action="time-open">⏱ Training kürzen</button>` : ''}</div>`;
+    ${est > 60 && !(data.timeLimit && data.timeLimit.min) ? `<p class="hint">${motivText('short')}</p>` : ''}</div>`;  // v251: Knopf steht unter dem nächsten Tag
 }
 // Bisherige Nutzer einmal fragen (neue: in der Begrüßung)
 function motivAskCard() {
@@ -5109,64 +5111,66 @@ function cycleLenHtml(ci) {
 }
 
 // Zyklus anpassen an der Zykluskarte (Trainings-Reiter): Woche wechseln, Zykluslänge, beenden
+// v251 (User 2026-11-14): alle Zyklus-Einstellungen auf einer Seite „Zyklus“ – aus der Zykluskarte (Training) und dem Plan-Reiter
 function cycleAdjustHtml(ci) {
   if (!feat('cycle-adjust') || ownPlan()) return '';
-  if (!cycAdjustOpen) {
-    return `<button class="btn cyc-adjust-btn" data-action="cyc-adjust-open"><span>⚙️ Zyklus anpassen</span>
-      <small>${feat('plan-week-jump') ? 'Woche wechseln · ' : ''}Länge · Beenden</small></button>`;
-  }
-  if (cycEndAsk) {
-    const trained = roundSessions(ci.cycleStart, ci.week).length > 0;
-    return `<div class="cyc-adjust">
-        <p><b>Zyklus jetzt beenden?</b></p>
-        <p class="hint">Alle eingetragenen Trainings bleiben gespeichert. Wie soll es weitergehen?</p>
-        ${ci.deload ? '' : `<button class="btn primary" data-action="cyc-end" data-m="deload">😮‍💨 Mit Deload-Woche abschließen</button>
-        <p class="hint">Empfohlen: ${trained ? 'Nach dieser Woche' : 'Ab jetzt'} kommt die leichte Deload-Woche zum Erholen, danach beginnt der nächste Zyklus.</p>`}
-        <button class="btn" data-action="cyc-end" data-m="new">⏭ Neuer Zyklus mit der Intro-Woche</button>
-        <p class="hint">Der nächste Zyklus beginnt sofort mit der Intro-Woche, z. B. nach einem Urlaub, in dem du dich schon erholt hast.</p>
-        ${ci.deload ? '' : `<button class="btn" data-action="cyc-end" data-m="newdl">🩹 Neuer Zyklus, mit der Deload-Woche starten</button>
-        <p class="hint">Nach Krankheit oder längerer Pause: Du steigst ab sofort mit der leichten Deload-Woche wieder ein (halbe Sätze,
-          15 % weniger Gewicht oder weniger Wdh.), danach geht es mit der Intro-Woche weiter.</p>`}
-        <button class="btn center" data-action="cyc-end-cancel">Abbrechen</button>
-      </div>`;
-  }
-  // Woche wechseln und Zykluslänge (Standard für alle Zyklen) stehen mit im Panel – früher im Plan-Reiter
-  // unter Periodisierung (User-Wunsch 2026-11-03)
-  const jump = !feat('plan-week-jump') ? '' : `<p><b>Mit welcher Woche weitermachen?</b></p>
-      ${cyclePills(ci, 'cycle-jump')}
-      <p class="hint">Antippen, um ab jetzt mit einer anderen Woche weiterzumachen, z. B. nach Krankheit oder längerer Pause
-        direkt mit der Deload-Woche oder wieder mit der Intro-Woche. Bisherige Trainings bleiben gespeichert.</p>
-      <hr class="cyc-sep">`;
-  return `<div class="cyc-adjust">
-      ${jump}
-      ${cycleLenHtml(ci)}
-      <hr class="cyc-sep">
-      <button class="btn danger" data-action="cyc-end-ask">⏹ Zyklus beenden</button>
-      <button class="btn center" data-action="cyc-adjust-open">Fertig</button>
+  return `<button class="btn cyc-adjust-btn" data-action="cycle-page"><span>⚙️ Zyklus anpassen</span>
+      <small>${feat('plan-week-jump') ? 'Woche · ' : ''}Länge · Deload · Intensität · Beenden</small></button>`;
+}
+function cycEndAskHtml(ci) {
+  const trained = roundSessions(ci.cycleStart, ci.week).length > 0;
+  return `<div class="card cyc-adjust">
+      <p><b>Zyklus jetzt beenden?</b></p>
+      <p class="hint">Alle eingetragenen Trainings bleiben gespeichert. Wie soll es weitergehen?</p>
+      ${ci.deload ? '' : `<button class="btn primary" data-action="cyc-end" data-m="deload">😮‍💨 Mit Deload-Woche abschließen</button>
+      <p class="hint">Empfohlen: ${trained ? 'Nach dieser Woche' : 'Ab jetzt'} kommt die leichte Deload-Woche zum Erholen, danach beginnt der nächste Zyklus.</p>`}
+      <button class="btn" data-action="cyc-end" data-m="new">⏭ Neuer Zyklus mit der Intro-Woche</button>
+      <p class="hint">Der nächste Zyklus beginnt sofort mit der Intro-Woche, z. B. nach einem Urlaub, in dem du dich schon erholt hast.</p>
+      ${ci.deload ? '' : `<button class="btn" data-action="cyc-end" data-m="newdl">🩹 Neuer Zyklus, mit der Deload-Woche starten</button>
+      <p class="hint">Nach Krankheit oder längerer Pause: Du steigst ab sofort mit der leichten Deload-Woche wieder ein (halbe Sätze,
+        15 % weniger Gewicht oder weniger Wdh.), danach geht es mit der Intro-Woche weiter.</p>`}
+      <button class="btn center" data-action="cyc-end-cancel">Abbrechen</button>
     </div>`;
 }
-
-// Periodisierung im Plan-Reiter – Teile je nach Modus (Wochen/Deload, Woche wechseln, Progression, RIR, Volumen)
-function periodCard(c, active) {
-  // Woche wechseln, Zykluslänge und „Zyklus anpassen“ stehen im Trainings-Reiter an der Zykluskarte (cycleAdjustHtml)
-  const cfg = feat('plan-cycle-settings');
-  if (!cfg && !feat('cycle-adjust') && !feat('plan-volume')) return '';
-  let h = '<h2>Periodisierung</h2><div class="card">';
-  if (feat('cycle-adjust')) h += '<p class="hint explain">Woche wechseln, Zykluslänge, Verlängern/Verkürzen und „Zyklus beenden“ findest du im Reiter Training an der Zykluskarte unter „⚙️ Zyklus anpassen“.</p>';
-  if (cfg) {
-    h += `<p class="hint">Eine Woche ist ein Durchlauf: geschafft, sobald ${roundDoneText(active)}, egal, ob du dafür 6, 7 oder 9 Tage brauchst.</p>
-      <p class="lbl chips-title">Deload</p>
+function cycleDeloadHtml(active) {
+  if (!feat('plan-cycle-settings')) return '';
+  return `<p class="lbl chips-title">Deload</p>
       <div class="variants">${[['auto', 'Automatisch'], ['self', 'Selbst bestimmen']].map(([m, l]) =>
         `<button class="vchip ${(active.deload || 'auto') === m ? 'on' : ''}" data-action="plan-deload" data-m="${m}">${l}</button>`).join('')}</div>
       <p class="hint explain">${selfDeload()
-        ? 'Kein automatischer Deload: Nach den Trainingswochen geht es Woche für Woche weiter (Sätze und Tank wie in der letzten Aufbauwoche, Gewicht und Wdh. steigen weiter). Den Deload legst du selbst ein, auf dem Startbildschirm, z. B. unter „⚙️ Zyklus anpassen“ über „Deload“.'
+        ? 'Kein automatischer Deload: Nach den Trainingswochen geht es Woche für Woche weiter (Sätze und Tank wie in der letzten Aufbauwoche, Gewicht und Wdh. steigen weiter). Den Deload legst du selbst ein, im Reiter Training an der Zykluskarte.'
         : 'Nach den Trainingswochen folgt automatisch 1 Deload-Woche.'}
         Deload: halbe Sätze, 15 % weniger Gewicht oder weniger Wdh. als in der letzten Trainingswoche, mindestens ${DELOAD_RIR} Wdh. im Tank, keine Steigerung. Anschließend beginnt der nächste Zyklus.</p>`;
+}
+function renderCyclePage() {
+  if (!hasActivePlan() || ownPlan()) return '<p class="hint">Dieser Plan hat keine Zyklen: Eigene Pläne laufen ohne Intro-, Aufbau- und Deload-Woche.</p>';
+  const ci = cycleInfo(), active = activePlan(), c = data.cycle;
+  if (cycEndAsk) return cycEndAskHtml(ci);
+  let h = `<div class="card"><h2>${ci.deload ? `Zyklus ${ci.cycle} · Deload-Woche` : `Zyklus ${ci.cycle} · ${weekLabel(ci.week)}${ci.intro ? '' : ci.extra ? ' · Verlängerung' : ` von ${ci.buildWeeks}`}`}</h2>
+      <p class="hint">Eine Woche ist ein Durchlauf: geschafft, sobald ${roundDoneText(active)}, egal, ob du dafür 6, 7 oder 9 Tage brauchst.</p>
+      ${feat('plan-week-jump') ? `<p class="lbl chips-title">Mit welcher Woche weitermachen?</p>${cyclePills(ci, 'cycle-jump')}
+        <p class="hint">Antippen, um ab jetzt mit einer anderen Woche weiterzumachen, z. B. nach Krankheit oder längerer Pause
+          direkt mit der Deload-Woche oder wieder mit der Intro-Woche. Bisherige Trainings bleiben gespeichert.</p>` : ''}</div>`;
+  h += `<div class="card">${cycleLenHtml(ci)}</div>`;
+  const dl = cycleDeloadHtml(active);
+  if (dl) h += `<div class="card">${dl}</div>`;
+  const inten = (feat('plan-week-prog') ? progressionTable() : '') + planIntensityCard(c.buildWeeks) + (feat('plan-rir') ? rirTable(c.buildWeeks) : '');
+  if (inten.trim()) h += `<div class="card cyc-intensity"><h2>Intensität</h2>${inten}</div>`;
+  h += `<button class="btn danger" data-action="cyc-end-ask">⏹ Zyklus beenden</button>`;
+  return h;
+}
+
+// Periodisierung im Plan-Reiter – Teile je nach Modus (Wochen/Deload, Woche wechseln, Progression, RIR, Volumen)
+// Plan-Reiter: Zyklus-Einstellungen stehen gesammelt auf der Seite „Zyklus“ (v251), hier nur der Weg dorthin und das Volumen
+function periodCard(c, active) {
+  const cfg = feat('plan-cycle-settings');
+  if (!cfg && !feat('cycle-adjust') && !feat('plan-volume')) return '';
+  let h = '';
+  if (!ownPlan() && (cfg || feat('cycle-adjust'))) {
+    const inten = feat('tr-rir-input') ? (active.rirMode === 'table' ? ' · eigene Tank-Tabelle' : ` · Intensität ${RIR_COURSES[active.rirCourse || 'strong'].label.toLowerCase()}`) : '';
+    h += `<h2>Zyklus</h2><button class="btn nav cyc-page-btn" data-action="cycle-page" data-from="plan">🔄 Zyklus, Deload und Intensität
+      <small>${c.buildWeeks} Trainingswochen · Deload ${selfDeload() ? 'selbst bestimmt' : 'automatisch'}${inten}</small></button>`;
   }
-  if (feat('plan-week-prog')) h += progressionTable();
-  h += planIntensityCard(c.buildWeeks);  // v230: Ambition und Intensitätsverlauf
-  if (feat('plan-rir')) h += rirTable(c.buildWeeks);
-  h += '</div>';
   if (feat('plan-volume')) h += volumeEditor();
   return h;
 }
@@ -6082,7 +6086,9 @@ const APP_SHORT = 'Gainslocker';   // Kurzname: unter dem Symbol und in Dateinam
 const CHANNEL_TEST = (() => { try { return localStorage.getItem('trainingsapp-kanal') || ''; } catch (e) { return ''; } })();
 const IS_BETA = /-beta\.github\.io$/i.test(location.hostname) || CHANNEL_TEST === 'beta';
 const OLD_HOST = /^stepup-strength\.github\.io$/i.test(location.hostname) || CHANNEL_TEST === 'alt';
-const NEW_URL = 'https://lockyourgains.github.io/';
+// v249 (User 2026-11-14): Umzugsmeldung vorerst aus (MOVE_ON); wenn sie wieder an soll, zeigt sie auf die Beta-Seite
+const MOVE_ON = false;
+const NEW_URL = 'https://lockyourgains-beta.github.io/';
 let shareUrl = null, shareFile = null;
 const shareSetText = (x, name) => { const u = holdSec(name); return x.weight != null ? `${fmtNum(x.weight)} kg × ${x.reps != null ? x.reps : '–'}${u ? ' s' : ''}` : `${x.reps != null ? x.reps : '–'}${u ? ' s' : ' Wdh.'}`; };
 function shareData(s) {
@@ -6448,6 +6454,14 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 251, date: '2026-11-14', items: [
+    ['Übersichtlicher: Alles zum Zyklus steht jetzt auf einer Seite „Zyklus“: Woche wechseln, Länge, Deload, Intensität und Zyklus beenden. Du erreichst sie über „⚙️ Zyklus anpassen“ an der Zykluskarte oder im Plan-Reiter.'],
+    ['Ernährung kürzer: Zielgewicht, gemessener Bedarf und Anpassungsvorschläge stehen gemeinsam in „📈 Dein Verlauf“. Die letzten Tage zeigen kein eigenes Diagramm mehr, dafür gibt es den Knopf zu Woche & Monat.'],
+    ['Weniger doppelt: „Training kürzen“ steht nur noch unter dem nächsten Trainingstag, und „Später“ bei der Sicherung gilt auch für die Erinnerung nach dem Training.'],
+  ] },
+  { v: 250, date: '2026-11-14', items: [
+    ['Erfolge: Die Symbole passen jetzt zu den Namen, z. B. 🛋️ Möbelpacker, 🐝 Fleißiger Monat, ⚔️ Dreihundert und 💯 Hundertschaft.'],
+  ] },
   { v: 248, date: '2026-11-14', items: [
     ['Neuer Stil „Puristen“ unter Optionen → Aussehen: so schlicht wie eine Tabelle in Excel oder Google Sheets. Gitterlinien, eckige Zellen, Tabellen-Grün und keine Emojis.'],
   ] },
@@ -7342,7 +7356,7 @@ function holdHistory(name) {
 function holdApply(en, ex) {
   if (!draft || draft.own || !ex || ex.cali || !holdSec(en.name) || typeof caliSetOf !== 'function' || !en.sets.length) return;
   const hist = holdHistory(en.name);
-  const monday = mondayISO(new Date(todayISO() + 'T12:00:00'));
+  const monday = thisMonday();
   const thisWeek = hist.find(h => h.date.slice(0, 10) >= monday);  // schon diese Woche: gleiches Ziel
   for (let i = 0; i < en.sets.length; i++) {
     let v = null;
@@ -8490,6 +8504,7 @@ const actions = {
   'cycle-weeks': el => applyCycleLen(data.cycle.defWeeks + Number(el.dataset.delta)),
   // Laufenden Zyklus anpassen (Urlaub …): verlängern / verkürzen / beenden
   'cyc-adjust-open': () => { cycAdjustOpen = !cycAdjustOpen; cycEndAsk = false; cycLenScope = null; render(); },
+  'cycle-page': el => { cycEndAsk = false; cycLenScope = null; go('cycle', { from: (el && el.dataset.from) || (current.view === 'plan' ? 'plan' : 'start') }); },  // v251
   // Zyklus-Karte auf dem Start auf-/zuklappen (v201), Stand wird gemerkt
   'cyc-toggle': () => {
     const open = !cycOpen();
@@ -8540,7 +8555,8 @@ const actions = {
       toast('Neuer Zyklus: Es geht mit der Intro-Woche los');
     }
     cycEndAsk = false; cycAdjustOpen = false;
-    saveData(); render();
+    saveData();
+    if (current.view === 'cycle') go('start'); else render();  // v251: von der Seite „Zyklus“ zurück zum Training
   },
   // ab jetzt mit der gewählten Zykluswoche weitermachen (Intro … Deload). Vorwärts im selben Zyklus;
   // zurück (z. B. nach Krankheit) beginnt ein neuer Zyklus ab dieser Woche – verglichen wird dann mit den Zyklen davor.
@@ -9887,7 +9903,7 @@ function betaCard() {
   if (!IS_BETA) return '';
   return `<div class="card beta-card"><p><b>🧪 Beta-Version ${APP_V}</b>: Hier testest du Neues, bevor alle es bekommen. Deine Daten hier sind
       getrennt von der normalen App.</p>
-    <button class="btn" data-action="beta-feedback">💬 Rückmeldung geben</button>
+    ${typeof LEGAL !== 'undefined' && LEGAL.email ? '' : '<button class="btn" data-action="beta-feedback">💬 Rückmeldung geben</button>'}
     <button class="btn" data-action="beta-testdata">🧪 Testdaten laden<small>Max, 6 Monate Training und Ernährung (Mai bis Nov. 2026), ersetzt die Daten der Beta</small></button></div>`;
 }
 // Beta (v223, User 2026-11-13): simulierte Testperson aus testdaten-max.json laden – läuft wie „Sicherung laden“ (mit Rückfrage)
@@ -9901,7 +9917,7 @@ actions['beta-testdata'] = async () => {
 };
 // Alte Adresse (stepup-strength.github.io): Daten ziehen nicht von selbst mit (jede Adresse hat ihren eigenen Speicher)
 function moveCard() {
-  if (!OLD_HOST) return '';
+  if (!OLD_HOST || !MOVE_ON) return '';
   const host = NEW_URL.replace('https://', '').replace(/\/$/, '');
   return `<div class="card move-card"><h2>📦 Die App zieht um</h2>
     <p>Sie heißt jetzt <b>${APP_NAME}</b> und hat eine neue Adresse. Deine Daten nimmst du einmal mit. So geht's:</p>

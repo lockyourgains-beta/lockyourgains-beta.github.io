@@ -728,12 +728,8 @@ function foodEatenHtml(date, c) {
     <div class="nut-macros${all ? '' : ' one'}">${tiles.join('')}</div>${split}${src}`;
 }
 
-function foodSumHtml(t, c) {
-  if (c) {
-    return `${nutIntakeBar('Kalorien', Math.round(t.kcal), c.kcal, 'kcal', 0.1)}
-      ${nutIntakeBar('Eiweiß', Math.round(t.p), c.protein, 'g', 0, c.pLo)}
-      ${feat('nut-macros') ? nutIntakeBar('Kohlenhydrate', Math.round(t.c), c.carbs, 'g', 0.25) + nutIntakeBar('Fett', Math.round(t.f), c.fat, 'g', 0.25) : ''}`;
-  }
+// ohne Tagesziel: schlichte Tagessumme (mit Tagesziel zeigt das Tagebuch foodEatenHtml, v243)
+function foodSumHtml(t) {
   return `<div class="nut-goal-row food-sum"><span>Kalorien<b>${nutKcal(t.kcal)}</b></span><span>Eiweiß<b>${Math.round(t.p)} g</b></span>
       <span>Kohlenh.<b>${Math.round(t.c)} g</b></span><span>Fett<b>${Math.round(t.f)} g</b></span></div>
     <p class="hint nut-small">Richte im Reiter „Ernährung“ deine Phase und Angaben ein, dann siehst du hier dein Tagesziel.</p>`;
@@ -774,7 +770,7 @@ function renderFood(p) {
     </div>
     <div class="row food-nav-btns"><button class="btn" data-action="food-cal">📅 Kalender</button>
       <button class="btn" data-action="food-stats">📊 Woche & Monat</button></div>
-    <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) : foodSumHtml(t, null)}${list.some(e => e.key !== FOOD_FILL) ? foodFsHtml(t, foodGoal(date)) : ''}
+    <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) : foodSumHtml(t)}${list.some(e => e.key !== FOOD_FILL) ? foodFsHtml(t, foodGoal(date)) : ''}
       ${typeof microBtnHtml === 'function' ? microBtnHtml() : ''}
       ${nutIntakeForm ? nutIntakeFormHtml() : `<div class="row fe-src-btns">${feat('nut-health') ? '<button class="btn" data-action="health-paste">❤️ Aus Health</button>' : ''}
         <button class="btn" data-action="nut-intake-open" data-date="${date}">✏️ Von Hand</button></div>

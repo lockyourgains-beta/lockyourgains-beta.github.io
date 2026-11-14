@@ -843,45 +843,13 @@ function nutIntakeFormHtml() {
 // Knopf zum Import eines eigenen Ernährungsplans (nutplan.js) – unter den Tagebuch-Knöpfen
 const NP_OPEN_BTN = `<button class="btn nav np-open-btn" data-action="np-open">📋 Eigenen Ernährungsplan übernehmen<small>Aus Excel, Google Sheets oder als Tabelle einfügen, z. B. vom Ernährungsberater</small></button>`;
 
-// Heute: Ist ↔ Soll
-function nutIntakeCard(n, c) {
-  c = nutForDay(c);
-  const t = intakeOn(todayISO());
-  const body = t
-    ? `${nutIntakeBar('Kalorien', t.kcal, c.kcal, 'kcal', 0.1)}
-       ${nutIntakeBar('Eiweiß', t.p, c.protein, 'g', 0, c.pLo)}
-       ${feat('nut-macros') ? nutIntakeBar('Kohlenhydrate', t.c, c.carbs, 'g', 0.25) + nutIntakeBar('Fett', t.f, c.fat, 'g', 0.25) : ''}
-       <p class="hint nut-small">${{ food: 'Aus deinem Ernährungstagebuch', health: 'Aus Health übernommen', auto: 'Mit dem Tagesziel nachgetragen' }[t.src] || 'Von Hand eingetragen'}${nutHintsOn()
-         ? ` · Grün = passt (Kalorien ±10 %, Eiweiß ab der Untergrenze${feat('nut-macros') ? ', Kohlenhydrate und Fett ±25 %' : ''}).` : '.'}</p>`
-    : '<p class="hint nut-small">Heute ist noch nichts eingetragen. Trag oben im Ernährungstagebuch ein, was du isst, oder füg die Werte aus deiner Ernährungs-App über Health ein bzw. trag die Tagessummen von Hand ein.</p>';
-  return `<div class="card nut-intake">
-      <p class="nut-intake-head"><b>🍽️ Heute gegessen</b></p>
-      ${body}
-      ${nutIntakeForm ? nutIntakeFormHtml() : `<div class="row" ${feat('nut-health') ? '' : 'hidden'}>
-        <button class="btn" data-action="health-paste">❤️ Aus Health</button>
-        <button class="btn" data-action="nut-intake-open" data-date="${todayISO()}">✏️ Von Hand</button></div>
-      ${feat('nut-health') ? healthPasteBox() + healthGuide() : ''}
-      ${nutPlanActive() ? '' : NP_OPEN_BTN}`}
-    </div>`;
-}
 
 // Die letzten 14 Tage als Balken (Linie = Tagesziel) + Ø der letzten 7 Tage
 function nutHistoryCard(n, c) {
   const days = Array.from({ length: 14 }, (_, i) => addDaysISO(todayISO(), i - 13));
   const list = days.map(d => intakeOn(d));
   if (!list.some(Boolean)) return '';
-  const max = Math.max(c.kcal * 1.3, ...list.map(x => (x && x.kcal) || 0));
-  const W = 280, H = 90, bw = W / 14;
-  const y = v => H - 14 - v / max * (H - 22);
-  let svg = `<svg class="nut-hist" viewBox="0 0 ${W} ${H}" aria-hidden="true">`;
-  list.forEach((x, i) => {
-    if (x && x.kcal) {
-      const ok = Math.abs(x.kcal / c.kcal - 1) <= 0.1;
-      svg += `<rect class="${!nutHintsOn() ? 'neutral' : ok ? 'ok' : 'off'}" x="${i * bw + 2}" y="${y(x.kcal)}" width="${bw - 4}" height="${H - 14 - y(x.kcal)}" rx="2"/>`;
-    }
-    svg += `<text x="${i * bw + bw / 2}" y="${H - 2}" text-anchor="middle">${new Date(days[i] + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'narrow' })}</text>`;
-  });
-  svg += `<line x1="0" x2="${W}" y1="${y(c.kcal)}" y2="${y(c.kcal)}"/></svg>`;
+  // v251: kein eigenes Balkendiagramm mehr (Ernährung → Tagebuch → Woche & Monat zeigt die Tage als Säulendiagramm)
   const week = days.slice(7).map(d => intakeOn(d)).filter(x => x && x.date < todayISO());
   const avg = k => { const v = week.map(x => x[k]).filter(x => x != null); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null; };
   const rows = [...data.intake].filter(x => x.date >= days[0]).sort((a, b) => b.date.localeCompare(a.date)).map(x => `<li class="bw-row">
@@ -890,8 +858,8 @@ function nutHistoryCard(n, c) {
       <button class="icon-btn" data-action="${x.src === 'food' ? 'food-open' : 'nut-intake-open'}" data-date="${x.date}" aria-label="Bearbeiten">${x.src === 'food' ? '🍎' : '✎'}</button>
       <button class="icon-btn danger" data-action="nut-intake-del" data-date="${x.date}" aria-label="Löschen">✕</button></li>`).join('');
   return `<div class="card nut-history">
-      <p class="nut-intake-head"><b>📅 Letzte 14 Tage</b> <small class="hint">· Linie = Tagesziel ${nutKcal(c.kcal)} kcal</small></p>
-      ${svg}
+      <div class="nut-hist-head"><p class="nut-intake-head"><b>📅 Letzte Tage</b></p>
+        <button class="btn small" data-action="food-stats" data-from="nutrition">📊 Woche & Monat</button></div>
       ${week.length ? `<div class="nut-goal-row nut-avg"><span>Ø Kalorien<b>${avg('kcal') != null ? nutKcal(avg('kcal')) : '–'}</b></span>
         <span>Ø Eiweiß<b>${nutG(avg('p'))}</b></span><span>eingetragen<b>${week.length} von 7 Tagen</b></span></div>
         <p class="hint nut-small">Ø der letzten 7 vollständigen Tage (ohne heute).</p>` : ''}
@@ -983,7 +951,7 @@ function nutMeasuredCard(n, c) {
   const m = nutMeasured();
   if (m.tdee == null) {
     return `<div class="card nut-check"><p><b>📏 Gemessener Bedarf</b></p>
-      <p class="hint nut-small">${m.noWeight
+      <p class="hint nut-small explain">${m.noWeight
         ? 'Genug Essens-Einträge sind da. Jetzt fehlen noch Gewichtswerte: Wiege dich 3–4× pro Woche über mindestens zwei Wochen.'
         : `Trägst du an mindestens 14 Tagen ein, was du isst (bisher ${m.days} seit dem ${fmtDate(m.from + 'T12:00:00')}), und wiegst dich regelmäßig,
           rechnet die App deinen <b>echten</b> Erhaltungsbedarf aus: Was du im Schnitt isst, minus das, was sich am Gewicht
@@ -992,7 +960,7 @@ function nutMeasuredCard(n, c) {
   const mst = nutMeasuredState(n, c, m);
   const { real, used, step, close, atFloor, minicut, onPlan, wait, plan } = mst;
   return `<div class="card nut-check ${close ? 'ok' : onPlan ? '' : 'off'}"><p><b>📏 Gemessener Bedarf: ca. ${nutKcal(real)} kcal</b></p>
-      <p class="hint nut-small">Seit dem ${fmtDate(m.from + 'T12:00:00')} hast du an ${m.days} Tagen im Schnitt <b>${nutKcal(m.avg)} kcal</b> gegessen,
+      <p class="hint nut-small explain">Seit dem ${fmtDate(m.from + 'T12:00:00')} hast du an ${m.days} Tagen im Schnitt <b>${nutKcal(m.avg)} kcal</b> gegessen,
         dein Gewicht hat sich dabei um <b>${nutSigned(m.perWeek, 'kg')} pro Woche</b> verändert. Daraus ergibt sich ein Erhaltungsbedarf
         von ca. ${nutKcal(real)} kcal. Die App rechnet gerade mit ${nutKcal(used)} kcal${n.kcalOwn != null ? ' (aus deinem eigenen Tagesziel)' : n.adjust ? ' (Formel + Anpassung)' : ' (Schätzformel)'}.
         ${close ? 'Das passt gut zusammen.' : plan ? `Dein Ernährungsplan ist maßgeblich, die App ändert nichts. Weicht dein Gewicht länger vom Ziel ab, sprich eine Anpassung mit deinem Berater ab (Richtung: ${nutSigned(step, 'kcal')}).`
@@ -1017,6 +985,12 @@ function nutFloorHint(n) {
 const NUT_LATER_BTN = '<button class="btn" data-action="nut-suggest-later">Nicht jetzt</button>';
 
 // Keine laufenden Kommentare (User-Regel 2026-11-06): Die Karte erscheint nur mit einem Kalorienvorschlag und kurzer Begründung
+// v251 (User 2026-11-14): Zielgewicht, Hinweis mit Anpassungsvorschlag und gemessener Bedarf in einer Karte „Dein Verlauf“
+function nutProgressCard(n, c, kg) {
+  const sec = h => h ? h.replace('class="card ', 'class="nut-sec ') : '';
+  const parts = [sec(nutGoalCard(n, c, kg)), sec(nutTrendCard(n, c)), sec(nutMeasuredCard(n, c))].filter(Boolean);
+  return parts.length ? `<div class="card nut-progress"><h2>📈 Dein Verlauf</h2>${parts.join('')}</div>` : '';
+}
 function nutTrendCard(n, c) {
   if (!nutHintsOn() || n.phase === 'minicut' || nutBreakNow(n)) return '';
   const ask = nutMeasuredAsk(n, c);
@@ -1237,9 +1211,7 @@ function renderNutrition() {
       ${nutPhaseHint(n)}
       ${(bwDone = true) && bwBlock}
       ${feat('nut-history') ? nutHistoryCard(n, nutForDay(c)) : ''}
-      ${nutMeasuredCard(n, c)}
-      ${nutGoalCard(n, c, kg)}
-      ${nutTrendCard(n, c)}
+      ${nutProgressCard(n, c, kg)}
       ${nutTrainCard(n)}
       <div class="row nut-actions"><button class="btn" data-action="nut-edit">Angaben ändern</button>
         <button class="btn" data-action="nut-setup">Phase wechseln</button></div>

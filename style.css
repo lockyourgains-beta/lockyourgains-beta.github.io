@@ -2699,8 +2699,6 @@ header.tr h1 { font-size: 20px; letter-spacing: -.01em; }
 .opt-ico { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; background: var(--accent-soft); font-size: 22px; }
 .opt-txt { flex: 1; min-width: 0; }
 .opt-row.warn small { color: var(--warn-text); font-weight: 600; }
-.plan-btns { margin: 4px 0 12px; }
-.plan-btns .btn { flex: 1; min-width: 0; margin: 0; font-size: 16.5px; }
 .plan-days .day-txt { font-size: 18px; line-height: 1.25; }
 .bw-entries summary small { margin-left: 8px; font-weight: 500; color: var(--muted); }
 .bw-entries .list { margin: 10px 0 0; }
@@ -2812,7 +2810,6 @@ header.tr h1 { font-size: 20px; letter-spacing: -.01em; }
 .ss-check-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .ss-check-btns .btn { margin: 0; }
 .wiz-ex.ss { border-left: 4px solid var(--accent); padding-left: 10px; }
-.wiz-ex.ss-A { margin-top: 6px; }
 .wiz-ss { margin-top: 12px; }
 
 /* ---------- v211: Intensitätstechniken ---------- */
@@ -2973,8 +2970,7 @@ header .beta-badge { flex: none; margin-left: 6px; padding: 3px 8px; border-radi
 .food-top-txt b { font-size: 18px; }
 .food-top-txt small { color: var(--muted); font-size: 14px; }
 .food-top-chev { font-size: 26px; color: var(--muted); }
-.food-top-btns { padding: 0 16px 16px; margin: 0; flex-wrap: wrap; }
-.food-top-btns .btn, .food-nav-btns .btn { flex: 1 1 auto; margin: 0; }
+.food-nav-btns .btn { flex: 1 1 auto; margin: 0; }
 .food-nav-btns { margin: 0 0 12px; flex-wrap: wrap; }
 .fcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .fcal-wd span { text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); padding: 4px 0; }
@@ -3001,7 +2997,7 @@ header .beta-badge { flex: none; margin-left: 6px; padding: 3px 8px; border-radi
 .fstat-bar > i { display: block; height: 100%; border-radius: 99px; background: var(--accent); opacity: .7; }
 .fstat-bar > u { position: absolute; top: -3px; width: 2px; height: 10px; background: var(--text); opacity: .6; }
 .replace .swap-new { width: 100%; margin: 8px 0 4px; }
-.food-top-btns .btn, .food-nav-btns .btn { flex: 1 1 0; width: auto; min-width: 0; padding-left: 8px; padding-right: 8px; }
+.food-nav-btns .btn { flex: 1 1 0; width: auto; min-width: 0; padding-left: 8px; padding-right: 8px; }
 
 /* ---------- v219: eigene Fenster statt System-Pop-ups (Hinweis, Rückfrage, Eingabe) ---------- */
 .dlg-back {
@@ -3174,7 +3170,6 @@ header .beta-badge { flex: none; margin-left: 6px; padding: 3px 8px; border-radi
 .hx-tab { display: grid; grid-template-columns: 1.6fr 1fr 1fr .9fr; gap: 6px 8px; font-size: 14.5px; font-variant-numeric: tabular-nums; }
 .hx-tab span:nth-child(4n+2), .hx-tab span:nth-child(4n+3), .hx-tab span:nth-child(4n) { text-align: right; }
 .hx-tab span:nth-child(-n+4) { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
-.cali-entry { margin-bottom: 18px; }
 .cali-day { margin: 14px 0 4px; font-size: 14px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .cali-ex { display: flex; justify-content: space-between; gap: 10px; width: 100%; padding: 8px 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text); font: inherit; font-size: 16px; text-align: left; }
 .cali-ex b { flex: none; font-variant-numeric: tabular-nums; }
@@ -3482,3 +3477,14 @@ div.btn.week-ses { cursor: default; }
 [data-look="sheet"] nav { background: var(--fill); box-shadow: 0 -1px 0 var(--line-strong); }
 [data-look="sheet"] nav button.active { background: var(--card); color: var(--accent-text); box-shadow: inset 0 -3px 0 var(--accent); }
 [data-look="sheet"] nav button.active svg { background: none; }
+
+/* v251: „Letzte Tage“ ohne eigenes Diagramm, Verweis auf Woche & Monat */
+.nut-hist-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.nut-hist-head .nut-intake-head { margin: 0; }
+.nut-hist-head .btn { flex: none; width: auto; margin: 0; min-height: 40px; padding: 6px 12px; font-size: 15px; }
+
+/* v251: „Dein Verlauf“ – Zielgewicht, Hinweis und gemessener Bedarf als Abschnitte einer Karte */
+.nut-progress .nut-sec { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.nut-progress h2 + .nut-sec { margin-top: 4px; padding-top: 0; border-top: 0; }
+.nut-progress .nut-sec.nut-check.off { margin-left: -6px; margin-right: -6px; padding: 12px; border-top: 0; border-radius: 12px; background: var(--warn-soft); }
+.nut-progress .nut-sec.nut-check.ok p:first-child b::after { content: ' ✓'; color: var(--success); }

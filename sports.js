@@ -244,7 +244,7 @@ function hyroxProgress() {
     names: ['Erster Hyrox-Durchgang', 'Fünf Durchgänge', 'Zehn Durchgänge', 'Hyrox-Maschine'],
     name: g => `${g} Komplett-Durchgänge`, desc: g => g === 1 ? 'Ersten Komplett-Durchgang auf Zeit geschafft' : `${g} Komplett-Durchgänge auf Zeit`,
     value: x => x.full, fmt: v => `${v}` }, i: 0 },
-  { def: { id: 'hx-race', cat: 'Hyrox', goals: [1, 3, 5, 10], step: 10, icons: ['🏁', '🥈', '🥇', '🏆'], names: ['Hyrox gefinisht', 'Drei Hyrox-Rennen', 'Fünf Hyrox-Rennen', 'Hyrox-Veteran'],
+  { def: { id: 'hx-race', cat: 'Hyrox', goals: [1, 3, 5, 10], step: 10, icons: ['🏁', '🎽', '🏅', '🏆'], names: ['Hyrox gefinisht', 'Drei Hyrox-Rennen', 'Fünf Hyrox-Rennen', 'Hyrox-Veteran'],
     name: g => `${g} Hyrox-Rennen`, desc: g => g === 1 ? 'Ersten Hyrox-Wettkampf geschafft' : `${g} Hyrox-Wettkämpfe geschafft`, value: x => x.race, fmt: v => `${v}` }, i: 0 },
   { def: { id: 'hx-goal', cat: 'Hyrox', goals: [1, 3], step: 5, icons: ['🎯'], names: ['Zielzeit geknackt', 'Dreimal Zielzeit geknackt'],
     name: g => `${g}× Zielzeit`, desc: g => g === 1 ? 'Im Wettkampf die eigene Zielzeit erreicht' : `${g}-mal im Wettkampf die Zielzeit erreicht`, value: x => x.goal, fmt: v => `${v}` }, i: 0 }];
@@ -356,7 +356,7 @@ function hxWeek(r) {
   });
   // Wettkampf-Woche: Wettkampftag eintragen, die zwei Tage davor frei
   if (ph.k === 'taper') {
-    const raceWd = (new Date(r.date + 'T12:00:00').getDay() + 6) % 7, monday = mondayISO(new Date(todayISO() + 'T12:00:00'));
+    const raceWd = (new Date(r.date + 'T12:00:00').getDay() + 6) % 7, monday = thisMonday();
     if (addDaysISO(monday, raceWd) === r.date) {
       for (const k of [raceWd - 1, raceWd - 2]) if (k >= 0) { const moved = days[k].filter(x => !x.kraft); days[k] = days[k].filter(x => x.kraft && false); moved.forEach(x => days[Math.max(0, k - 2)].push(x)); }
       days[raceWd] = [{ t: '🏁 Wettkampf', d: `${r.name || 'Hyrox'}. Viel Erfolg!`, race: true }];
@@ -368,7 +368,7 @@ function hxWeek(r) {
 /* Wettkampf-Woche im Kraft-Reiter (v232, User 2026-11-13 nach Simulation sim9): Hinweis auf der Kraft-Startseite und auf Wunsch
    leichte Krafttrainings wie im Deload (halbe Sätze, weniger Gewicht, keine Steigerung). data.hyrox.light = Montag dieser Woche.
    Die Trainings zählen normal für die Woche; gespeichert mit session.deload + session.light (keine Bezugswerte, kein Deload-Wechsel). */
-const hxMonday = () => mondayISO(new Date(todayISO() + 'T12:00:00'));
+const hxMonday = () => thisMonday();
 function hxTaperNow() {
   if (!sportDraft() || !data.hyrox) return null;
   const r = hxRace();
@@ -415,7 +415,7 @@ function hxWeekCard() {
   if (!r) return '';
   const w = hxWeek(r);
   if (!w) return '';
-  const key = mondayISO(new Date(todayISO() + 'T12:00:00')), done = (hxData().done || {})[key] || [], today = (new Date(todayISO() + 'T12:00:00').getDay() + 6) % 7;
+  const key = thisMonday(), done = (hxData().done || {})[key] || [], today = (new Date(todayISO() + 'T12:00:00').getDay() + 6) % 7;
   const pace = hxPace(r);
   const rows = w.days.map((list, wd) => list.map(x => {
     const ok = x.i != null && done.includes(x.i);
@@ -547,7 +547,7 @@ Object.assign(actions, {
   },
   'hx-ev-del': () => { if (!askOk('Wettkampf entfernen? Deine Zeiten bleiben erhalten.')) return; hxData().race = null; saveData(); hxEv = null; go('hyrox'); },
   'hx-wdone': el => {
-    const key = mondayISO(new Date(todayISO() + 'T12:00:00')), H = hxData(), i = Number(el.dataset.i);
+    const key = thisMonday(), H = hxData(), i = Number(el.dataset.i);
     H.done = H.done || {};
     const list = H.done[key] || [];
     H.done[key] = list.includes(i) ? list.filter(x => x !== i) : [...list, i];

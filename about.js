@@ -152,5 +152,5 @@ views.about = { title: 'Über die App', tab: 'data', back: () => ['opt', { sec: 
 
 Object.assign(actions, {
   'about': () => go('about'),
-  'about-feedback': () => feedbackMail(),
+  'about-feedback': () => feedbackMail(typeof IS_BETA !== 'undefined' && IS_BETA),  // v251: in der Beta mit Beta-Angaben
 });
