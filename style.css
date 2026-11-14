@@ -3497,3 +3497,140 @@ div.btn.week-ses { cursor: default; }
 .welcome-tab .wt-ico svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .welcome-tab b { display: block; font-size: 19px; }
 .welcome-tab p { margin: 3px 0 0; font-size: 16px; line-height: 1.4; color: var(--muted); }
+
+/* v254 (User 2026-11-14): Übungskarten im Stil Standard einfarbig (leicht in der Farbwelt getönt) statt vier verschiedener Töne;
+   heller Modus kräftiger: Akzentflächen (--accent-soft) satter. Außerdem: in den neuen Stilen keine bunten Karten im Dunkelmodus. */
+:root:not([data-look]) :is(.ex-card.tint-0, .ex-card.tint-1, .ex-card.tint-2, .ex-card.tint-3) { background: color-mix(in srgb, var(--accent) 7%, var(--card)); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-look]):not([data-theme="light"]) :is(.ex-card.tint-0, .ex-card.tint-1, .ex-card.tint-2, .ex-card.tint-3) { background: color-mix(in srgb, var(--accent) 9%, var(--card)); }
+}
+:root:not([data-look])[data-theme="dark"] :is(.ex-card.tint-0, .ex-card.tint-1, .ex-card.tint-2, .ex-card.tint-3) { background: color-mix(in srgb, var(--accent) 9%, var(--card)); }
+:root:is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) :is(.ex-card.tint-0, .ex-card.tint-1, .ex-card.tint-2, .ex-card.tint-3) { background: var(--card); }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent); }
+}
+:root[data-theme="light"] { --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent); }
+
+/* ---------- v256 (User 2026-11-14): Stile im Training klarer unterscheidbar – jeder Stil bekommt eine eigene Formsprache.
+   Standard = weich (Pillen, Kreise), Logbuch = Notizbuch (Randlinie, Schreiblinien), Schwarzweiß = Plakat (Rahmen, harter Schatten),
+   Schlicht = Haarlinien (Satzzeilen wie eine ruhige Liste). Kraftraum und Puristen bleiben unverändert. ---------- */
+
+/* Standard: weich */
+:root:not([data-look]) .ex-card { border-radius: 28px; padding: 18px 16px 14px; }
+:root:not([data-look]) .ex-card .ex-head { border-bottom: 0; padding-bottom: 0; }
+:root:not([data-look]) .ex-card .target { display: inline-block; padding: 6px 14px; border-radius: 999px; background: var(--accent-soft); font-size: 17px; }
+:root:not([data-look]) .ex-card :is(.warmup, .compare, .plates-line, .last-comment) { border-radius: 20px; }
+:root:not([data-look]) .ex-card .det-btn { border-radius: 999px; }
+:root:not([data-look]) .setgrid { gap: 10px 8px; }
+:root:not([data-look]) .setgrid input { border: 0; border-radius: 999px; background: var(--fill); }
+:root:not([data-look]) .setgrid input.tank { border: 1.5px dashed var(--line-strong); background: transparent; }
+:root:not([data-look]) .setgrid :is(input.done, input.tank:not(:placeholder-shown)) { border-color: transparent; background: var(--success-soft); color: var(--success); }
+:root:not([data-look]) .setgrid input:focus { background: var(--card); box-shadow: 0 0 0 2px var(--accent), 0 0 0 6px var(--accent-soft); }
+:root:not([data-look]) .setgrid .setno { align-self: center; justify-self: center; width: 46px; height: 46px; border-radius: 50%; }
+:root:not([data-look]) .setgrid .setno.done { background: var(--success); color: #fff; }
+:root:not([data-look]) .setgrid .setno:has(small) { width: auto; height: auto; align-self: stretch; justify-self: stretch; border-radius: 16px; }
+:root:not([data-look]) .bw-cell { border-radius: 999px; }
+
+/* Logbuch: Notizbuch – farbige Randlinie links, Doppellinie unter dem Namen, Felder als Schreiblinien, Satznummer im Kreis */
+[data-look="log"] .card.ex-card:not(.cycle):not(.day-btn) { border-top: 0; padding: 6px 2px 14px 16px; box-shadow: inset 2px 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+[data-look="log"] .ex-card .ex-head { border-bottom: 3px double var(--line-strong); }
+[data-look="log"] .ex-card :is(.warmup, .compare, .plates-line, .last-comment) { background: transparent; border-radius: 0; box-shadow: inset 3px 0 0 var(--line-strong); padding-left: 14px; }
+[data-look="log"] .ex-card .det-btn:not(.ord-btn) { background: transparent; box-shadow: none; text-decoration: underline; text-underline-offset: 4px; }
+[data-look="log"] .setgrid { gap: 6px 10px; }
+[data-look="log"] .setgrid .head { font-family: var(--f-num); font-weight: 400; }
+[data-look="log"] .setgrid input { min-height: 50px; border: 0; border-bottom: 2px solid var(--line-strong); border-radius: 0; background: transparent; box-shadow: none; }
+[data-look="log"] .setgrid input.tank { border-bottom-style: dashed; }
+[data-look="log"] .setgrid :is(input.done, input.tank:not(:placeholder-shown)) { border-bottom: 2px solid var(--success); background: transparent; }
+[data-look="log"] .setgrid input:focus { border-bottom-color: var(--accent); background: var(--accent-soft); box-shadow: none; }
+[data-look="log"] .setgrid .setno { align-self: center; justify-self: center; width: 40px; height: 40px; border-radius: 50%; background: transparent;
+  color: var(--text); box-shadow: inset 0 0 0 1.5px var(--line-strong); font-family: var(--f-num); font-weight: 400; }
+[data-look="log"] .setgrid .setno.done { background: var(--success); color: #fff; box-shadow: none; }
+[data-look="log"] .setgrid .setno:has(small) { width: auto; height: auto; align-self: stretch; justify-self: stretch; border-radius: 12px; }
+[data-look="log"] .bw-cell { border-radius: 0; background: transparent; border-bottom: 2px solid var(--line-strong); }
+
+/* Schwarzweiß: Plakat – schwarzer Rahmen mit hartem Schatten, Name als schwarzer Balken, erledigte Felder schwarz gefüllt */
+[data-look="bw"] .card:is(.ex-card, .prog-card):not(.cycle) { border: 2px solid var(--text); box-shadow: 5px 5px 0 var(--text); margin-right: 5px; padding-left: 14px; padding-right: 14px; }
+[data-look="bw"] .card.ex-card:not(.cycle) { padding-top: 0; }
+[data-look="bw"] .ex-card .ex-head { margin: 0 -14px 14px; padding: 12px 14px 10px; background: var(--text); border-bottom: 0; }
+[data-look="bw"] .ex-card .ex-head :is(h2, .lib-link, .ex-paren) { color: var(--bg); }
+[data-look="bw"] .ex-card .ex-head .info-dot { background: var(--bg); color: var(--text); }
+[data-look="bw"] .ex-card .ex-head :is(.det-btn, .icon-btn) { background: transparent; color: var(--bg); box-shadow: inset 0 0 0 1.5px var(--bg); }
+[data-look="bw"] .ex-card .ex-head .ss-badge { background: var(--bg); color: var(--text); }
+[data-look="bw"] .ex-card .target { display: inline-block; padding: 4px 10px; background: var(--text); color: var(--bg); }
+[data-look="bw"] .ex-card :is(.warmup, .compare, .plates-line, .last-comment) { background: transparent; border-radius: 0; box-shadow: inset 5px 0 0 var(--text); padding-left: 16px; }
+[data-look="bw"] .setgrid .head { color: var(--text); }
+[data-look="bw"] .setgrid input { border: 2px solid var(--text); background: var(--card); }
+[data-look="bw"] .setgrid input.tank { border-style: dashed; }
+[data-look="bw"] .setgrid :is(input.done, input.tank:not(:placeholder-shown)) { border: 2px solid var(--text); background: var(--text); color: var(--bg); }
+[data-look="bw"] .setgrid input:focus { border-color: var(--text); background: var(--card); color: var(--text); box-shadow: 4px 4px 0 var(--text); }
+[data-look="bw"] .setgrid .setno { background: transparent; color: var(--text); box-shadow: inset 0 0 0 2px var(--text); }
+[data-look="bw"] .setgrid .setno.done { background: var(--text); color: var(--bg); }
+[data-look="bw"] .bw-cell { border: 2px solid var(--line-strong); background: transparent; }
+[data-look="bw"] .btn.primary { box-shadow: 4px 4px 0 color-mix(in srgb, var(--text) 35%, transparent); }
+
+/* Schlicht: Haarlinien – Sätze als durchgehende Zeilen ohne Kästchen, dünne große Zahlen, erledigte Zeile leicht getönt */
+[data-look="plain"] .card.ex-card { box-shadow: none; border: 1px solid var(--line-strong); }
+[data-look="plain"] .setgrid { column-gap: 0; row-gap: 0; }
+[data-look="plain"] .setgrid .head { padding-bottom: 6px; border-bottom: 1px solid var(--text); }
+[data-look="plain"] .setgrid > :is(.setno, input, .bw-cell, .hold-cell, .feel-btn) { align-self: stretch; min-height: 54px; margin: 0; border: 0; border-bottom: 1px solid var(--line);
+  border-radius: 0; background: transparent; box-shadow: none; }
+[data-look="plain"] .setgrid input { font-size: 26px; font-weight: 300; }
+[data-look="plain"] .setgrid .setno { color: var(--muted); font-size: 15px; }
+[data-look="plain"] .setgrid > :is(.setno.done, input.done, input.tank:not(:placeholder-shown)) { border-bottom-color: var(--line); background: color-mix(in srgb, var(--success) 9%, transparent); color: var(--text); }
+[data-look="plain"] .setgrid .setno.done { color: var(--success); font-weight: 600; }
+[data-look="plain"] .setgrid input:focus { box-shadow: inset 0 -2px 0 var(--text); background: transparent; }
+[data-look="plain"] .setgrid .setno.now { box-shadow: inset 3px 0 0 var(--text); }
+[data-look="bw"] .ex-card .ex-head :is(.det-btn, .icon-btn) { border-radius: 0; }
+
+/* v256: Startseite (Zyklus und Trainingstage) in derselben Formsprache wie das Training */
+/* Standard: Tagesnummer im Kreis, weichere Karten */
+:root:not([data-look]) .day-btn { border-radius: 24px; }
+:root:not([data-look]) .day-no { border-radius: 50%; }
+/* Logbuch: nächster Tag als markierte Zeile mit Randlinie statt Farbblock, Nummern im Kreis */
+[data-look="log"] .day-btn.next { background: var(--accent-soft); color: var(--text); border-radius: 0; box-shadow: inset 4px 0 0 var(--accent); }
+[data-look="log"] .day-btn.next .day-txt { color: var(--text); }
+[data-look="log"] .day-btn.next .day-txt small { color: var(--muted); }
+[data-look="log"] .day-btn.next::after { color: var(--accent-text); border-color: var(--accent-text); }
+[data-look="log"] .day-btn.next .next-badge { background: var(--accent); color: #fff; }
+[data-look="log"] .day-no { border-radius: 50%; background: transparent; color: var(--text); box-shadow: inset 0 0 0 1.5px var(--line-strong); font-family: var(--f-num); font-weight: 400; }
+[data-look="log"] .day-btn.next .day-no { background: var(--accent); color: #fff; box-shadow: none; }
+[data-look="log"] .day-btn.done .day-no { background: var(--success); color: #fff; box-shadow: none; }
+/* Schwarzweiß: Tage und Zyklus als gerahmte Plakatkästen mit hartem Schatten */
+[data-look="bw"] .day-btn:not(.next):not(.pending) { border: 2px solid var(--text); border-radius: 0; box-shadow: 4px 4px 0 var(--text); margin-right: 4px; }
+[data-look="bw"] .day-btn.next, [data-look="bw"] .card.cycle { border-radius: 0; box-shadow: 5px 5px 0 color-mix(in srgb, var(--text) 35%, transparent); margin-right: 5px; }
+[data-look="bw"] .day-no { background: transparent; color: var(--text); box-shadow: inset 0 0 0 2px var(--text); }
+[data-look="bw"] .day-btn.next .day-no { background: var(--bg); color: var(--text); box-shadow: none; }
+[data-look="bw"] .day-btn.done .day-no { background: var(--text); color: var(--bg); }
+/* Puristen: nächster Tag als markierte Zelle (vorher weiße Schrift auf weißem Grund) */
+[data-look="sheet"] .day-btn.next { background: var(--accent-soft); color: var(--text); }
+[data-look="sheet"] .day-btn.next .day-txt { color: var(--text); }
+[data-look="sheet"] .day-btn.next .day-txt small { color: var(--muted); }
+[data-look="sheet"] .day-btn.next .day-no { background: var(--accent); color: #fff; }
+[data-look="sheet"] .day-btn.next::after { color: var(--accent-text); border-color: var(--accent-text); }
+
+/* v260: Tagesziel anpassen im Ernährungstagebuch (unter „Gegessen“) */
+.fe-goal { margin-top: 14px; padding-top: 4px; border-top: 1px solid var(--line); }
+.fe-goal-btn { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 8px 2px;
+  border: 0; background: none; color: var(--text); font: inherit; font-size: 17px; text-align: left; }
+.fe-goal-btn small { flex: none; font-size: 15px; color: var(--accent-text); }
+.fe-goal.open .hint { margin-top: 2px; }
+.fe-goal-btns { margin: 8px 0; }
+.fe-goal-btns .btn { flex: 1; min-height: 46px; margin: 0; }
+.fe-goal-lbl { margin: 14px 0 6px; }
+.fe-goal-macros small { display: block; font-size: 13px; color: var(--muted); }
+
+/* v261: Verlauf → Statistik → Gewicht: Gewicht und Kalorien untereinander, Tag per Finger wählen */
+.bwc-tip { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 16px; min-height: 58px; margin: 6px 0 8px; padding: 10px 14px;
+  border-radius: 14px; background: var(--fill); font-size: 15px; color: var(--muted); }
+.bwc-tip > b { flex-basis: 100%; color: var(--text); font-size: 15px; }
+.bwc-tip span b { margin-left: 4px; color: var(--text); font-size: 19px; font-variant-numeric: tabular-nums; }
+.bwc-svg { display: block; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+.bwc-title { fill: var(--muted); font-size: 13px; font-weight: 600; }
+.bwc-empty { fill: var(--muted); font-size: 13px; }
+.bwc-bar { fill: color-mix(in srgb, var(--accent) 42%, transparent); }
+.bwc-bar.on { fill: var(--accent); }
+.bwc-avg { stroke: var(--text); stroke-width: 1; stroke-dasharray: 4 3; opacity: .55; }
+.bwc-avg-t { fill: var(--muted); font-size: 11.5px; font-weight: 600; }
+.bwc-cross { stroke: var(--text); opacity: .6; }
+.bwc-kavg { margin: 4px 2px 14px; font-size: 15px; }
+.bw-hist-link { display: block; margin: -4px 0 16px; }

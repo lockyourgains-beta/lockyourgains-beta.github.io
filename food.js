@@ -771,10 +771,11 @@ function renderFood(p) {
     <div class="row food-nav-btns"><button class="btn" data-action="food-cal">📅 Kalender</button>
       <button class="btn" data-action="food-stats">📊 Woche & Monat</button></div>
     <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) : foodSumHtml(t)}${list.some(e => e.key !== FOOD_FILL) ? foodFsHtml(t, foodGoal(date)) : ''}
+      ${date === todayISO() && typeof nutGoalToolsHtml === 'function' ? nutGoalToolsHtml() : ''}
       ${typeof microBtnHtml === 'function' ? microBtnHtml() : ''}
       ${nutIntakeForm ? nutIntakeFormHtml() : `<div class="row fe-src-btns">${feat('nut-health') ? '<button class="btn" data-action="health-paste">❤️ Aus Health</button>' : ''}
         <button class="btn" data-action="nut-intake-open" data-date="${date}">✏️ Von Hand</button></div>
-      ${feat('nut-health') ? healthPasteBox() : ''}`}</div>
+      ${feat('nut-health') ? healthPasteBox() + healthGuide() : ''}`}</div>
     ${date === todayISO() ? foodOpenCard() : ''}`;
   const planDay = typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanDay(date) : null;
   const planMeals = (planDay && planDay.meals) || {};
@@ -815,7 +816,12 @@ function renderFood(p) {
 function foodHit(f) {
   return `<button class="btn nav food-hit" data-action="food-pick" data-key="${esc(f.key)}">
       <span class="lib-txt">${f.fav ? '⭐ ' : ''}${f.supp ? '💊 ' : ''}${esc(f.name)}<small>${f.brand ? esc(f.brand) + ' · ' : ''}${f.supp ? 'Nahrungsergänzung'
-        : `${foodKcal(f.per[0])} kcal · Eiweiß ${foodNum(f.per[1])} g je 100 g`}</small></span></button>`;
+        : `je 100 g: ${foodKcal(f.per[0])} kcal · ${foodMacroMini(f.per)}`}</small></span></button>`;
+}
+// v257 (User 2026-11-14): Schnellansicht in der Suche mit allen Makros, nicht nur Eiweiß
+function foodMacroMini(per) {
+  const g = v => v == null || isNaN(v) ? '–' : foodNum(v) + ' g';
+  return `Eiweiß ${g(per[1])} · KH ${g(per[2])} · Fett ${g(per[3])}`;
 }
 
 // Suchtext: Name, Name ohne Leerzeichen (so findet „Hähnchenbrust“ auch „Hähnchen Brust, ohne Haut, roh“ aus dem BLS),
@@ -1211,7 +1217,8 @@ function renderFoodOwn() {
 
 /* ----- Einbindung ----- */
 
-views.food = { title: 'Ernährungstagebuch', tab: 'nutrition', back: 'nutrition', render: renderFood };
+views.food = { title: 'Ernährungstagebuch', tab: 'nutrition', back: 'nutrition', render: renderFood,
+  after: () => { if (typeof nutPctUpdate === 'function') nutPctUpdate(); } };  // v260: Makros in % auch im Tagebuch
 views.foodadd = { title: p => MEALS[p.meal] ? MEALS[p.meal][1] : 'Hinzufügen', tab: 'nutrition',
   back: p => ['food', { date: p.date }], render: renderFoodAdd };
 views.foodamt = { title: p => p.id ? 'Eintrag ändern' : 'Menge', tab: 'nutrition',

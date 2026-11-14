@@ -444,6 +444,7 @@ function fmtTick(t, spanDays) {
 }
 
 function drawChart() {
+  if (document.getElementById('bwc-area')) { drawBwCmp(); return; }  // v261: Gewicht & Kalorien im Verlauf
   const area = document.getElementById('chart-area');
   const extra = document.getElementById('chart-extra');
   if (!area) return;
@@ -915,7 +916,7 @@ const histSecOf = mode => mode === 'ex' ? 'ex' : mode === 'awards' ? 'awards' : 
 const histSegHtml = active => `<div class="seg hist-seg">${HIST_SECS.map(([k, l]) =>
   `<button class="${active === k ? 'on' : ''}" data-action="hist-sec" data-k="${k}">${l}</button>`).join('')}</div>`;
 // Statistik: Tonnage nur Experte, Schritte ab Standard, Cardio immer
-const statTabs = () => [feat('chart-detail') && ['ton', 'Tonnage'], feat('steps') && ['steps', 'Schritte'],
+const statTabs = () => [['bw', 'Gewicht'], feat('chart-detail') && ['ton', 'Tonnage'], feat('steps') && ['steps', 'Schritte'],
   typeof renderCardioStats === 'function' && ['cardio', 'Cardio']].filter(Boolean);
 function goHist(sec) {
   const s = HIST_SECS.some(([k]) => k === sec) ? sec : 'cal';
@@ -986,9 +987,10 @@ function renderCharts() {
   if (tabs.length > 1) h += `<div class="seg small stat-seg">${tabs.map(([m, l]) =>
     `<button class="${s.mode === m ? 'on' : ''}" data-action="chart-mode" data-mode="${m}">${l}</button>`).join('')}</div>`;
   if (s.mode === 'cardio') return h + renderCardioStats();  // cardio.js
+  if (s.mode === 'bw') return h + bwCmpHtml();  // v261: Körpergewicht und Kalorien
 
   if (s.mode === 'steps') {
-    h += (feat('nut-health') ? `<p class="hint explain">❤️ Schritte aus Apple Health holst du im Reiter <b>Ernährung</b> mit „Aus Health“,
+    h += (feat('nut-health') ? `<p class="hint explain">❤️ Schritte aus Apple Health holst du im <b>Ernährungstagebuch</b> mit „Aus Health“,
       zusammen mit Gewicht und Kalorien.</p>` : '') + `<div class="card">
       <label class="row"><span>Schritte</span>
         <input class="inp kg" id="steps-n" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="8500"></label>
@@ -1059,12 +1061,149 @@ Object.assign(actions, {
     if (box) box.focus();
   },
   'health-apply': () => applyHealthText(document.getElementById('health-text').value),
+  // v261: vom Ernährungsreiter (Körpergewicht) in den Verlauf → Statistik → Gewicht
+  'bw-hist': () => { chartState.mode = 'bw'; bwcSel = null; goHist('stats'); },
   'bw-del': el => {
     if (!askOk('Diesen Eintrag löschen?')) return;
     data.bodyweight = data.bodyweight.filter(b => b.id !== el.dataset.id);
     saveData(); render();
   },
 });
+
+/* ---------- v261 (User 2026-11-14): Körpergewicht im Verlauf – Gewicht und Kalorien untereinander ----------
+   Verlauf → Statistik → Gewicht. Zwei Diagramme mit gemeinsamer Zeitachse; Finger darüberziehen (oder antippen) wählt
+   einen Tag, oben stehen Datum, Gewicht und Kalorien. Zeitraum über die Chips und ‹ › (Ziehen wählt hier Tage, statt zu verschieben). */
+let bwcSel = null;  // gewählter Tag (JJJJ-MM-TT)
+function bwcData() {
+  const byDay = new Map();
+  for (const b of data.bodyweight) {
+    const d = b.date.slice(0, 10), x = byDay.get(d) || { s: 0, n: 0 };
+    x.s += b.kg; x.n++; byDay.set(d, x);
+  }
+  const w = [...byDay].map(([d, x]) => ({ d, t: Date.parse(d + 'T12:00:00'), v: round1(x.s / x.n) })).sort((a, b) => a.t - b.t);
+  const T = todayISO();
+  const dates = new Set([...data.intake.map(x => x.date), ...(data.foodLog || []).map(x => x.date)]);
+  const k = typeof foodDayVals !== 'function' ? [] : [...dates].filter(d => d <= T).map(d => {
+    const v = foodDayVals(d);
+    return v && v.kcal > 0 ? { d, t: Date.parse(d + 'T12:00:00'), v: Math.round(v.kcal) } : null;
+  }).filter(Boolean).sort((a, b) => a.t - b.t);
+  return { w, k };
+}
+function bwCmpHtml() {
+  const list = bwList();
+  return `${rangeRow()}
+    <div class="bwc-tip" id="bwc-tip"></div>
+    <div class="chart-area bwc-area" id="bwc-area"></div>
+    <p class="hint explain">Fahre mit dem Finger über die Diagramme: Für jeden Tag stehen oben Gewicht und Kalorien. Den Zeitraum verschiebst du mit ‹ ›.</p>
+    <div id="bwc-stats"></div>
+    ${list ? `<details class="card about-sec bw-entries"><summary><b>Alle Gewichts-Einträge</b><small>${data.bodyweight.length}</small></summary>${list.replace('<h2>Einträge</h2>', '')}</details>` : ''}`;
+}
+function drawBwCmp() {
+  const area = document.getElementById('bwc-area');
+  if (!area) return;
+  const tip = document.getElementById('bwc-tip'), stats = document.getElementById('bwc-stats');
+  const { w, k } = bwcData();
+  const all = [...w, ...k].sort((a, b) => a.t - b.t);
+  if (!all.length) {
+    area.innerHTML = '<p class="hint chart-empty">Noch kein Körpergewicht und keine Kalorien eingetragen.</p>';
+    tip.innerHTML = ''; stats.innerHTML = ''; chartGeo = null; updateRangeControls(null);
+    return;
+  }
+  const win = chartWindow(all);
+  const { x0, x1 } = win;
+  const vw = w.filter(p => p.t >= x0 && p.t <= x1), vk = k.filter(p => p.t >= x0 && p.t <= x1);
+  const W = area.clientWidth, L = 46, R = 14, pw = W - L - R;
+  const T1 = 26, H1 = 150, T2 = T1 + H1 + 40, H2 = 110, H = T2 + H2 + 28;
+  const X = t => L + (t - x0) / (x1 - x0) * pw;
+  const days = [...new Map([...vw, ...vk].map(p => [p.d, p])).values()].sort((a, b) => a.t - b.t);
+  const sel = days.find(p => p.d === bwcSel) || days[days.length - 1] || null;
+  const wSel = sel && vw.find(p => p.d === sel.d), kSel = sel && vk.find(p => p.d === sel.d);
+  let svg = `<svg class="bwc-svg" width="${W}" height="${H}" role="img" aria-label="Körpergewicht und Kalorien im Vergleich">
+    <defs><clipPath id="bwc-clip"><rect x="${L - 6}" y="0" width="${pw + 12}" height="${H}"/></clipPath></defs>
+    <text class="bwc-title" x="${L}" y="16">Körpergewicht (kg)</text>
+    <text class="bwc-title" x="${L}" y="${T2 - 12}">Kalorien (kcal)</text>`;
+  // oben: Körpergewicht (Linie, Punkte, Zielgewicht und Phasenbeginn wie im bisherigen Diagramm)
+  if (vw.length) {
+    const marks = typeof nutMarks === 'function' ? nutMarks() : null;
+    const wv = vw.map(p => p.v);
+    const goal = marks && marks.goal != null && marks.goal >= Math.min(...wv) - 4 && marks.goal <= Math.max(...wv) + 4 ? marks.goal : null;
+    const ticks = niceTicks(Math.min(...wv, ...(goal != null ? [goal] : [])), Math.max(...wv, ...(goal != null ? [goal] : [])));
+    const lo = ticks[0], hi = ticks[ticks.length - 1];
+    const Y = v => T1 + (1 - (v - lo) / (hi - lo)) * H1;
+    for (const v of ticks) svg += `<line class="c-grid" x1="${L}" x2="${L + pw}" y1="${Y(v)}" y2="${Y(v)}"/>
+      <text class="c-text" x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${fmtNum(v)}</text>`;
+    svg += '<g clip-path="url(#bwc-clip)">';
+    if (goal != null) svg += `<line class="c-goal" x1="${L}" x2="${L + pw}" y1="${Y(goal)}" y2="${Y(goal)}"/>
+      <text class="c-mark" x="${L + pw - 4}" y="${Y(goal) - 5}" text-anchor="end">Ziel ${fmtNum(goal)} kg</text>`;
+    for (const m of marks ? marks.phases : []) {
+      if (m.t < x0 || m.t > x1) continue;
+      svg += `<line class="c-phase" x1="${X(m.t)}" x2="${X(m.t)}" y1="${T1}" y2="${T1 + H1}"/>
+        <text class="c-mark" x="${X(m.t) + 4}" y="${T1 + 11}">${esc(m.label)}</text>`;
+    }
+    const line = w.map((p, i) => `${i ? 'L' : 'M'}${X(p.t).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
+    if (w.length > 1) svg += `<path class="c-line" d="${line}"/>`;
+    if (vw.length <= 60) for (const p of vw) svg += `<circle class="c-dot" cx="${X(p.t)}" cy="${Y(p.v)}" r="3.5"/>`;
+    if (wSel) svg += `<circle class="c-dot sel" cx="${X(wSel.t)}" cy="${Y(wSel.v)}" r="6"/>`;
+    svg += '</g>';
+  } else {
+    svg += `<text class="bwc-empty" x="${L + pw / 2}" y="${T1 + H1 / 2}" text-anchor="middle">Keine Gewichtswerte in diesem Zeitraum</text>`;
+  }
+  // unten: Kalorien je Tag als Balken, gestrichelt der Durchschnitt
+  let avg = null;
+  if (vk.length) {
+    const kv = vk.map(p => p.v);
+    avg = kv.reduce((a, b) => a + b, 0) / kv.length;
+    const step = niceStep(Math.max(...kv) / 3), top = Math.ceil(Math.max(...kv) / step) * step;
+    const Y = v => T2 + H2 - v / top * H2;
+    for (let v = 0; v <= top + 1e-9; v += step) svg += `<line class="c-grid" x1="${L}" x2="${L + pw}" y1="${Y(v)}" y2="${Y(v)}"/>
+      <text class="c-text" x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${v >= 10000 ? deNum(v / 1000) + 'k' : deNum(v)}</text>`;
+    const bw = Math.max(1.5, Math.min(14, pw / ((x1 - x0) / DAY) * 0.62)), rx = Math.min(3, bw / 2);
+    svg += '<g clip-path="url(#bwc-clip)">';
+    for (const p of vk) svg += `<rect class="bwc-bar${kSel && p.d === kSel.d ? ' on' : ''}" x="${(X(p.t) - bw / 2).toFixed(1)}" y="${Y(p.v).toFixed(1)}"
+      width="${bw.toFixed(1)}" height="${(T2 + H2 - Y(p.v)).toFixed(1)}" rx="${rx}"/>`;
+    svg += `<line class="bwc-avg" x1="${L}" x2="${L + pw}" y1="${Y(avg)}" y2="${Y(avg)}"/>
+      <text class="bwc-avg-t" x="${L + pw - 4}" y="${Y(avg) - 5}" text-anchor="end">Ø ${deNum(Math.round(avg))}</text></g>`;
+  } else {
+    svg += `<text class="bwc-empty" x="${L + pw / 2}" y="${T2 + H2 / 2}" text-anchor="middle">Keine Kalorien in diesem Zeitraum</text>`;
+  }
+  // gemeinsame Zeitachse unten, Linie durch beide Diagramme am gewählten Tag
+  const spanDays = (x1 - x0) / DAY, n = Math.max(2, Math.floor(pw / 85));
+  for (let i = 0; i <= n; i++) {
+    const t = x0 + i * (x1 - x0) / n;
+    svg += `<text class="c-text" x="${X(t)}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === n ? 'end' : 'middle'}">${fmtTick(t, spanDays)}</text>`;
+  }
+  if (sel) svg += `<line class="c-cross bwc-cross" x1="${X(sel.t)}" x2="${X(sel.t)}" y1="${T1}" y2="${T2 + H2}"/>`;
+  area.innerHTML = svg + '</svg>';
+  tip.innerHTML = sel ? `<b>${fmtDate(sel.d + 'T12:00:00')}</b>
+    <span>Gewicht <b>${wSel ? fmtNum(wSel.v) + ' kg' : '–'}</b></span><span>Kalorien <b>${kSel ? deNum(kSel.v) + ' kcal' : '–'}</b></span>` : '';
+  chartGeo = { X, pw, x0, x1, vis: [], end: chartState.end, bwc: days };
+  stats.innerHTML = (vw.length ? chartStats(vw.map(p => ({ ...p, unit: 'kg' })), 'kg') : '')
+    + (avg != null ? `<p class="hint bwc-kavg">Kalorien im Zeitraum: im Schnitt <b>${deNum(Math.round(avg))} kcal</b> an ${vk.length} Tag${vk.length === 1 ? '' : 'en'} mit Einträgen.</p>` : '');
+  updateRangeControls(win);
+}
+// Finger über die Diagramme ziehen (oder antippen): nächstgelegenen Tag mit Werten wählen
+let bwcDrag = false;
+function bwcPick(clientX) {
+  const svg = document.querySelector('.bwc-svg');
+  if (!svg || !chartGeo || !chartGeo.bwc || !chartGeo.bwc.length) return;
+  const rect = svg.getBoundingClientRect(), z = rect.width / (svg.width.baseVal.value || rect.width) || 1;
+  const x = (clientX - rect.left) / z;
+  let best = null, dist = Infinity;
+  for (const p of chartGeo.bwc) { const d = Math.abs(chartGeo.X(p.t) - x); if (d < dist) { dist = d; best = p; } }
+  if (best && best.d !== bwcSel) { bwcSel = best.d; queueDraw(); }
+}
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest || !e.target.closest('.bwc-svg')) return;
+  // Das SVG wird beim Ziehen neu gezeichnet: den Finger am bleibenden Rahmen festhalten, sonst gehen die weiteren Bewegungen verloren
+  const a = e.target.closest('.bwc-area');
+  try { if (a && e.pointerId != null) a.setPointerCapture(e.pointerId); } catch (err) { /* nur bei echter Berührung möglich */ }
+  bwcDrag = true; bwcPick(e.clientX);
+});
+document.addEventListener('pointermove', e => {
+  if (bwcDrag || (e.pointerType === 'mouse' && e.target.closest && e.target.closest('.bwc-svg'))) bwcPick(e.clientX);
+});
+document.addEventListener('pointerup', () => { bwcDrag = false; });
+document.addEventListener('pointercancel', () => { bwcDrag = false; });
 
 fields['hist-ex-q'] = el => {
   histExQ = el.value;

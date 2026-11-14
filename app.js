@@ -6398,7 +6398,7 @@ function prefatHelpHtml() {
 const SIZES = { '': 'Normal', l: 'Groß', xl: 'Sehr groß' };
 const OPT_SECS = {
   look: { icon: '🎨', title: 'Aussehen', render: () => appearanceCard(),
-    sub: () => { const p = data.profile || {}; return [PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || ''], LOOKS[currentLook()], `Schrift ${SIZES[p.size || '']}`].join(' · '); } },
+    sub: () => { const p = data.profile || {}; return [LOOKS[currentLook()], PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || '']].join(' · '); } },
   train: { icon: '🏋️', title: 'Training', render: () => motivCard() + restCard() + platesCard() + (typeof tourCard === 'function' ? tourCard() : '') + explainCard() + hintOffCard(),
     sub: () => `Motivation ${MOTIV_OPTS[motivMode()][1].toLowerCase()} · Pausen-Timer ${restCfg().off ? 'aus' : 'an'} · Langhantel ${barKg()} kg` },
   me: { icon: '👤', title: 'Profil & Ernährung', render: () => profileCard() + (typeof nutHintsCard === 'function' ? nutHintsCard() : '') + (typeof mcOptionsCard === 'function' ? mcOptionsCard() : ''),
@@ -6457,6 +6457,35 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 261, date: '2026-11-14', items: [
+    ['Ernährung: Unter Körpergewicht trägst du nur noch dein Gewicht ein. Verlauf, Veränderung und alle Einträge findest du unter Verlauf → Statistik → Gewicht.'],
+    ['Neu im Verlauf: Gewicht und Kalorien in zwei Diagrammen untereinander. Fahr mit dem Finger darüber, dann siehst du für jeden Tag Gewicht und Kalorien.'],
+    ['„Aus Health“ samt Anleitung für den Kurzbefehl steht jetzt im Ernährungstagebuch.'],
+  ] },
+  { v: 260, date: '2026-11-14', items: [
+    ['Ernährung: Das Tagesziel steht nicht mehr doppelt. Im Ernährungstagebuch findest du unter „Gegessen“ die Zeile „Tagesziel … anpassen“. Dort änderst du Kalorien und Makros.'],
+  ] },
+  { v: 259, date: '2026-11-14', items: [
+    ['Ernährung, Aufbau: Bleibt dein Wochenschnitt zwei Wochen lang gleich, schlägt die App 100 kcal mehr vor. Steigt er schneller als der Richtwert (0,8 % bzw. 1 % pro Monat), 100 kcal weniger.'],
+    ['Ernährung, Diät: Auch hier zählt jetzt der Wochenschnitt über zwei Wochen. Sinkt er nicht, schlägt die App vor, weniger zu essen.'],
+    ['Körperfett im Aufbau: Die App schätzt deinen aktuellen Wert und weist rechtzeitig darauf hin, wenn er sich der Grenze nähert (Männer ca. 25 %, Frauen ca. 33 %). Nur bei eingeschalteten Ernährungshinweisen.'],
+  ] },
+  { v: 258, date: '2026-11-14', items: [
+    ['Ernährung, Aufbau: Statt Spannen steht jetzt ca. +250 kcal (Standard) bzw. ca. +400 kcal (Ambitioniert). Als Tempo gilt 0,6 bis 0,8 % des Körpergewichts pro Monat (Standard) bzw. höchstens 1 % (Ambitioniert), gemessen am Wochenschnitt.'],
+  ] },
+  { v: 257, date: '2026-11-14', items: [
+    ['Ernährungstagebuch: Bei der Suche nach Lebensmitteln stehen jetzt neben Kalorien und Eiweiß auch Kohlenhydrate und Fett (je 100 g).'],
+  ] },
+  { v: 256, date: '2026-11-14', items: [
+    ['Die Stile unterscheiden sich im Training und bei den Trainingstagen jetzt deutlich: Standard mit runden, weichen Formen, Logbuch wie ein Notizbuch mit Schreiblinien, Schwarzweiß mit kräftigen Rahmen und Schlicht mit feinen Linien.'],
+    ['Puristen: Der nächste Trainingstag auf der Startseite ist wieder lesbar.'],
+  ] },
+  { v: 255, date: '2026-11-14', items: [
+    ['Optionen → Aussehen: Der Stil steht jetzt ganz oben, darunter Farbwelt und Hell/Dunkel. Die Textgröße ist fest auf Normal eingestellt.'],
+  ] },
+  { v: 254, date: '2026-11-14', items: [
+    ['Übungskarten im Training haben wieder alle dieselbe Farbe, leicht in deiner Farbwelt getönt. Im hellen Modus wirken die Farben insgesamt kräftiger.'],
+  ] },
   { v: 253, date: '2026-11-14', items: [
     ['Begrüßung für neue Nutzer: Die fünf Reiter werden jetzt in großen Kacheln erklärt, jeweils mit dem Symbol aus der unteren Leiste.'],
   ] },
@@ -9220,8 +9249,7 @@ function applyTheme() {
   root.dataset.accent = profileColor();
   const mode = (data.profile && data.profile.theme) || '';
   if (mode) root.dataset.theme = mode; else delete root.dataset.theme;
-  const size = data.profile && data.profile.size;  // Textgröße (v207): '' | 'l' | 'xl'
-  if (size === 'l' || size === 'xl') root.dataset.size = size; else delete root.dataset.size;
+  delete root.dataset.size;  // v255 (User 2026-11-14): Textgröße immer „Normal“, nicht mehr einstellbar
   plainSync();
   iconSync();
   // Statusleiste des Handys in der Hintergrundfarbe der Farbwelt einfärben
@@ -9330,6 +9358,13 @@ function appearanceCard() {
       style="--sw-bg-l:${c.bg[0]};--sw-bg-d:${c.bg[1]};--sw-a:${c.a[0]};--sw-b:${c.a[1]}"><span class="sw"><i></i></span>${c.label}</button>`;
   return `<div class="card profile-card">
       <h2>Aussehen</h2>
+      <p class="lbl">Stil</p>
+      <div class="variants look-pick">${Object.entries(LOOKS).map(([k, l]) =>
+        `<button class="vchip ${currentLook() === k ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`).join('')}</div>
+      <p class="hint explain">„Kraftraum“: sportlich mit kräftigen, schmalen Überschriften und großen Zahlen. „Logbuch“: wie ein Trainingsbuch,
+        Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Schwarzweiß“: nur Schwarz und Weiß, dicke Linien statt Karten. „Puristen“: so einfach wie eine Tabelle in Excel oder Google Sheets, ohne Emojis.
+        Kraftraum und Logbuch übernehmen deine Farbwelt. Ohne eigene Wahl ist Kraftraum orange und Logbuch grün.
+        „Standard“ und „Schlicht“ sind die bisherigen Stile.</p>
       <p class="lbl">Farbwelt</p>
       <div class="color-grid">${Object.entries(PROFILE_COLORS).map(([k, c]) => tile(k, c)).join('')}</div>
       <p class="lbl">Darstellung</p>
@@ -9339,17 +9374,6 @@ function appearanceCard() {
       <p class="hint explain">Im Stil Standard färben die meisten Farbwelten auch den Hintergrund ein, in allen anderen Stilen bleibt er neutral.
         „Automatisch“ folgt der Einstellung deines Handys (hell/dunkel),
         „Hell“ und „Dunkel“ gelten immer. Jede Farbwelt gibt es in beiden Varianten.</p>
-      <p class="lbl">Textgröße</p>
-      <div class="seg three size-seg">${Object.entries(SIZES).map(([k, l]) =>
-        `<button class="${((p.size || '') === k) ? 'on' : ''}" data-action="profile-size" data-k="${k}">${l}</button>`).join('')}</div>
-      <p class="hint">Macht Schrift, Felder und Knöpfe auf allen Seiten größer, gut lesbar auch ohne Brille.</p>
-      <p class="lbl">Stil</p>
-      <div class="variants look-pick">${Object.entries(LOOKS).map(([k, l]) =>
-        `<button class="vchip ${currentLook() === k ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`).join('')}</div>
-      <p class="hint explain">„Kraftraum“: sportlich mit kräftigen, schmalen Überschriften und großen Zahlen. „Logbuch“: wie ein Trainingsbuch,
-        Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Schwarzweiß“: nur Schwarz und Weiß, dicke Linien statt Karten. „Puristen“: so einfach wie eine Tabelle in Excel oder Google Sheets, ohne Emojis.
-        Kraftraum und Logbuch übernehmen deine Farbwelt. Ohne eigene Wahl ist Kraftraum orange und Logbuch grün.
-        „Standard“ und „Schlicht“ sind die bisherigen Stile.</p>
       <p class="lbl">Übungen im Training</p>
       <div class="seg two tr-viewmode"><button class="${trSwipeOn() ? '' : 'on'}" data-action="tr-swipe" data-v="0">↕ Untereinander</button>
         <button class="${trSwipeOn() ? 'on' : ''}" data-action="tr-swipe" data-v="1">↔ Wischen</button></div>
