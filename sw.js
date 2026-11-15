@@ -4,7 +4,7 @@
 // Wichtig: immer direkt vom Server laden (cache: 'reload' / 'no-cache'), nicht aus dem Browser-Zwischenspeicher –
 // GitHub Pages erlaubt dort 10 Minuten, sonst landen kurz nach einem Update noch alte Dateien im neuen Cache.
 
-const CACHE = 'trainingsapp-v279';
+const CACHE = 'trainingsapp-v280';
 const FILES = [
   './',
   './index.html',
@@ -52,7 +52,10 @@ const FILES = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))));
+  // v280: jede Datei einzeln. Fehlt online eine (z. B. ein nicht hochgeladener Ordner), bricht sonst die ganze Installation ab:
+  // kein Offline-Betrieb und auf Android nur „Verknüpfung“ statt „Installieren“. Fehlende Dateien lädt der fetch-Teil später nach.
+  event.waitUntil(caches.open(CACHE).then(cache => Promise.all(FILES.map(f =>
+    cache.add(new Request(f, { cache: 'reload' })).catch(() => null)))));
   self.skipWaiting();
 });
 

@@ -494,6 +494,7 @@ Object.assign(I18N.en, {
 "Anderthalbfach": "One and a half",
 "Anderthalbfach gehoben": "One and a half lifted",
 "Android": "Android",
+"Android: Die App lässt sich jetzt zuverlässig als App installieren, nicht nur als Verknüpfung.": "Android: the app can now be reliably installed as an app, not just as a shortcut.",
 "Anfangs Hilfe: zweite Hand am Handgelenk, an einem Handtuch oder ein Band.": "Help at first: second hand on the wrist, on a towel or a band.",
 "Anfangs Knie auf ein Kissen oder nur halbe Tiefe.": "At first knee on a cushion or only half depth.",
 "Anfangs an einem Türrahmen festhalten.": "Hold on to a door frame at first.",

@@ -6489,6 +6489,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 280, date: '2026-11-15', items: [
+    ['Android: Die App lässt sich jetzt zuverlässig als App installieren, nicht nur als Verknüpfung.'],
+  ] },
   { v: 279, date: '2026-11-15', items: [
     ['Sprachauswahl: Die App gibt es jetzt auch auf Englisch (Optionen → Aussehen → Sprache). Alles ist übersetzt, auch Übungsnamen, Anleitungen und alle Lebensmittel. Die Suche findet sie auf Englisch und Deutsch.'],
   ] },
@@ -9312,12 +9315,31 @@ const THEME_MODES = { '': 'Automatisch', light: 'Hell', dark: 'Dunkel' };
 /* App-Symbol in der Farbwelt (v220, User 2026-11-12): Das Handy übernimmt Symbol und Manifest beim Hinzufügen zum
    Home-Bildschirm – deshalb zeigen die Verweise immer auf die gerade gewählte Farbwelt (Ordner icons/). Später ändert sich
    das Symbol auf dem Home-Bildschirm nicht mehr mit (das erlauben iPhone und Android nicht). */
+const ICON_OK = {};  // Farbwelt -> Manifest und Symbole im Ordner icons/ erreichbar?
 function iconSync() {
   const k = PROFILE_COLORS[profileColor()] ? profileColor() : 'blue';
   const set = (sel, href) => { const el = document.querySelector(sel); if (el && el.getAttribute('href') !== href) el.setAttribute('href', href); };
-  set('link[rel="manifest"]', `icons/manifest${IS_BETA ? '-beta' : ''}-${k}.json`);
-  set('link[rel="apple-touch-icon"]', `icons/apple-touch-icon-${k}.png`);
-  set('link[rel="icon"]', `icons/icon-${k}-192.png`);
+  // v280: nur auf Dateien umstellen, die wirklich da sind. Fehlt der Ordner icons/ online, zeigt das Manifest sonst ins Leere
+  // und Android bietet statt „Installieren“ nur eine Verknüpfung an. Ersatz: Manifest und Symbole im Hauptordner.
+  const href = `icons/manifest${IS_BETA ? '-beta' : ''}-${k}.json`;
+  const fallback = () => {
+    set('link[rel="manifest"]', IS_BETA ? 'manifest-beta.json' : 'manifest.json');
+    set('link[rel="apple-touch-icon"]', 'apple-touch-icon.png');
+    set('link[rel="icon"]', 'icon-192.png');
+  };
+  if (ICON_OK[k] === false) { fallback(); return; }
+  const apply = () => {
+    set('link[rel="manifest"]', href);
+    set('link[rel="apple-touch-icon"]', `icons/apple-touch-icon-${k}.png`);
+    set('link[rel="icon"]', `icons/icon-${k}-192.png`);
+  };
+  if (ICON_OK[k]) { apply(); return; }
+  if (IS_BETA) set('link[rel="manifest"]', 'manifest-beta.json');  // bis zur Prüfung: Beta-Name statt Haupt-Manifest
+  if (typeof fetch !== 'function') { apply(); return; }
+  fetch(href, { cache: 'no-cache' }).then(r => r.ok ? r.json() : Promise.reject())
+    .then(() => fetch(`icons/icon-${k}-512.png`, { method: 'HEAD', cache: 'no-cache' })).then(r => { if (!r.ok) throw 0; })
+    .then(() => { ICON_OK[k] = true; if (profileColor() === k || !PROFILE_COLORS[profileColor()]) apply(); })
+    .catch(() => { ICON_OK[k] = false; fallback(); });
 }
 
 function applyTheme() {
