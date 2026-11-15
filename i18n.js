@@ -29,6 +29,7 @@ function i18nKey(s) {
 const i18nWord = s => /\p{L}{2}/u.test(i18nKey(s).k.replace(/<[^>]*>|\{\d+\}|&\w+;/g, ''));
 // Übersetzung eines Textes (oder null, wenn es keine gibt / Deutsch eingestellt ist)
 function i18nLookup(s) {
+  s = String(s).replace(/&nbsp;/g, ' ');  // v288: feste Leerzeichen der Trennstriche (innerHTML) wie normale behandeln
   const { k, vals } = i18nKey(s);
   if (!i18nWord(k)) return null;
   // Test: auf Deutsch alles sammeln, auf Englisch nur, was noch fehlt
@@ -85,14 +86,34 @@ function i18nWhole(p) {
 const tr = s => s == null ? s : (i18nLookup(s) ?? s);
 
 const I18N_DONE = new WeakMap();  // Knoten → zuletzt geschriebener Text (nicht doppelt übersetzen)
+// v288 (User-Wunsch): Trennstrich „ | “ überall mit je einem zusätzlichen Leerzeichen davor und danach. Nur in der Anzeige
+// (feste Leerzeichen, HTML fasst normale zusammen); der Strich bleibt am Wort davor, damit keine Zeile mit „|“ beginnt.
+// Wörterbuch-Schlüssel bleiben unverändert, i18nKey macht aus allen Leerzeichen (auch festen) wieder eines.
+const PIPE_RE = /[ \t\n\u00a0]+\|[ \t\n\u00a0]+/g, PIPE_TO = '\u00a0\u00a0|\u00a0 ';
+function pipeText(t) {
+  if (t.data.indexOf('|') < 0) return;
+  const p = t.parentElement;
+  if (p && p.closest('[data-i18n="no"], textarea, script, style, code, pre')) return;
+  const d = t.data.replace(PIPE_RE, PIPE_TO);
+  if (d !== t.data) t.data = d;
+}
+function pipeAll(root) {
+  if (!root) return;
+  if (root.nodeType === 3) { pipeText(root); return; }
+  if (root.nodeType !== 1) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) pipeText(n);
+}
 function i18nText(t) {
   if (!t.data.trim() || I18N_DONE.get(t) === t.data) return;
   const p = t.parentElement;
   if (p && (p.closest('[data-i18n="no"], textarea, script, style'))) return;
   const out = i18nLookup(t.data);
-  if (out == null) return;
-  const lead = t.data.match(/^\s*/)[0], trail = t.data.match(/\s*$/)[0];
-  t.data = lead + out + trail;
+  if (out != null) {
+    const lead = t.data.match(/^\s*/)[0], trail = t.data.match(/\s*$/)[0];
+    t.data = lead + out + trail;
+  }
+  pipeText(t);
   I18N_DONE.set(t, t.data);
 }
 function i18nAttrs(el) {
@@ -138,24 +159,32 @@ function i18nEl(el) {
 }
 // ganzen Bereich übersetzen (nach dem Zeichnen, bei Dialogen und Hinweisen)
 function i18nApply(root) {
-  if (!i18nOn() || !root) return;
+  if (!root) return;
+  if (!i18nOn()) {  // Deutsch: nur die Trennstriche (v288)
+    if (i18nObs) i18nMuts(i18nObs.takeRecords());
+    pipeAll(root);
+    if (i18nObs) i18nObs.takeRecords();
+    return;
+  }
   if (i18nObs) i18nMuts(i18nObs.takeRecords());  // was sonst noch neu ist (z. B. Kopfzeile im Training), nicht verwerfen
   if (root.nodeType === 3) i18nText(root); else i18nEl(root);
+  pipeAll(root);  // auch Texte, die i18nEl als Ganzes (innerHTML) übersetzt hat
   if (i18nObs) i18nObs.takeRecords();  // eigene Änderungen nicht noch einmal behandeln
 }
 function i18nMuts(muts) {
+  const on = i18nOn();
   for (const m of muts) {
-    if (m.type === 'characterData') i18nText(m.target);
+    if (m.type === 'characterData') { if (on) i18nText(m.target); else pipeText(m.target); }
     else for (const n of m.addedNodes) {
       if (!n.isConnected) continue;
-      if (n.nodeType === 3) i18nText(n);
-      else if (n.nodeType === 1) i18nEl(n);
+      if (!on) pipeAll(n);
+      else if (n.nodeType === 3) i18nText(n);
+      else if (n.nodeType === 1) { i18nEl(n); pipeAll(n); }
     }
   }
 }
-// alles, was später in die Seite kommt (Dialoge, Hinweise, Diagramm-Infos, nachgeladene Teile)
+// alles, was später in die Seite kommt (Dialoge, Hinweise, Diagramm-Infos, nachgeladene Teile); seit v288 auch auf Deutsch (Trennstriche)
 const i18nObs = typeof MutationObserver === 'function' ? new MutationObserver(muts => {
-  if (!i18nOn()) return;
   i18nMuts(muts);
   i18nObs.takeRecords();
 }) : null;
@@ -171,10 +200,8 @@ function i18nInit() {
     const me = document.querySelector('script[src*="i18n.js"]');  // gleicher Ordner wie i18n.js
     const sc = document.createElement('script'); sc.src = me ? me.src.replace(/i18n\.js.*$/, 'food-en.js') : 'food-en.js'; sc.dataset.foodEn = '1'; document.head.appendChild(sc);
   }
-  if (i18nOn()) {
-    i18nApply(document.body);
-    if (i18nObs) i18nObs.observe(document.body, { childList: true, subtree: true, characterData: true });
-  }
+  i18nApply(document.body);
+  if (i18nObs) i18nObs.observe(document.body, { childList: true, subtree: true, characterData: true });
 }
 // Sprache wechseln: speichern und neu laden (alle Texte und Formate frisch)
 function i18nSet(l) {

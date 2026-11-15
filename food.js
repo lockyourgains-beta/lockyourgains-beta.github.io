@@ -722,8 +722,12 @@ function foodEatenHtml(date, c) {
     .map(([k, x]) => `<div class="${k}" style="flex:${x}"></div>`).join('')}</div>
     <p class="hint nut-small fe-split">Anteile: Eiweiß ${Math.round((v.p || 0) * 400 / mk)} %, Fett ${Math.round((v.f || 0) * 900 / mk)} %, Kohlenhydrate ${Math.round((v.c || 0) * 400 / mk)} %</p>` : '';
   const src = v.src && v.src !== 'food' ? `<p class="hint nut-small">${{ health: 'Aus Health übernommen', auto: 'Mit dem Tagesziel nachgetragen' }[v.src] || 'Von Hand eingetragen'}</p>` : '';
-  return `<span class="lbl">Gegessen</span>
-    <div class="nut-kcal-row fe-kcal"><b class="nut-kcal">${nutKcal(v.kcal || 0)} kcal</b><small>von ${nutKcal(c.kcal)} kcal${ok(v.kcal, c.kcal, 0.1) ? ' ✓' : ''}</small></div>
+  // v287 (User-Wunsch): Ziel direkt hinter der gegessenen Menge, gleich groß; heute antippbar zum Anpassen des Tagesziels
+  const edit = date === todayISO() && typeof nutGoalEditable === 'function' && nutGoalEditable();
+  const goal = `${nutKcal(c.kcal)} kcal`;
+  return `<span class="lbl">Gegessen${ok(v.kcal, c.kcal, 0.1) ? ' ✓' : ''}</span>
+    <div class="nut-kcal-row fe-kcal"><b class="nut-kcal">${nutKcal(v.kcal || 0)} / ${edit
+      ? `<button class="fe-goal-num" data-action="fe-goal-toggle" aria-label="Tagesziel ${goal} anpassen">${goal}<small aria-hidden="true">✎</small></button>` : goal}</b></div>
     <div class="fe-kbar" aria-hidden="true"><div style="width:${pct(v.kcal, c.kcal)}%"></div></div>
     <div class="nut-macros${all ? '' : ' one'}">${tiles.join('')}</div>${split}${src}`;
 }
@@ -770,9 +774,9 @@ function renderFood(p) {
     </div>
     <div class="row food-nav-btns"><button class="btn" data-action="food-cal">📅 Kalender</button>
       <button class="btn" data-action="food-stats">📊 Woche & Monat</button></div>
-    <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) : foodSumHtml(t)}${list.some(e => e.key !== FOOD_FILL) ? foodFsHtml(t, foodGoal(date)) : ''}
+    <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) : foodSumHtml(t)}
       ${date === todayISO() && typeof nutGoalToolsHtml === 'function' ? nutGoalToolsHtml() : ''}
-      ${typeof microBtnHtml === 'function' ? microBtnHtml() : ''}
+      ${typeof microBtnHtml === 'function' ? microBtnHtml() : ''}${list.some(e => e.key !== FOOD_FILL) ? foodFsHtml(t, foodGoal(date)) : ''}
       ${nutIntakeForm ? nutIntakeFormHtml() : `<div class="row fe-src-btns">${feat('nut-health') ? '<button class="btn" data-action="health-paste">❤️ Aus Health</button>' : ''}
         <button class="btn" data-action="nut-intake-open" data-date="${date}">✏️ Von Hand</button></div>
       ${feat('nut-health') ? healthPasteBox() + healthGuide() : ''}`}</div>

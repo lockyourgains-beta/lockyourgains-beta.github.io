@@ -608,7 +608,6 @@ function nutBasicsCard(kcal, kg) {
         <li><b>🌾 Ballaststoffe:</b> mindestens <b>10 g je 1.000 kcal</b>${fiber ? `, bei deinem Tagesziel also ca. <b>${fiber} g</b>` : ''}.
           Mehr ist ausdrücklich gut. Gute Quellen: Haferflocken, Vollkornbrot und -nudeln, Hülsenfrüchte (Linsen, Bohnen,
           Kichererbsen), Gemüse, Obst, Nüsse und Leinsamen. Langsam steigern und genug dazu trinken.</li>
-        <li><b>🍞 Vollkorn statt Weißmehl:</b> sättigt länger, liefert mehr Vitamine, Mineralstoffe und Ballaststoffe.</li>
         <li><b>🥚 Eiweiß zu jeder Mahlzeit:</b> z. B. Magerquark, Skyr, Joghurt, Eier, Fisch, Geflügel, Hülsenfrüchte oder Tofu.</li>
         <li><b>🥓 Verarbeitete Fleischprodukte meiden:</b> Wurst, Salami, Schinken, Speck und Würstchen nur selten. Sie erhöhen
           nachweislich das Risiko für Darmkrebs und Herz-Kreislauf-Erkrankungen. Auch rotes Fleisch (Rind, Schwein, Lamm) lieber
@@ -886,14 +885,20 @@ function nutTargetCard(n, c, editable = false) {
 
 // v260: Tagesziel anpassen im Ernährungstagebuch (heute): aufklappbar unter „Gegessen“
 let foodGoalOpen = false;
+// Tagesziel im Tagebuch anpassbar? (ohne Plan, Pause, fehlende Angaben)
+function nutGoalEditable() {
+  const n = data.nutrition;
+  return !!n && nutReady(n) && nutWeight() != null && !nutPaused(n) && !(typeof nutPlanActive === 'function' && nutPlanActive());
+}
+// v287 (User-Wunsch): keine eigene Zeile „🎯 Tagesziel“ mehr; geöffnet wird über die Zielzahl oben („860 / 3.020 kcal ✎“)
 function nutGoalToolsHtml() {
   const n = data.nutrition, kg = nutWeight();
-  if (!n || !nutReady(n) || kg == null || nutPaused(n) || (typeof nutPlanActive === 'function' && nutPlanActive())) return '';
+  if (!nutGoalEditable()) return '';
   const c = nutCalc(n, kg);
   const open = foodGoalOpen || !!nutKcalEdit || !!nutMacroEdit;
-  const head = `<button class="fe-goal-btn" data-action="fe-goal-toggle" aria-expanded="${open}"><span>🎯 Tagesziel <b>${nutKcal(c.kcal)} kcal</b></span>
-      <small>${open ? 'zuklappen ▴' : 'anpassen ▾'}</small></button>`;
-  if (!open) return `<div class="fe-goal">${head}</div>`;
+  if (!open) return '';
+  const head = `<button class="fe-goal-btn" data-action="fe-goal-toggle" aria-expanded="true"><span>🎯 Tagesziel anpassen</span>
+      <small>zuklappen ▴</small></button>`;
   const adj = n.kcalOwn != null ? '' : n.adjust ? ` | inkl. ${nutSigned(n.adjust, 'kcal')} aus deinem Gewichtsverlauf` : '';
   const pct = nutPctOf(c);
   const fatLow = c.fat < 0.6 * kg;

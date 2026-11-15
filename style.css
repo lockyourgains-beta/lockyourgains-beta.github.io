@@ -1971,7 +1971,7 @@ nav button.active { font-weight: 700; }
 .ex-card .last-sets { margin: 0 0 4px; font-size: 14.5px; }
 .ex-card .last-sets td, .ex-card .last-sets th { padding: 2px 6px 2px 0; }
 .last-sets.one th small { display: inline; }
-.last-sets.one th small::before { content: ' | '; }
+.last-sets.one th small::before { content: '\a0\a0|\a0\a0'; }  /* v288: Trennstrich mit Abstand */
 /* Sätze */
 .ex-card .setgrid { grid-template-columns: 46px 1.3fr 1fr 1fr; gap: 6px 8px; }
 .ex-card .setgrid .head { font-size: 11.5px; }
@@ -3268,9 +3268,12 @@ p.cali-tr { margin: -4px 0 8px; font-size: 14px; }
 :is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) .review-card { background: var(--card); }
 :is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) :is(.ex-card.tint-0, .ex-card.tint-1, .ex-card.tint-2, .ex-card.tint-3) { background: var(--card); }
 
-/* neutrale Hintergründe statt der getönten Farbwelt-Hintergründe (die Akzentfarbe bleibt) */
-[data-look="kraft"] body { --bg: #eceef0; --card: #ffffff; --fill: #eef0f2; --input: #f4f5f6; --line-strong: #d6d9dd; --shadow: 0 1px 0 #d6d9dd; --bar: rgba(236, 238, 240, .88); }
-[data-look="log"] body { --bg: #fbfbfa; --card: #fbfbfa; --fill: #f0f1ee; --input: #f3f4f1; --line-strong: #dcdfdb; --shadow: none; --bar: rgba(251, 251, 250, .9); }
+/* v289 (User-Wunsch): Kraftraum und Logbuch hell wie „Standard“ leicht in der Farbwelt getönt (Werte der Farbwelt, :root[data-accent]).
+   Neutral bleiben nur Blau und Beere (dort ist auch „Standard“ neutral) sowie Schlicht, Schwarzweiß und Puristen; dunkel bleibt neutral. */
+[data-look="kraft"] body { --shadow: 0 1px 0 var(--line-strong); }
+[data-look="log"] body { --card: var(--bg); --shadow: none; }
+:is([data-accent="blue"], [data-accent="berry"])[data-look="kraft"] body { --bg: #eceef0; --card: #ffffff; --fill: #eef0f2; --input: #f4f5f6; --line-strong: #d6d9dd; --shadow: 0 1px 0 #d6d9dd; --bar: rgba(236, 238, 240, .88); }
+:is([data-accent="blue"], [data-accent="berry"])[data-look="log"] body { --bg: #fbfbfa; --card: #fbfbfa; --fill: #f0f1ee; --input: #f3f4f1; --line-strong: #dcdfdb; --shadow: none; --bar: rgba(251, 251, 250, .9); }
 @media (prefers-color-scheme: dark) {
   :root[data-look="kraft"]:not([data-theme="light"]) body { --bg: #141517; --card: #1e2023; --fill: #272a2e; --input: #23262a; --line-strong: #33363b; --shadow: 0 1px 0 #2c2f33; --bar: rgba(20, 21, 23, .88); }
   :root[data-look="log"]:not([data-theme="light"]) body { --bg: #121413; --card: #121413; --fill: #1f2220; --input: #1b1e1c; --line-strong: #2d312e; --bar: rgba(18, 20, 19, .9); }
@@ -3689,3 +3692,25 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .cyc-overview > div.on b { color: var(--accent-text); }
 .kind-explain > div { display: block; }
 .kind-explain > div b { display: block; margin-bottom: 2px; }
+
+/* v282: Entfernen im Plan oben neben „Als Supersatz koppeln“; im Training „Heute weglassen“ */
+.plan-del-row { align-items: stretch; }
+.plan-del-row .btn { white-space: normal; line-height: 1.2; }
+.plan-del-row .btn.plan-del-btn { flex: 0 0 auto; width: auto; padding-left: 14px; padding-right: 14px; }
+.plan-del-row .btn.plan-del-btn:only-child { flex: 1 1 0; }
+.ex-tools .skip-btn { color: var(--danger); }
+
+/* v287: Tagebuch oben „860 / 3.020 kcal“ (Ziel gleich groß, heute antippbar), Vitamine als schmale Zeile unter den Makros */
+.fe-kcal .nut-kcal { font-size: clamp(26px, 8.4vw, 38px); white-space: nowrap; }
+.fe-goal-num { display: inline; padding: 0; border: 0; background: none; font: inherit; color: inherit; letter-spacing: inherit; cursor: pointer; }
+.fe-goal-num small { margin-left: 4px; font-size: .45em; font-weight: 600; vertical-align: middle; opacity: .7; }
+.mic-line { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; margin: 8px 0 0;
+  padding: 8px 2px; border: 0; border-top: 1px solid var(--line); background: none; font: inherit; font-size: 15px; font-weight: 600;
+  color: var(--accent-text); text-align: left; cursor: pointer; }
+.mic-line-chev { font-size: 22px; line-height: 1; color: var(--muted); }
+
+/* v290: alle fünf Stile in einer Zeile (ohne ✓, die Farbe zeigt die Wahl); Breite nach Text, kleine Schrift nur hier */
+.variants.look-pick { flex-wrap: nowrap; gap: 3px; }
+.variants.look-pick .vchip { flex: 1 1 auto; min-width: 0; padding: 0 3px; font-size: 12px; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.variants.look-pick .vchip.on::before { content: none; }
+[data-look="plain"] .variants.look-pick .vchip { font-size: 10.5px; letter-spacing: 0; padding: 0 2px; }

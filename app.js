@@ -866,7 +866,21 @@ function condRef(ref, t) {
 }
 
 const DUMBBELL = /kurzhantel|konzentrationscurls|arnold press|goblet/;
-const stepFor = ex => ex.step != null ? ex.step : (DUMBBELL.test(norm(ex.name)) ? 2 : 2.5);
+// v281 (Tester-Rückmeldung): die Steigerung gilt für die Übung, nicht nur für einen Trainingstag. Steht sie an mehreren Tagen
+// und ist nur an einem eingestellt (z. B. 5 kg), gilt das auch an den anderen; sonst stiegen diese weiter in 2,5-kg-Schritten.
+function stepOwn(ex) {
+  if (ex.step != null) return ex.step;
+  if (!ex.name || typeof data === 'undefined' || !data || !data.days) return null;
+  for (const d of data.days) for (const e of d.exercises || []) if (e.step != null && nameKey(e.name) === nameKey(ex.name)) return e.step;
+  return null;
+}
+const stepFor = ex => { const s = stepOwn(ex); return s != null ? s : (DUMBBELL.test(norm(ex.name)) ? 2 : 2.5); };
+// Steigerung an allen Tagen des Plans mit dieser Übung setzen
+function setStepAll(name, v) {
+  let n = 0;
+  for (const d of data.days || []) for (const e of d.exercises || []) if (nameKey(e.name) === nameKey(name)) { e.step = v; n++; }
+  return n;
+}
 const STEP_OPTIONS = [1.25, 2, 2.5, 5, 10];
 // „Max. bei 10 Wdh.“ ist ohne Vorermüdung gemeint (User-Wunsch 2026-11-09)
 const MAX_FRESH_NOTE = 'Gemeint ist frisch: so viel, wie du schaffst, wenn die Übung die erste für diese Muskelgruppe im Training ist, nicht nach anderen Übungen für denselben Muskel. Steht sie weiter hinten, zieht die App die Vorermüdung selbst ab.';
@@ -2279,10 +2293,22 @@ function lighterSet(a, b) {
 /* ---------- Ausführungsvarianten ---------- */
 
 // '' = normal. Sätze einer Variante werden nur mit Sätzen derselben Variante verglichen.
-const VARIANTS = { '': 'Normal', pause: 'mit Pause', slow: 'langsam', drop: 'Reduktion', myo: 'Myo' };
-const VARIANT_SHORT = { pause: 'P', slow: 'L', drop: 'R', myo: 'M' };
-const EXEC_VARIANTS = { '': 'Normal', pause: 'mit Pause', slow: 'langsam' };  // Ausführung im Plan (Techniken extra)
+// v284 (User-Wunsch): pslow = mit Pause UND langsam, eine eigene Kategorie (nur mit pslow-Sätzen verglichen)
+const VARIANTS = { '': 'Normal', pause: 'mit Pause', slow: 'langsam', pslow: 'Pause + langsam', drop: 'Reduktion', myo: 'Myo' };
+const VARIANT_SHORT = { pause: 'P', slow: 'L', pslow: 'PL', drop: 'R', myo: 'M' };
+const EXEC_VARIANTS = { '': 'Normal', pause: 'mit Pause', slow: 'langsam' };  // Knöpfe der Ausführung im Plan (Techniken extra)
 const variantOf = s => (s && s.variant) || '';
+// „mit Pause“ und „langsam“ lassen sich zusammen wählen: Knopf v an/aus, ausgehend von der bisherigen Ausführung cur
+function variantToggle(cur, v) {
+  if (v !== 'pause' && v !== 'slow') return v;
+  if (cur !== 'pause' && cur !== 'slow' && cur !== 'pslow') return v;
+  let p = cur === 'pause' || cur === 'pslow', sl = cur === 'slow' || cur === 'pslow';
+  if (v === 'pause') p = !p; else sl = !sl;
+  return p && sl ? 'pslow' : p ? 'pause' : sl ? 'slow' : '';
+}
+// Knopf v leuchtet: bei Pause + langsam beide Knöpfe
+const variantChipOn = (cur, v) => cur === v || (cur === 'pslow' && (v === 'pause' || v === 'slow'));
+const VARIANT_BOTH_HINT = '„mit Pause“ und „langsam“ lassen sich zusammen wählen. Das ist eine eigene Ausführung und wird nur mit Sätzen verglichen, die ebenfalls beides hatten.';
 // v215: als Ausreißer markierte Sätze (s.outlier) zählen bei keinem Vergleich mit
 const ofVariant = (sets, v) => (sets || []).filter(s => variantOf(s) === v && !s.outlier);
 
@@ -3102,7 +3128,7 @@ function trMenuHtml() {
   const lastDur = lastDuration(draft.dayId);
   const items = [];
   if (!draft.reorder) items.push(['reorder-toggle', '⇅ Reihenfolge ändern']);
-  items.push(['trm-details-all', draft.entries.every(detOpen) ? '▴ Alle Details zuklappen' : '▾ Alle Details aufklappen']);
+  items.push(['trm-details-all', draft.entries.every(detOpen) ? '▴ Alle Übungen zuklappen' : '▾ Alle Übungen aufklappen']);
   items.push(['trm-swipe', trSwipeOn() ? '↕ Alle Übungen untereinander' : '↔ Eine Übung je Bildschirm (wischen)']);  // v244
   if (!draft.own) items.push(['trm-entry-help', 'ℹ️ So trägst du dein Training ein']);
   if (prefatToday()) items.push(['trm-prefat', '💤 Vorermüdung: So rechnet die App']);
@@ -3542,7 +3568,7 @@ function complReportCanvas(R) {
     return out;
   };
   let y = 0;
-  const text = (t, font, color, lh, max = IW, x = X) => { g.font = font; g.fillStyle = color; for (const l of wrap(t, max)) { y += lh; g.fillText(l, x, y); } };
+  const text = (t, font, color, lh, max = IW, x = X) => { g.font = font; g.fillStyle = color; for (const l of wrap(String(t).replace(/ \| /g, '  |  '), max)) { y += lh; g.fillText(l, x, y); } };
   const rule = () => { y += 34; g.fillStyle = LINE; g.fillRect(X, y, IW, 3); };
   g.fillStyle = '#fff'; g.fillRect(0, 0, W, MAXH);
   g.fillStyle = acc; g.fillRect(0, 0, W, 16);
@@ -4629,12 +4655,13 @@ function renderTraining() {
         <h2>${pr ? `<span class="ss-badge" aria-label="Übung ${pr.role} im Supersatz">${pr.role}</span>` : ''}${libEntry(en.name) ? `<button class="lib-link" data-action="lib-open" data-name="${esc(en.name)}"
           aria-label="Ausführung ansehen">${exTitleHtml(en.name)} <span class="info-dot">i</span></button>` : exTitleHtml(en.name)}</h2>
         <button class="det-btn ord-btn" data-action="reorder-toggle" data-ei="${ei}" aria-label="Reihenfolge ändern">⇅</button>
-        <button class="det-btn" data-action="ex-details" data-ei="${ei}" aria-expanded="${det}">Details${hasComment && !det ? ' | 💬' : ''}
+        <button class="det-btn" data-action="ex-details" data-ei="${ei}" aria-expanded="${det}">Anpassen${hasComment && !det ? ' | 💬' : ''}
           <span class="chev" aria-hidden="true">▾</span></button>
         ${det ? `<div class="ex-tools">
           ${feat('tr-comment') ? `<button class="icon-btn bubble ${hasComment ? 'has' : ''}" data-action="comment-toggle"
             data-ei="${ei}" aria-label="Kommentar">💬 Kommentar</button>` : ''}
           <button class="icon-btn swap" data-action="rep-open" data-ei="${ei}">⇄ Ersetzen</button>
+          ${en.added || draft.entries.length < 2 ? '' : `<button class="icon-btn skip-btn" data-action="tr-skip-ex" data-ei="${ei}">✕ Heute weglassen</button>`}
           <button class="icon-btn pain-btn" data-action="pain-open" data-ei="${ei}">🩹 Zwickt</button>
           <button class="icon-btn vid-btn" data-action="vid-open-list" data-name="${esc(en.name)}">🎥 Video</button>
         </div>` : ''}
@@ -4682,7 +4709,8 @@ function renderTraining() {
       // v265 (User 2026-11-14): Zeile „Heute: 3 × 7–5 Wdh. | Tank 1“ entfällt, Gewicht, Wdh. und Tank stehen in den Feldern
       if (t.amrap && !t.deload) h += `<p class="target-note">AMRAP: so viele Wdh. wie möglich (Tank 0)</p>`;
       if (en.holdSec) h += holdHintHtml(en);
-      if (feat('tr-prefat') && (t.fat || 0) >= PREFAT_SHOW - 1e-9) {
+      // v285 (User-Wunsch): Hinweis zur Vorermüdung nur unter „Anpassen“
+      if (det && feat('tr-prefat') && (t.fat || 0) >= PREFAT_SHOW - 1e-9) {
         const pi = preFatigueInfo(draftPrefatList(), ei);
         const parts = [pi.same ? `${fmtNum(pi.same)} ${pi.same === 1 ? 'Satz' : 'Sätze'} ${MUSCLES[pi.g] || ''}` : '', pi.help ? `${fmtNum(pi.help)} ${pi.help === 1 ? 'Satz' : 'Sätze'} für Hilfsmuskeln` : ''].filter(Boolean);
         h += `<p class="prefat-note">💤 Vorermüdet: ${parts.join(' und ')} vorher, die App rechnet mit etwa ${Math.round(t.fat * 100)} % weniger Kraft als frisch.</p>`;
@@ -4717,9 +4745,9 @@ function renderTraining() {
     }
     if (withMax && en.stepOpen && det) h += stepPick(en, ei);
     if (en.variantOpen && det) {
-      h += `<div class="variants ex-var-pick">${Object.entries(VARIANTS).map(([v, label]) =>
-        `<button class="vchip ${vAll === v ? 'on' : ''}" data-action="ex-variant" data-ei="${ei}" data-v="${v}">${label}</button>`).join('')}
-        <p class="hint">Gilt für alle noch offenen Sätze. Einzelne Sätze: Satznummer antippen.</p></div>`;
+      h += `<div class="variants ex-var-pick">${Object.entries(VARIANTS).filter(([v]) => v !== 'pslow').map(([v, label]) =>
+        `<button class="vchip ${vAll != null && variantChipOn(vAll, v) ? 'on' : ''}" data-action="ex-variant" data-ei="${ei}" data-v="${v}">${label}</button>`).join('')}
+        <p class="hint">Gilt für alle noch offenen Sätze. Einzelne Sätze: Satznummer antippen. ${VARIANT_BOTH_HINT}</p></div>`;
     }
     if (en.weekFirst && feat('tr-compare') && det) {
       h += `<div class="compare">Plan des 1. Trainings dieser Woche (${fmtDate(en.weekFirst.date)}):
@@ -5284,11 +5312,13 @@ function planSwapHtml(day, ex, i) {
     if (ex.name.trim() && exRename === ex.name) return renameFormHtml(ex.name);
     const ssBtn = ex.name.trim() && ssOn() && !dayPairs(day.exercises).has(i) && ssCandidates(day, i).length
       && !(ssPick && ssPick.day === day.id && ssPick.i === i);
+    // v282 (User-Wunsch): Entfernen oben in der Zeile mit „Als Supersatz koppeln“ statt unten in der Karte
+    const del = `<button class="btn danger plan-swap-btn plan-del-btn" data-action="ex-del" data-i="${i}">✕ Entfernen</button>`;
     return ex.name.trim() ? `<div class="row plan-ex-btns">
         <button class="btn outline plan-swap-btn" data-action="plan-swap-open" data-i="${i}">⇄ Ersetzen</button>
         <button class="btn outline plan-swap-btn" data-action="ex-rename-open" data-name="${esc(ex.name)}">✎ Umbenennen</button></div>
-        ${ssBtn ? `<button class="btn outline plan-swap-btn ss-btn" data-action="ss-pick-open" data-i="${i}">🔗 Als Supersatz koppeln</button>` : ''}`
-      : `<button class="btn outline plan-swap-btn" data-action="plan-swap-open" data-i="${i}">⇄ Übung ersetzen</button>`;
+        <div class="row plan-ex-btns plan-del-row">${ssBtn ? `<button class="btn outline plan-swap-btn" data-action="ss-pick-open" data-i="${i}">🔗 Als Supersatz koppeln</button>` : ''}${del}</div>`
+      : `<div class="row plan-ex-btns plan-del-row"><button class="btn outline plan-swap-btn" data-action="plan-swap-open" data-i="${i}">⇄ Übung ersetzen</button>${del}</div>`;
   }
   // die zuletzt ersetzte Übung immer als Erstes (zum schnellen Zurücktauschen)
   const prev = ex.replacedFrom && nameKey(ex.replacedFrom) !== nameKey(ex.name)
@@ -5467,12 +5497,9 @@ function ownExerciseCard(ex, i) {
       <input class="inp kg" type="text" inputmode="decimal" autocomplete="off" data-field="ex-start" data-i="${i}"
         placeholder="kg" value="${ex.startWeight == null ? '' : fmtNum(ex.startWeight)}"></label>`}
     <div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
-      `<button class="vchip ${(ex.variant || '') === v ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
+      `<button class="vchip ${variantChipOn(ex.variant || '', v) ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
     </div>
     <div class="variants plan amrap-row"><span>AMRAP</span><button class="vchip ${ex.amrap ? 'on' : ''}" data-action="plan-amrap" data-i="${i}">${ex.amrap ? 'An: so viele Wdh. wie möglich (Tank 0)' : 'Aus'}</button></div>
-    <div class="row">
-      <button class="icon-btn danger" data-action="ex-del" data-i="${i}">Entfernen</button>
-    </div>
   </div>`;
 }
 
@@ -5579,7 +5606,7 @@ function renderDay({ id }) {
       </div>` : ''}
       ${feat('tr-tank-target') ? `<p class="hint kind-hint">Ziel im Tank diese Woche: <b>${weekRirText(kindOf(ex), groupOf(ex))}</b></p>` : ''}
       ${feat('tr-variants') ? `<div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
-        `<button class="vchip ${(ex.variant || '') === v ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
+        `<button class="vchip ${variantChipOn(ex.variant || '', v) ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
       </div>${ex.name.trim() ? techPlanHtml(ex, i) : ''}` : ''}
       ${feat('tr-rir-input') || ex.amrap ? `<div class="variants plan amrap-row"><span>AMRAP</span><button class="vchip ${ex.amrap ? 'on' : ''}" data-action="plan-amrap" data-i="${i}">${ex.amrap ? 'An: so viele Wdh. wie möglich (Tank 0)' : 'Aus'}</button></div>` : ''}
       ${bodyweightRow(ex, i)}
@@ -5589,12 +5616,9 @@ function renderDay({ id }) {
           autocomplete="off" data-field="ex-max" data-i="${i}" placeholder="kg"
           value="${ex.max10 == null ? '' : fmtNum(ex.max10)}">
       </label>
-      ${feat('tr-step') ? `<div class="variants plan"><span>Steigerung${ex.step == null ? ' <small class="hint">(auto)</small>' : ''}</span>${STEP_OPTIONS.map(v =>
+      ${feat('tr-step') ? `<div class="variants plan"><span>Steigerung${stepOwn(ex) == null ? ' <small class="hint">(auto)</small>' : ''}</span>${STEP_OPTIONS.map(v =>
         `<button class="vchip ${stepFor(ex) === v ? 'on' : ''}" data-action="set-step" data-i="${i}" data-v="${v}">${fmtNum(v)} kg</button>`).join('')}
       </div>` : ''}`}
-      <div class="row">
-        <button class="icon-btn danger" data-action="ex-del" data-i="${i}">Entfernen</button>
-      </div>
     </div>`;
     if (pr && pr.role === 'B') h += '</div>';
   });
@@ -6174,7 +6198,7 @@ function shareCanvas(s) {
   for (const line of wrap(s.dayName, W - 2 * X).slice(0, 2)) { g.fillText(fit(line, W - 2 * X), X, y); y += 104; }
   g.font = F(500, 42); g.fillStyle = 'rgba(255,255,255,.88)';
   const wk = s.deload && !s.light ? 'Deload-Woche' : s.week ? weekLabel(s.week) : '';
-  g.fillText(fit(fmtDate(s.date, true) + (wk ? ` | ${wk}` : ''), W - 2 * X), X, y);
+  g.fillText(fit(fmtDate(s.date, true) + (wk ? `  |  ${wk}` : ''), W - 2 * X), X, y);  // v288: Trennstrich mit Abstand
   y += 80;
   // Kacheln
   const d = shareData(s);
@@ -6489,6 +6513,33 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 290, date: '2026-11-15', items: [
+    ['Der Stil „Schwarzweiß“ entfällt, die übrigen fünf Stile passen jetzt in eine Zeile. Wer Schwarzweiß hatte, sieht jetzt „Kraftraum“.'],
+  ] },
+  { v: 289, date: '2026-11-15', items: [
+    ['Kraftraum und Logbuch: Im hellen Modus ist der Hintergrund jetzt wie bei „Standard“ leicht in deiner Farbwelt getönt.'],
+  ] },
+  { v: 288, date: '2026-11-15', items: [
+    ['Mehr Luft: Der Trennstrich „|“ hat überall etwas mehr Abstand zum Text davor und danach.'],
+  ] },
+  { v: 287, date: '2026-11-15', items: [
+    ['Ernährungstagebuch aufgeräumt: Oben steht jetzt „gegessen / Tagesziel kcal“ in einer Zeile. Zum Anpassen von Kalorien und Makros tippst du auf das Tagesziel.'],
+    ['Vitamine & Mineralstoffe sind jetzt eine schmale Zeile direkt unter den Makros.', 'nut-micro'],
+  ] },
+  { v: 285, date: '2026-11-15', items: [
+    ['Im Training steht der Hinweis zur Vorermüdung jetzt unter „Anpassen“ und nicht mehr immer sichtbar bei der Übung.', 'tr-prefat'],
+  ] },
+  { v: 284, date: '2026-11-15', items: [
+    ['Ausführung „mit Pause“ und „langsam“ lassen sich jetzt zusammen wählen, im Plan und im Training. Das ist eine eigene Ausführung: Die Ergebnisse werden nur mit Sätzen verglichen, die ebenfalls beides hatten.', 'tr-variants'],
+  ] },
+  { v: 283, date: '2026-11-15', items: [
+    ['Im Training kannst du eine Übung über „Anpassen“ → „✕ Heute weglassen“ nur für dieses Training entfernen. Im Plan bleibt sie.'],
+    ['Der Knopf „Details“ bei jeder Übung im Training heißt jetzt „Anpassen“.'],
+    ['Im Plan sitzt „Entfernen“ jetzt oben bei den anderen Knöpfen, neben „Als Supersatz koppeln“.'],
+  ] },
+  { v: 281, date: '2026-11-15', items: [
+    ['Die Steigerung einer Übung (z. B. 5 kg) gilt jetzt an allen Trainingstagen, an denen die Übung vorkommt. Bisher galt sie nur an einem Tag, an den anderen stieg das Gewicht weiter in kleineren Schritten.'],
+  ] },
   { v: 280, date: '2026-11-15', items: [
     ['Android: Die App lässt sich jetzt zuverlässig als App installieren, nicht nur als Verknüpfung.'],
   ] },
@@ -6537,7 +6588,7 @@ const CHANGES = [
     ['„Aus Health“ samt Anleitung für den Kurzbefehl steht jetzt im Ernährungstagebuch.'],
   ] },
   { v: 260, date: '2026-11-14', items: [
-    ['Ernährung: Das Tagesziel steht nicht mehr doppelt. Im Ernährungstagebuch findest du unter „Gegessen“ die Zeile „Tagesziel … anpassen“. Dort änderst du Kalorien und Makros.'],
+    ['Ernährung: Das Tagesziel steht nicht mehr doppelt. Im Ernährungstagebuch tippst du oben unter „Gegessen“ auf dein Tagesziel (… / … kcal ✎). Dort änderst du Kalorien und Makros.'],
   ] },
   { v: 259, date: '2026-11-14', items: [
     ['Ernährung, Aufbau: Bleibt dein Wochenschnitt zwei Wochen lang gleich, schlägt die App 100 kcal mehr vor. Steigt er schneller als der Richtwert (0,8 % bzw. 1 % pro Monat), 100 kcal weniger.'],
@@ -6551,7 +6602,7 @@ const CHANGES = [
     ['Ernährungstagebuch: Bei der Suche nach Lebensmitteln stehen jetzt neben Kalorien und Eiweiß auch Kohlenhydrate und Fett (je 100 g).'],
   ] },
   { v: 256, date: '2026-11-14', items: [
-    ['Die Stile unterscheiden sich im Training und bei den Trainingstagen jetzt deutlich: Standard mit runden, weichen Formen, Logbuch wie ein Notizbuch mit Schreiblinien, Schwarzweiß mit kräftigen Rahmen und Schlicht mit feinen Linien.'],
+    ['Die Stile unterscheiden sich im Training und bei den Trainingstagen jetzt deutlich: Standard mit runden, weichen Formen, Logbuch wie ein Notizbuch mit Schreiblinien und Schlicht mit feinen Linien.'],
     ['Puristen: Der nächste Trainingstag auf der Startseite ist wieder lesbar.'],
   ] },
   { v: 255, date: '2026-11-14', items: [
@@ -6623,7 +6674,7 @@ const CHANGES = [
     ['Halteübungen wie Plank oder Wandsitzen zeigen jetzt überall Sekunden statt Wiederholungen: im Verlauf, beim letzten Mal, in Vergleichen, im Diagramm und im Bild zum Teilen.'],
   ] },
   { v: 234, date: '2026-11-13', items: [
-    ['Drei neue Designs unter Optionen → Aussehen → Stil: „Kraftraum“ (sportlich, große Zahlen), „Logbuch“ (Zeilen statt Karten) und „Schwarzweiß“. Sie sehen auf iPhone und Android gleich aus. Kraftraum und Logbuch passen sich deiner Farbwelt an. Die bisherigen Stile „Standard“ und „Schlicht“ bleiben wählbar.'],
+    ['Neue Designs unter Optionen → Aussehen → Stil: „Kraftraum“ (sportlich, große Zahlen) und „Logbuch“ (Zeilen statt Karten). Sie sehen auf iPhone und Android gleich aus. Kraftraum und Logbuch passen sich deiner Farbwelt an. Die bisherigen Stile „Standard“ und „Schlicht“ bleiben wählbar.'],
   ] },
   { v: 233, date: '2026-11-13', items: [
     ['Ruhigere Texte: weniger Gedankenstriche und kein Fett mehr mitten im Satz. Inhalte und Regeln sind gleich geblieben.'],
@@ -6689,7 +6740,7 @@ const CHANGES = [
   ] },
   { v: 213, date: '2026-11-11', items: [
     ['📷 Fortschrittsfotos: vorne, seitlich und hinten, mit Vergleich zweier Termine. Zu finden im Reiter Ernährung beim Körpergewicht.'],
-    ['🎥 Technik-Videos je Übung: in Zeitlupe, Bild für Bild und mit Hilfslinien ansehen oder zwei Videos vergleichen (im Training unter „Details“ → „Video“).'],
+    ['🎥 Technik-Videos je Übung: in Zeitlupe, Bild für Bild und mit Hilfslinien ansehen oder zwei Videos vergleichen (im Training unter „Anpassen“ → „Video“).'],
     ['Fotos und Videos bleiben nur auf deinem Handy. Eine Anleitung zeigt, wie du sie in deiner Galerie sicherst.'],
   ] },
   { v: 212, date: '2026-11-11', items: [
@@ -6745,7 +6796,7 @@ const CHANGES = [
     ['Startseite aufgeräumt: Der nächste Trainingstag steht ganz oben, die Zyklus-Karte klappt auf, wenn du sie antippst.'],
   ] },
   { v: 200, date: '2026-11-10', items: [
-    ['Training kompakter: Oben siehst du, bei welcher Übung du bist. Mehr zu jeder Übung steht unter „Details“, erledigte Sätze werden grün.'],
+    ['Training kompakter: Oben siehst du, bei welcher Übung du bist. Mehr zu jeder Übung steht unter „Anpassen“, erledigte Sätze werden grün.'],
   ] },
   { v: 199, date: '2026-11-10', items: [
     ['Tank-Vorgaben je Satz als ganze Zahlen, von Satz zu Satz absteigend (z. B. 2 | 2 | 1). Alle Pläne gehen dabei etwas näher ans Muskelversagen.', 'tr-rir-input'],
@@ -8309,8 +8360,7 @@ const actions = {
   'tr-step': el => {
     const en = draft.entries[el.dataset.ei];
     const v = Number(el.dataset.v);
-    const ex = planExercise(en.name);
-    if (ex) { ex.step = v; saveData(); }
+    if (setStepAll(en.name, v)) saveData();  // v281: an allen Tagen, nicht nur am ersten mit dieser Übung
     en.stepOpen = false;
     if (en.target.step !== v) {
       if (!en.sets.some(isDone) && en.plan) {
@@ -8488,6 +8538,20 @@ const actions = {
     const cards = $view.querySelectorAll('section.card');
     if (cards.length) cards[cards.length - 1].scrollIntoView({ block: 'start' });
     toast(keep ? `${name} hinzugefügt und im Plan gespeichert` : `${name} für heute hinzugefügt`);
+  },
+  // v282 (User-Wunsch): Übung aus dem Plan nur für dieses Training entfernen, der Plan bleibt unverändert
+  'tr-skip-ex': el => {
+    const ei = Number(el.dataset.ei), en = draft.entries[ei];
+    if (!en || draft.entries.length < 2) return;
+    const done = en.sets.some(s => s.touched || isDone(s));
+    if (!askOk(`„${en.name}“ für dieses Training weglassen?
+
+${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan bleibt die Übung, beim nächsten Mal ist sie wieder dabei.`)) return;
+    draft.entries.splice(ei, 1);
+    if (draft.cur != null && draft.cur > ei) draft.cur--;
+    refreshPrefat();
+    saveDraft(); render();
+    toast(`„${en.name}“ heute weggelassen`);
   },
   'added-remove': el => {
     const en = draft.entries[el.dataset.ei];
@@ -8730,7 +8794,8 @@ const actions = {
     saveData(); render();
   },
   'plan-variant': el => {
-    findDay(current.params.id).exercises[el.dataset.i].variant = el.dataset.v;
+    const ex = findDay(current.params.id).exercises[el.dataset.i];
+    ex.variant = variantToggle(ex.variant || '', el.dataset.v);
     saveData(); render();
   },
   // Ganze Übung: alle noch offenen Sätze auf die Variante stellen
@@ -8742,11 +8807,14 @@ const actions = {
   'ex-variant': el => {
     const ei = +el.dataset.ei;
     const en = draft.entries[ei];
-    en.variantOpen = false;
-    en.sets.forEach((s, i) => { if (!isDone(s)) changeVariant(en, i, el.dataset.v); });
+    const open = en.sets.map((s, i) => i).filter(i => !isDone(en.sets[i]));
+    const vs = new Set(open.map(i => variantOf(en.sets[i])));
+    const v = variantToggle(vs.size === 1 ? [...vs][0] : '', el.dataset.v);
+    if (v !== 'pause' && v !== 'slow' && v !== 'pslow' || el.dataset.v === '') en.variantOpen = false;  // beim Kombinieren offen lassen
+    open.forEach(i => changeVariant(en, i, v));
     recalcSets(ei); saveDraft(); render();
   },
-  // Einzelner Satz: normal -> mit Pause -> langsam -> normal
+  // Einzelner Satz: normal -> mit Pause -> langsam -> Pause + langsam -> Reduktion -> Myo -> normal
   'set-variant': el => {
     const ei = +el.dataset.ei, si = +el.dataset.si;
     const en = draft.entries[ei];
@@ -8756,7 +8824,9 @@ const actions = {
     recalcSets(ei); saveDraft(); render();
   },
   'set-step': el => {
-    findDay(current.params.id).exercises[el.dataset.i].step = Number(el.dataset.v);
+    const ex = findDay(current.params.id).exercises[el.dataset.i];
+    ex.step = Number(el.dataset.v);
+    if (ex.name.trim()) setStepAll(ex.name, ex.step);  // v281: gilt für die Übung an allen Tagen
     saveData(); render();
   },
   step: el => {
@@ -9351,8 +9421,10 @@ function applyTheme() {
   plainSync();
   iconSync();
   // Statusleiste des Handys in der Hintergrundfarbe der Farbwelt einfärben
-  const LOOK_BG = { plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], bw: ['#ffffff', '#101010'], sheet: ['#f8f9fa', '#1f1f1f'] };
-  const [light, dark] = LOOK_BG[currentLook()] || PROFILE_COLORS[profileColor()].bg;  // Schlicht und die neuen Designs (v234): neutral
+  const LOOK_BG = { plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], sheet: ['#f8f9fa', '#1f1f1f'] };
+  let [light, dark] = LOOK_BG[currentLook()] || PROFILE_COLORS[profileColor()].bg;  // Schlicht und die neuen Designs (v234): neutral
+  // v289: Kraftraum und Logbuch hell in der Farbwelt getönt (außer Blau und Beere), wie im Stylesheet
+  if ((currentLook() === 'kraft' || currentLook() === 'log') && !['blue', 'berry'].includes(profileColor())) light = PROFILE_COLORS[profileColor()].bg[0];
   document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
     const isDark = /dark/.test(m.getAttribute('media') || '');
     m.setAttribute('content', mode === 'dark' ? dark : mode === 'light' ? light : isDark ? dark : light);
@@ -9424,7 +9496,8 @@ for (const k of ['alert', 'confirm', 'prompt']) {
   if (typeof orig === 'function') window[k] = function (msg, ...rest) { return orig.call(window, emojiOff() ? plainStrip(String(msg)) : msg, ...rest); };
 }
 // Stile (v234): drei neue Designs, dazu die bisherigen „Standard“ und „Schlicht“. Ohne Angabe im Profil (neue Nutzer): Kraftraum.
-const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', bw: 'Schwarzweiß', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht' };  // v248: Puristen = Tabellen-Optik
+// v290 (User-Wunsch): „Schwarzweiß“ (bw) gestrichen, damit alle Stile in eine Zeile passen; gespeichertes bw wird über currentLook zu Kraftraum
+const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht' };  // v248: Puristen = Tabellen-Optik
 const currentLook = () => {
   const p = data.profile;
   const l = p && p.look !== undefined ? p.look || '' : 'kraft';
@@ -9461,7 +9534,7 @@ function appearanceCard() {
       <div class="variants look-pick">${Object.entries(LOOKS).map(([k, l]) =>
         `<button class="vchip ${currentLook() === k ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`).join('')}</div>
       <p class="hint explain">„Kraftraum“: sportlich mit kräftigen, schmalen Überschriften und großen Zahlen. „Logbuch“: wie ein Trainingsbuch,
-        Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Schwarzweiß“: nur Schwarz und Weiß, dicke Linien statt Karten. „Puristen“: so einfach wie eine Tabelle in Excel oder Google Sheets, ohne Emojis.
+        Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Puristen“: so einfach wie eine Tabelle in Excel oder Google Sheets, ohne Emojis.
         Kraftraum und Logbuch übernehmen deine Farbwelt. Ohne eigene Wahl ist Kraftraum orange und Logbuch grün.
         „Standard“ und „Schlicht“ sind die bisherigen Stile.</p>
       <p class="lbl">Farbwelt</p>

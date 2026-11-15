@@ -38,12 +38,12 @@ const TOURS = {
       text: 'Fühlst du dich heute nicht fit, kannst du die Steigerung nur für dieses Training ausschalten. Dann gelten die Werte vom letzten Mal.' },
     { id: 'tr-info', sel: 'section.card h2 .info-dot|section.card .info-btn', title: 'Übung ansehen',
       text: 'Tipp auf den Namen mit dem „i“: Dann siehst du die Übung als Animation mit Anleitung.' },
-    { id: 'tr-details', sel: 'section.card .det-btn', title: 'Details',
+    { id: 'tr-details', sel: 'section.card .det-btn', title: 'Anpassen',
       text: () => {
-        const a = [feat('tr-comment') ? 'Kommentar' : '', 'Ersetzen', 'Technik-Video', feat('tr-max') ? 'Max. bei 10 Wdh.' : '',
+        const a = [feat('tr-comment') ? 'Kommentar' : '', 'Ersetzen', 'Heute weglassen', 'Technik-Video', feat('tr-max') ? 'Max. bei 10 Wdh.' : '',
           feat('tr-step') ? 'Steigerung' : '', feat('tr-variants') ? 'Ausführung' : ''].filter(Boolean);
         const list = a.length > 1 ? `${a.slice(0, -1).join(', ')} und ${a[a.length - 1]}` : a[0];
-        return `Hier klappst du mehr zur Übung auf: ${list}. Die App merkt sich, ob du die Details lieber offen oder zu hast.`;
+        return `Hier passt du die Übung an: ${list}. Die App merkt sich, ob du den Bereich lieber offen oder zu hast.`;
       } },
     { id: 'tr-tools', sel: 'section.card .ex-tools', title: 'Kommentar und Ersetzen',
       text: () => (feat('tr-comment') ? '„Kommentar“: eine Notiz zur Übung, z. B. die Sitzhöhe. Sie erscheint beim nächsten Mal wieder. ' : '')
@@ -191,7 +191,7 @@ const TOURS = {
       text: 'Isst du etwas öfter? Mit 💾 speicherst du die ganze Mahlzeit. Beim nächsten Mal reicht ein Tipp.' },
     { id: 'food-close', sel: '[data-action="food-close-ask"]|[data-action="food-close"]', title: 'Tag abschließen',
       text: 'Am Abend den Tag abschließen. Fehlt noch etwas, kann die App den Rest mit deinem Tagesziel auffüllen. So bleibt die Rechnung genau.' },
-    { id: 'food-micro', sel: '.mic-btn', feat: 'nut-micro', title: '🔬 Vitamine & Mineralstoffe',
+    { id: 'food-micro', sel: '.mic-line', feat: 'nut-micro', title: '🔬 Vitamine & Mineralstoffe',
       text: 'Hier siehst du, wie viele Vitamine, Mineralstoffe und Fette in dem steckt, was du eingetragen hast, mit den Richtwerten der DGE.' },
   ],
   // v214: Mikronährstoffe

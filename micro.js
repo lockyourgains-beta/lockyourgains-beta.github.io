@@ -230,7 +230,8 @@ actions['micro-range'] = el => { microRange = el.dataset.r; render(); };
 // Knopf im Tagebuch (unter Ballaststoffe/Zucker)
 function microBtnHtml() {
   if (!feat('nut-micro')) return '';
-  return '<button class="btn nav mic-btn" data-action="micro-open">🔬 Vitamine & Mineralstoffe<small>Mikronährstoffe ansehen, mit Richtwerten der DGE</small></button>';
+  // v287 (User-Wunsch): schmale Zeile direkt unter den Makros statt großem Knopf
+  return '<button class="mic-line" data-action="micro-open"><span>🔬 Vitamine & Mineralstoffe</span><span class="mic-line-chev" aria-hidden="true">›</span></button>';
 }
 
 /* ----- Open Food Facts: Mikros aus den Nährwerten (Werte dort in Gramm) ----- */
