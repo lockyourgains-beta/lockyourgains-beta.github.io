@@ -378,7 +378,8 @@ function chartPoints() {
       .map(s => ({ t: Date.parse(s.date + 'T12:00:00'), v: s.steps, unit: 'Schritte' }));
   }
   if (chartMode() === 'ton') {
-    const sessions = [...data.sessions].sort((a, b) => a.date.localeCompare(b.date));
+    // v297 (User-Wunsch): Deload-Trainings wie bei den Übungen nur auf Wunsch („Deload einbeziehen“)
+    const sessions = [...data.sessions].filter(s => chartState.withDeload || !s.deload).sort((a, b) => a.date.localeCompare(b.date));
     if (chartState.tonBy === 'week') {
       const weeks = new Map();
       for (const s of sessions) {
@@ -467,9 +468,46 @@ function niceTicks(lo, hi) {
 }
 
 function fmtTick(t, spanDays) {
-  return spanDays <= 100
+  return spanDays <= 45
     ? new Date(t).toLocaleDateString(LOCALE(), { day: '2-digit', month: '2-digit' })
+    : spanDays <= 400 ? new Date(t).toLocaleDateString(LOCALE(), { month: 'short' }).replace('.', '')
     : new Date(t).toLocaleDateString(LOCALE(), { month: 'short', year: '2-digit' });
+}
+/* ---------- v298 (User-Wunsch): einheitlicher, ruhigerer Diagramm-Stil ----------
+   Weiche Linie (monoton, ohne Überschwingen), Farbverlauf darunter, feines Gitter, Monatsnamen auf der Zeitachse. */
+const f1 = v => v.toFixed(1);
+function smoothPath(P) {
+  const n = P.length;
+  if (!n) return '';
+  if (n < 3) return P.map((p, i) => `${i ? 'L' : 'M'}${f1(p.x)},${f1(p.y)}`).join('');
+  const dx = [], m = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = P[i + 1].x - P[i].x; m[i] = dx[i] ? (P[i + 1].y - P[i].y) / dx[i] : 0; }
+  const t = [m[0]];
+  for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+  t[n - 1] = m[n - 2];
+  for (let i = 0; i < n - 1; i++) {
+    if (!m[i]) { t[i] = 0; t[i + 1] = 0; continue; }
+    const a = t[i] / m[i], b = t[i + 1] / m[i], q = a * a + b * b;
+    if (q > 9) { const k = 3 / Math.sqrt(q); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+  }
+  let d = `M${f1(P[0].x)},${f1(P[0].y)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += `C${f1(P[i].x + h)},${f1(P[i].y + h * t[i])} ${f1(P[i + 1].x - h)},${f1(P[i + 1].y - h * t[i + 1])} ${f1(P[i + 1].x)},${f1(P[i + 1].y)}`;
+  }
+  return d;
+}
+// Farbverlauf unter der Linie (Farbe = currentColor des SVG)
+const gradDef = id => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".24"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient>`;
+// Zeitachse: Beschriftung in gleichmäßigen Abständen
+function timeAxis(X, x0, x1, pw, y) {
+  const spanDays = (x1 - x0) / DAY, n = Math.max(2, Math.floor(pw / 78));
+  let h = '';
+  for (let i = 0; i <= n; i++) {
+    const t = x0 + i * (x1 - x0) / n;
+    h += `<text class="c-text" x="${f1(X(t))}" y="${y}" text-anchor="${i === 0 ? 'start' : i === n ? 'end' : 'middle'}">${fmtTick(t, spanDays)}</text>`;
+  }
+  return h;
 }
 
 function drawChart() {
@@ -511,7 +549,7 @@ function drawChart() {
 
   let svg = `<svg class="chart-svg" width="${W}" height="${H}" role="img"
     aria-label="Verlauf ${esc(chartMode() === 'bw' ? 'Körpergewicht' : chartMode() === 'meas' ? measLabel(chartState.meas) : chartState.name)}">
-    <defs><clipPath id="plot-clip"><rect x="${L - 6}" y="0" width="${pw + 12}" height="${H}"/></clipPath></defs>`;
+    <defs><clipPath id="plot-clip"><rect x="${L - 6}" y="0" width="${pw + 12}" height="${H}"/></clipPath>${gradDef('c-grad')}</defs>`;
 
   // Raster und y-Achse
   for (const v of ticks) {
@@ -519,35 +557,27 @@ function drawChart() {
       <text class="c-text" x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${v >= 10000 ? deNum(v / 1000) + 'k' : fmtNum(v)}</text>`;
   }
   // x-Achse
-  const spanDays = (x1 - x0) / DAY;
-  const n = Math.max(2, Math.floor(pw / 85));
-  for (let i = 0; i <= n; i++) {
-    const t = x0 + i * (x1 - x0) / n;
-    const anchor = i === 0 ? 'start' : i === n ? 'end' : 'middle';
-    svg += `<text class="c-text" x="${X(t)}" y="${H - 8}" text-anchor="${anchor}">${fmtTick(t, spanDays)}</text>`;
-  }
+  svg += timeAxis(X, x0, x1, pw, H - 8);
 
   // Fläche, Linie, Punkte (alle Punkte zeichnen, das Fenster schneidet ab -> Linie läuft durch)
-  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.t).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
   svg += `<g clip-path="url(#plot-clip)">`;
   if (goal != null) {
     svg += `<line class="c-goal" x1="${L}" x2="${L + pw}" y1="${Y(goal)}" y2="${Y(goal)}"/>
       <text class="c-mark" x="${L + pw - 4}" y="${Y(goal) - 5}" text-anchor="end">Ziel ${fmtNum(goal)} kg</text>`;
   }
-  for (const m of marks ? marks.phases : []) {
-    if (m.t < x0 || m.t > x1) continue;
-    svg += `<line class="c-phase" x1="${X(m.t)}" x2="${X(m.t)}" y1="${T}" y2="${T + ph}"/>
-      <text class="c-mark" x="${X(m.t) + 4}" y="${T + 11}">${esc(m.label)}</text>`;
-  }
+  if (marks) svg += phaseBands(marks.phases, X, x0, x1, T, ph);
   if (pts.length > 1) {
-    svg += `<path class="c-area" d="${line}L${X(pts[pts.length - 1].t).toFixed(1)},${T + ph}L${X(pts[0].t).toFixed(1)},${T + ph}Z"/>
-      <path class="c-line" d="${line}"/>`;
+    const P = pts.map(p => ({ x: X(p.t), y: Y(p.v) }));
+    // Übungen und Tonnage: einzelne Trainings (schwere/leichte Tage wechseln) – gerade Verbindungen; sonst weich
+    const sm = chartMode() === 'ex' || chartMode() === 'ton' ? P.map((p, i) => `${i ? 'L' : 'M'}${f1(p.x)},${f1(p.y)}`).join('') : smoothPath(P);
+    svg += `<path class="c-area2" fill="url(#c-grad)" d="${sm}L${f1(X(pts[pts.length - 1].t))},${T + ph}L${f1(X(pts[0].t))},${T + ph}Z"/>
+      <path class="c-line" d="${sm}"/>`;
   }
   const sel = vis.find(p => p.t === chartState.sel);
   if (sel) svg += `<line class="c-cross" x1="${X(sel.t)}" x2="${X(sel.t)}" y1="${T}" y2="${T + ph}"/>`;
   const dots = vis.length <= 45 ? vis : [vis[vis.length - 1]];
   // Deload-Trainings als hohle Punkte
-  for (const p of dots) svg += `<circle class="c-dot ${p.deload ? 'deload' : ''}" cx="${X(p.t)}" cy="${Y(p.v)}" r="4.5"/>`;
+  for (const p of dots) svg += `<circle class="c-dot ${p.deload ? 'deload' : ''}" cx="${f1(X(p.t))}" cy="${f1(Y(p.v))}" r="${dots.length > 20 ? 3 : 4}"/>`;
   if (sel) svg += `<circle class="c-dot sel" cx="${X(sel.t)}" cy="${Y(sel.v)}" r="7"/>`;
   svg += '</g></svg>';
 
@@ -948,6 +978,7 @@ const histSegHtml = active => `<div class="seg hist-seg">${HIST_SECS.map(([k, l]
 const statTabs = () => [['bw', 'Gewicht'], feat('chart-detail') && ['ton', 'Tonnage'], feat('steps') && ['steps', 'Schritte'],
   typeof renderCardioStats === 'function' && ['cardio', 'Cardio']].filter(Boolean);
 function goHist(sec) {
+  chartState.withDeload = !!(data.profile && data.profile.chartDeload);  // v297
   const s = HIST_SECS.some(([k]) => k === sec) ? sec : 'cal';
   data.profile = data.profile || {};
   if (data.profile.histTab !== s) { data.profile.histTab = s; saveData(); }
@@ -979,10 +1010,15 @@ function histExListHtml() {
     <p class="hint" id="hist-ex-none" ${q && !list.some(x => norm(x.name).includes(q)) ? '' : 'hidden'}>Keine Übung gefunden.</p>`;
 }
 // Seite einer Übung: Schalter (Experte), Zeitraum, Diagramm, Kennzahlen – gezeichnet von drawChart (views.exercise.after)
+// Schalter „Deload einbeziehen“ (Übungen und Tonnage, gemeinsam; gemerkt in profile.chartDeload)
+function chartDeloadHtml() {
+  const on = chartState.withDeload = !!(data.profile && data.profile.chartDeload);
+  return `<div class="variants chart-opts"><button class="vchip ${on ? 'on' : ''}" data-action="chart-deload">Deload einbeziehen</button></div>`;
+}
 function exChartHtml(name) {
   const s = chartState;
   if (nameKey(s.name) !== nameKey(name)) Object.assign(s, { name, variant: '', sel: null, end: null });
-  if (!feat('chart-detail')) { s.metric = 'weight'; s.variant = ''; s.withDeload = false; }
+  if (!feat('chart-detail')) { s.metric = 'weight'; s.variant = ''; }
   let h = '';
   if (feat('chart-detail')) h += `<div class="seg small">
       <button class="${s.metric === 'weight' ? 'on' : ''}" data-action="chart-metric" data-metric="weight">Gewicht</button>
@@ -998,8 +1034,7 @@ function exChartHtml(name) {
       `<button class="${s.variant === v ? 'on' : ''}" data-action="chart-variant" data-v="${v}">${label}</button>`).join('')}
     </div>`;
   }
-  if (feat('chart-detail')) h += `<div class="variants chart-opts"><button class="vchip ${s.withDeload ? 'on' : ''}" data-action="chart-deload">
-    ${s.withDeload ? '✓ ' : ''}Deload einbeziehen</button></div>`;
+  h += chartDeloadHtml();  // v297: ab Standard (vorher nur Experte)
   return h + rangeRow() + '<div id="chart-area" class="chart-area"></div><div id="chart-extra"></div>'
     + `<p class="hint explain">Punkt antippen für Details. Zum Verschieben des Zeitraums seitlich wischen. ${s.withDeload
       ? 'Hohle Punkte = Deload-Woche.' : 'Deload-Wochen sind ausgeblendet.'}</p>`;
@@ -1032,12 +1067,14 @@ function renderCharts() {
   }
 
   // Tonnage
+  h += chartDeloadHtml();
   h += `<div class="seg small">
       <button class="${s.tonBy === 'session' ? 'on' : ''}" data-action="ton-by" data-by="session">pro Training</button>
       <button class="${s.tonBy === 'week' ? 'on' : ''}" data-action="ton-by" data-by="week">pro Woche</button>
     </div>`;
   h += rangeRow() + '<div id="chart-area" class="chart-area"></div><div id="chart-extra"></div>';
-  return h + '<p class="hint">Tonnage = Gewicht × Wiederholungen aller Sätze. Sätze ohne Gewicht zählen nicht mit.</p>';
+  return h + `<p class="hint">Tonnage = Gewicht × Wiederholungen aller Sätze. Sätze ohne Gewicht zählen nicht mit. ${s.withDeload
+    ? 'Hohle Punkte = Deload-Woche.' : 'Deload-Trainings sind ausgeblendet.'}</p>`;
 }
 
 views.charts = { title: 'Verlauf', tab: 'history', render: renderCharts, after: drawChart };
@@ -1049,7 +1086,11 @@ Object.assign(actions, {
   'ton-by': el => { Object.assign(chartState, { tonBy: el.dataset.by, sel: null, end: null }); render(); },
   'chart-variant': el => { Object.assign(chartState, { variant: el.dataset.v, sel: null }); render(); },
   'chart-metric': el => { Object.assign(chartState, { metric: el.dataset.metric, sel: null }); render(); },
-  'chart-deload': () => { Object.assign(chartState, { withDeload: !chartState.withDeload, sel: null }); render(); },
+  'chart-deload': () => {
+    Object.assign(chartState, { withDeload: !chartState.withDeload, sel: null });
+    data.profile = { ...(data.profile || {}), chartDeload: chartState.withDeload }; saveData();
+    render();
+  },
   'chart-range': el => { Object.assign(chartState, { range: Number(el.dataset.days), end: null }); render(); },
   'chart-shift': el => {
     if (!chartGeo) return;
@@ -1121,17 +1162,45 @@ function bwcData() {
 function bwCmpHtml() {
   const list = bwList();
   return `${rangeRow()}
-    <div class="bwc-tip" id="bwc-tip"></div>
-    <div class="chart-area bwc-area" id="bwc-area"></div>
-    <p class="hint explain">Fahre mit dem Finger über die Diagramme: Für jeden Tag stehen oben Gewicht und Kalorien. Den Zeitraum verschiebst du mit ‹ ›.</p>
+    <div class="cc-card">
+      <div class="cc-head" id="bwc-tip"></div>
+      <div class="bwc-area" id="bwc-area"></div>
+    </div>
+    <p class="hint explain">Fahre mit dem Finger über die Diagramme: Für jeden Tag stehen oben Gewicht und Kalorien. Die Linie ist dein Gewichtstrend,
+      die kleinen Punkte sind die einzelnen Wiegungen. Den Zeitraum verschiebst du mit ‹ ›.</p>
     <div id="bwc-stats"></div>
     ${list ? `<details class="card about-sec bw-entries"><summary><b>Alle Gewichts-Einträge</b><small>${data.bodyweight.length}</small></summary>${list.replace('<h2>Einträge</h2>', '')}</details>` : ''}`;
+}
+// Ernährungsphasen als zarte Hintergrundflächen mit Namen (v298, statt gepunkteter Linie)
+function phaseBands(phases, X, x0, x1, T, H) {
+  const ps = [...(phases || [])].filter(p => p.t < x1).sort((a, b) => a.t - b.t);
+  let h = '';
+  ps.forEach((p, i) => {
+    const a = Math.max(p.t, x0), b = Math.min(ps[i + 1] ? ps[i + 1].t : x1, x1);
+    if (b <= a) return;
+    const xa = X(a), xb = X(b);
+    h += `<rect class="c-band${i % 2 ? ' alt' : ''}" x="${f1(xa)}" y="${T}" width="${f1(xb - xa)}" height="${H}"/>`;
+    if (p.t >= x0) h += `<line class="c-band-edge" x1="${f1(xa)}" x2="${f1(xa)}" y1="${T}" y2="${T + H}"/>`;
+    if (xb - xa > 46) h += `<text class="c-mark" x="${f1(xa + 6)}" y="${T + 13}">${esc(p.label)}</text>`;
+  });
+  return h;
+}
+// Gewichtstrend: gleitender Schnitt über die Wiegungen (je Tag Abstand etwa 10 % Gewicht für den neuen Wert)
+function bwTrend(w) {
+  let e = null, tp = null;
+  return w.map(p => {
+    if (e == null) e = p.v;
+    else e += (1 - Math.pow(0.9, Math.max(1, (p.t - tp) / DAY))) * (p.v - e);
+    tp = p.t;
+    return { ...p, tr: round1(e) };
+  });
 }
 function drawBwCmp() {
   const area = document.getElementById('bwc-area');
   if (!area) return;
   const tip = document.getElementById('bwc-tip'), stats = document.getElementById('bwc-stats');
-  const { w, k } = bwcData();
+  const { w: w0, k } = bwcData();
+  const w = bwTrend(w0);
   const all = [...w, ...k].sort((a, b) => a.t - b.t);
   if (!all.length) {
     area.innerHTML = '<p class="hint chart-empty">Noch kein Körpergewicht und keine Kalorien eingetragen.</p>';
@@ -1140,71 +1209,88 @@ function drawBwCmp() {
   }
   const win = chartWindow(all);
   const { x0, x1 } = win;
+  const spanDays = (x1 - x0) / DAY;
   const vw = w.filter(p => p.t >= x0 && p.t <= x1), vk = k.filter(p => p.t >= x0 && p.t <= x1);
-  const W = area.clientWidth, L = 46, R = 14, pw = W - L - R;
-  const T1 = 26, H1 = 150, T2 = T1 + H1 + 40, H2 = 110, H = T2 + H2 + 28;
+  const W = area.clientWidth, L = 40, R = 12, pw = W - L - R;
+  const T1 = 12, H1 = 160, T2 = T1 + H1 + 34, H2 = 96, H = T2 + H2 + 24;
   const X = t => L + (t - x0) / (x1 - x0) * pw;
   const days = [...new Map([...vw, ...vk].map(p => [p.d, p])).values()].sort((a, b) => a.t - b.t);
   const sel = days.find(p => p.d === bwcSel) || days[days.length - 1] || null;
-  const wSel = sel && vw.find(p => p.d === sel.d), kSel = sel && vk.find(p => p.d === sel.d);
+  const isPick = !!days.find(p => p.d === bwcSel);  // ohne Auswahl keine Markierung im Diagramm
+  const wSel = isPick && vw.find(p => p.d === sel.d), kSel = isPick && vk.find(p => p.d === sel.d);
   let svg = `<svg class="bwc-svg" width="${W}" height="${H}" role="img" aria-label="Körpergewicht und Kalorien im Vergleich">
-    <defs><clipPath id="bwc-clip"><rect x="${L - 6}" y="0" width="${pw + 12}" height="${H}"/></clipPath></defs>
-    <text class="bwc-title" x="${L}" y="16">Körpergewicht (kg)</text>
-    <text class="bwc-title" x="${L}" y="${T2 - 12}">Kalorien (kcal)</text>`;
-  // oben: Körpergewicht (Linie, Punkte, Zielgewicht und Phasenbeginn wie im bisherigen Diagramm)
+    <defs><clipPath id="bwc-clip"><rect x="${L}" y="0" width="${pw}" height="${H}"/></clipPath>${gradDef('bwc-grad')}</defs>
+    <text class="cc-sub" x="${L}" y="${T2 - 12}">Kalorien</text>`;
+  const marks = typeof nutMarks === 'function' ? nutMarks() : null;
+  // oben: Körpergewicht – Trendlinie mit Verlauf, Wiegungen als kleine Punkte, Zielgewicht, Phasen als Flächen
   if (vw.length) {
-    const marks = typeof nutMarks === 'function' ? nutMarks() : null;
-    const wv = vw.map(p => p.v);
+    const wv = vw.flatMap(p => [p.v, p.tr]);
     const goal = marks && marks.goal != null && marks.goal >= Math.min(...wv) - 4 && marks.goal <= Math.max(...wv) + 4 ? marks.goal : null;
     const ticks = niceTicks(Math.min(...wv, ...(goal != null ? [goal] : [])), Math.max(...wv, ...(goal != null ? [goal] : [])));
     const lo = ticks[0], hi = ticks[ticks.length - 1];
     const Y = v => T1 + (1 - (v - lo) / (hi - lo)) * H1;
-    for (const v of ticks) svg += `<line class="c-grid" x1="${L}" x2="${L + pw}" y1="${Y(v)}" y2="${Y(v)}"/>
-      <text class="c-text" x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${fmtNum(v)}</text>`;
+    for (const v of ticks) svg += `<line class="c-grid" x1="${L}" x2="${L + pw}" y1="${f1(Y(v))}" y2="${f1(Y(v))}"/>
+      <text class="c-text" x="${L - 6}" y="${f1(Y(v) + 4)}" text-anchor="end">${fmtNum(v)}</text>`;
     svg += '<g clip-path="url(#bwc-clip)">';
-    if (goal != null) svg += `<line class="c-goal" x1="${L}" x2="${L + pw}" y1="${Y(goal)}" y2="${Y(goal)}"/>
-      <text class="c-mark" x="${L + pw - 4}" y="${Y(goal) - 5}" text-anchor="end">Ziel ${fmtNum(goal)} kg</text>`;
-    for (const m of marks ? marks.phases : []) {
-      if (m.t < x0 || m.t > x1) continue;
-      svg += `<line class="c-phase" x1="${X(m.t)}" x2="${X(m.t)}" y1="${T1}" y2="${T1 + H1}"/>
-        <text class="c-mark" x="${X(m.t) + 4}" y="${T1 + 11}">${esc(m.label)}</text>`;
+    if (marks) svg += phaseBands(marks.phases, X, x0, x1, T1, H1);
+    if (goal != null) svg += `<line class="c-goal" x1="${L}" x2="${L + pw}" y1="${f1(Y(goal))}" y2="${f1(Y(goal))}"/>
+      <text class="c-mark" x="${L + pw - 4}" y="${f1(Y(goal) - 5)}" text-anchor="end">Ziel ${fmtNum(goal)} kg</text>`;
+    const P = w.map(p => ({ x: X(p.t), y: Y(p.tr) }));
+    if (w.length > 1) {
+      const sm = smoothPath(P);
+      svg += `<path class="c-area2" fill="url(#bwc-grad)" d="${sm}L${f1(P[P.length - 1].x)},${T1 + H1}L${f1(P[0].x)},${T1 + H1}Z"/><path class="c-line" d="${sm}"/>`;
     }
-    const line = w.map((p, i) => `${i ? 'L' : 'M'}${X(p.t).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
-    if (w.length > 1) svg += `<path class="c-line" d="${line}"/>`;
-    if (vw.length <= 60) for (const p of vw) svg += `<circle class="c-dot" cx="${X(p.t)}" cy="${Y(p.v)}" r="3.5"/>`;
-    if (wSel) svg += `<circle class="c-dot sel" cx="${X(wSel.t)}" cy="${Y(wSel.v)}" r="6"/>`;
+    for (const p of vw) svg += `<circle class="bwc-raw" cx="${f1(X(p.t))}" cy="${f1(Y(p.v))}" r="2.6"/>`;
+    if (wSel) svg += `<circle class="c-dot sel" cx="${f1(X(wSel.t))}" cy="${f1(Y(wSel.tr))}" r="5.5"/>`;
     svg += '</g>';
   } else {
     svg += `<text class="bwc-empty" x="${L + pw / 2}" y="${T1 + H1 / 2}" text-anchor="middle">Keine Gewichtswerte in diesem Zeitraum</text>`;
   }
-  // unten: Kalorien je Tag als Balken, gestrichelt der Durchschnitt
+  // unten: Kalorien – Balken je Tag (ab ~4 Monaten Wochenschnitt), Tagesziel als feine Linie
   let avg = null;
   if (vk.length) {
-    const kv = vk.map(p => p.v);
-    avg = kv.reduce((a, b) => a + b, 0) / kv.length;
-    const step = niceStep(Math.max(...kv) / 3), top = Math.ceil(Math.max(...kv) / step) * step;
+    const week = spanDays > 120;
+    let bars = vk;
+    if (week) {
+      const g = new Map();
+      for (const p of vk) { const m = mondayISO(new Date(p.t)); const x = g.get(m) || { s: 0, n: 0, ds: [] }; x.s += p.v; x.n++; x.ds.push(p.d); g.set(m, x); }
+      bars = [...g].map(([m, x]) => ({ d: m, ds: x.ds, t: Date.parse(m + 'T12:00:00') + 3 * DAY, v: Math.round(x.s / x.n) }));
+    }
+    avg = vk.reduce((a, p) => a + p.v, 0) / vk.length;
+    const goalK = typeof foodGoal === 'function' ? (foodGoal() || {}).kcal : null;
+    const mx = Math.max(...bars.map(p => p.v), goalK || 0);
+    const step = niceStep(mx / 2.5), top = Math.ceil(mx / step) * step;
     const Y = v => T2 + H2 - v / top * H2;
-    for (let v = 0; v <= top + 1e-9; v += step) svg += `<line class="c-grid" x1="${L}" x2="${L + pw}" y1="${Y(v)}" y2="${Y(v)}"/>
-      <text class="c-text" x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${v >= 10000 ? deNum(v / 1000) + 'k' : deNum(v)}</text>`;
-    const bw = Math.max(1.5, Math.min(14, pw / ((x1 - x0) / DAY) * 0.62)), rx = Math.min(3, bw / 2);
+    for (let v = step; v <= top + 1e-9; v += step) svg += `<line class="c-grid" x1="${L}" x2="${L + pw}" y1="${f1(Y(v))}" y2="${f1(Y(v))}"/>
+      <text class="c-text" x="${L - 6}" y="${f1(Y(v) + 4)}" text-anchor="end">${v >= 1000 ? fmtNum(v / 1000) + 'k' : deNum(v)}</text>`;
+    svg += `<line class="c-base" x1="${L}" x2="${L + pw}" y1="${T2 + H2}" y2="${T2 + H2}"/>`;
+    const slot = pw / (spanDays / (week ? 7 : 1));
+    const bw = Math.max(1.5, Math.min(16, slot - 2)), rx = Math.min(3, bw / 2);
     svg += '<g clip-path="url(#bwc-clip)">';
-    for (const p of vk) svg += `<rect class="bwc-bar${kSel && p.d === kSel.d ? ' on' : ''}" x="${(X(p.t) - bw / 2).toFixed(1)}" y="${Y(p.v).toFixed(1)}"
-      width="${bw.toFixed(1)}" height="${(T2 + H2 - Y(p.v)).toFixed(1)}" rx="${rx}"/>`;
-    svg += `<line class="bwc-avg" x1="${L}" x2="${L + pw}" y1="${Y(avg)}" y2="${Y(avg)}"/>
-      <text class="bwc-avg-t" x="${L + pw - 4}" y="${Y(avg) - 5}" text-anchor="end">Ø ${deNum(Math.round(avg))}</text></g>`;
+    for (const p of bars) {
+      const on = kSel && (p.d === kSel.d || (p.ds && p.ds.includes(kSel.d)));
+      const y = Y(p.v), hgt = T2 + H2 - y;
+      svg += `<path class="bwc-bar${on ? ' on' : ''}" d="M${f1(X(p.t) - bw / 2)},${f1(T2 + H2)}V${f1(y + rx)}Q${f1(X(p.t) - bw / 2)},${f1(y)} ${f1(X(p.t) - bw / 2 + rx)},${f1(y)}H${f1(X(p.t) + bw / 2 - rx)}Q${f1(X(p.t) + bw / 2)},${f1(y)} ${f1(X(p.t) + bw / 2)},${f1(y + rx)}V${f1(T2 + H2)}Z"/>`;
+      void hgt;
+    }
+    if (goalK) svg += `<line class="bwc-goal" x1="${L}" x2="${L + pw}" y1="${f1(Y(goalK))}" y2="${f1(Y(goalK))}"/>
+      <text class="c-mark" x="${L + pw - 4}" y="${f1(Y(goalK) - 5)}" text-anchor="end">Ziel ${deNum(Math.round(goalK))}</text>`;
+    svg += '</g>';
+    if (week) svg += `<text class="c-mark" x="${L + pw}" y="${T2 - 12}" text-anchor="end">Ø je Woche</text>`;
   } else {
     svg += `<text class="bwc-empty" x="${L + pw / 2}" y="${T2 + H2 / 2}" text-anchor="middle">Keine Kalorien in diesem Zeitraum</text>`;
   }
-  // gemeinsame Zeitachse unten, Linie durch beide Diagramme am gewählten Tag
-  const spanDays = (x1 - x0) / DAY, n = Math.max(2, Math.floor(pw / 85));
-  for (let i = 0; i <= n; i++) {
-    const t = x0 + i * (x1 - x0) / n;
-    svg += `<text class="c-text" x="${X(t)}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === n ? 'end' : 'middle'}">${fmtTick(t, spanDays)}</text>`;
-  }
-  if (sel) svg += `<line class="c-cross bwc-cross" x1="${X(sel.t)}" x2="${X(sel.t)}" y1="${T1}" y2="${T2 + H2}"/>`;
+  svg += timeAxis(X, x0, x1, pw, H - 6);
+  if (isPick) svg += `<line class="c-cross bwc-cross" x1="${f1(X(sel.t))}" x2="${f1(X(sel.t))}" y1="${T1}" y2="${T2 + H2}"/>`;
   area.innerHTML = svg + '</svg>';
-  tip.innerHTML = sel ? `<b>${fmtDate(sel.d + 'T12:00:00')}</b>
-    <span>Gewicht <b>${wSel ? fmtNum(wSel.v) + ' kg' : '–'}</b></span><span>Kalorien <b>${kSel ? deNum(kSel.v) + ' kcal' : '–'}</b></span>` : '';
+  // ohne Auswahl: jeweils der letzte Wert mit eigenem Datum (sonst stünde beim Gewicht oft „–“)
+  const picked = !!days.find(p => p.d === bwcSel);
+  const wShow = picked ? wSel : vw[vw.length - 1], kShow = picked ? kSel : vk[vk.length - 1];
+  const dd = p => fmtDate(p.d + 'T12:00:00');
+  tip.innerHTML = sel ? `<div class="cc-vals">
+      <div class="cc-val"><small><i class="cc-key w"></i>Gewicht</small><b>${wShow ? fmtNum(wShow.v) + ' kg' : '–'}</b>${wShow ? `<em>Trend ${fmtNum(wShow.tr)}</em>` : ''}${!picked && wShow ? `<span class="cc-when">${dd(wShow)}</span>` : ''}</div>
+      <div class="cc-val"><small><i class="cc-key k"></i>Kalorien</small><b>${kShow ? deNum(kShow.v) + ' kcal' : '–'}</b>${!picked && kShow ? `<span class="cc-when">${dd(kShow)}</span>` : ''}</div>
+    </div>${picked ? `<div class="cc-date">${dd(sel)}</div>` : '<div class="cc-date">Letzte Werte. Zum Vergleichen eines Tages darüberfahren.</div>'}` : '';
   chartGeo = { X, pw, x0, x1, vis: [], end: chartState.end, bwc: days };
   stats.innerHTML = (vw.length ? chartStats(vw.map(p => ({ ...p, unit: 'kg' })), 'kg') : '')
     + (avg != null ? `<p class="hint bwc-kavg">Kalorien im Zeitraum: im Schnitt <b>${deNum(Math.round(avg))} kcal</b> an ${vk.length} Tag${vk.length === 1 ? '' : 'en'} mit Einträgen.</p>` : '');

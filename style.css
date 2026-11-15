@@ -3721,3 +3721,33 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .meal-cfg .meal-name span { flex: none; width: 28px; font-size: 22px; text-align: center; }
 .meal-cfg .meal-name .inp { flex: 1; min-width: 0; }
 .meal-cfg-link { display: block; margin: 4px auto 6px; font-size: 16px; }
+
+/* v298: einheitlicher Diagramm-Stil (Verlauf) – Karte mit Werten oben, weiche Linie mit Verlauf, feines Gitter */
+.chart-svg, .bwc-svg { color: var(--accent); }
+.c-grid { stroke: var(--line); stroke-width: 1; opacity: .7; }
+.c-base { stroke: var(--line-strong); stroke-width: 1; }
+.c-text { font-size: 11.5px; }
+.c-line { stroke-width: 2.5; }
+.c-band { fill: var(--text); opacity: .035; }
+.c-band.alt { opacity: .07; }
+.c-band-edge { stroke: var(--line-strong); stroke-width: 1; }
+.cc-card { margin: 0 0 12px; padding: 14px 10px 6px; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); }
+.cc-head { min-height: 64px; padding: 0 6px 10px; }
+.cc-vals { display: flex; flex-wrap: wrap; gap: 4px 26px; }
+.cc-val small { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.cc-val b { display: inline-block; margin-top: 2px; color: var(--text); font-size: 24px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.cc-val em { margin-left: 8px; color: var(--muted); font-size: 12.5px; font-style: normal; font-variant-numeric: tabular-nums; }
+.cc-key { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.cc-key.w { background: var(--accent); }
+.cc-key.k { background: color-mix(in srgb, var(--text) 40%, transparent); }
+.cc-date { margin-top: 4px; color: var(--muted); font-size: 13px; }
+.cc-sub { fill: var(--muted); font-size: 12.5px; font-weight: 650; }
+.bwc-area { position: relative; }
+.bwc-raw { fill: var(--accent); opacity: .38; }
+.bwc-bar { fill: color-mix(in srgb, var(--text) 22%, transparent); }
+.bwc-bar.on { fill: color-mix(in srgb, var(--text) 62%, transparent); }
+.bwc-goal { stroke: var(--text); stroke-width: 1; stroke-dasharray: 4 3; opacity: .5; }
+.c-dot.sel { stroke-width: 2.5; }
+[data-look="plain"] :is(.chart-svg, .bwc-svg) { color: var(--text); }
+[data-look="plain"] .bwc-raw { fill: var(--text); }
+.cc-when { display: block; color: var(--muted); font-size: 12px; }

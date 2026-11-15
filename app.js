@@ -480,7 +480,7 @@ const FEATURE_MODE = {
   'plan-cycle-settings': 'x', 'plan-week-jump': 's', 'cycle-len': 's', 'cycle-adjust': 's', 'plan-week-prog': 'x', 'plan-volume': 'x', 'plan-rir': 'x', 'custom-ex': 's',
   'day-templates': 's', 'supersets': 's',
   // Ernährung
-  'nut-minicut': 's', 'nut-pace': 's', 'nut-own-kcal': 's', 'nut-macros': 's', 'nut-micro': 's', 'nut-meals': 's', 'nut-macro-pct': 'x', 'nut-protein-detail': 's',
+  'nut-minicut': 's', 'nut-pace': 's', 'nut-own-kcal': 's', 'nut-macros': 's', 'nut-micro': 's', 'nut-meals': 's', 'tr-topset': 's', 'nut-macro-pct': 'x', 'nut-protein-detail': 's',
   'nut-health': 's', 'nut-history': 's', 'nut-trend-detail': 's', 'nut-measured': 'x', 'nut-train-q': 's', 'nut-explain': 's',
 };
 // Bestehende Nutzer ohne Wahl: Experte (so fehlt nach dem Update nichts); neue wählen bei der Begrüßung
@@ -1094,7 +1094,17 @@ function recalcSets(ei) {
     for (let i = j - 1; i >= 0; i--) {
       if (isDone(en.sets[i]) && variantOf(en.sets[i]) === variantOf(s)) { last = i; break; }
     }
-    if (last < 0) continue;
+    if (last < 0) {
+      if (isBo(variantOf(s)) && !s.manualWeight) {  // erster Back-off (v295): aus dem tatsächlich geschafften Top-Set
+        const b = boProposal(en, j);
+        if (b) {
+          const bw = fmtNum(b.weight);
+          if (bw !== s.weight) { s.weight = bw; s.baseWeight = b.weight; setInput('tr-weight', ei, j, bw); }
+          if (String(b.reps) !== s.reps) { s.reps = String(b.reps); setInput('tr-reps', ei, j, s.reps); }
+        }
+      }
+      continue;
+    }
     const ttj = tAt(tt, j);  // Tank dieses Satzes (v199)
     const done = en.sets[last];
     const cap0 = parseNum(done.reps) + parseNum(done.rir);
@@ -2302,8 +2312,13 @@ function lighterSet(a, b) {
 
 // '' = normal. Sätze einer Variante werden nur mit Sätzen derselben Variante verglichen.
 // v284 (User-Wunsch): pslow = mit Pause UND langsam, eine eigene Kategorie (nur mit pslow-Sätzen verglichen)
-const VARIANTS = { '': 'Normal', pause: 'mit Pause', slow: 'langsam', pslow: 'Pause + langsam', drop: 'Reduktion', myo: 'Myo' };
-const VARIANT_SHORT = { pause: 'P', slow: 'L', pslow: 'PL', drop: 'R', myo: 'M' };
+const VARIANTS = { '': 'Normal', pause: 'mit Pause', slow: 'langsam', pslow: 'Pause + langsam', drop: 'Reduktion', myo: 'Myo',
+  bo: 'Back-off', bo_pause: 'Back-off mit Pause', bo_slow: 'Back-off langsam', bo_pslow: 'Back-off Pause + langsam' };
+const VARIANT_SHORT = { pause: 'P', slow: 'L', pslow: 'PL', drop: 'R', myo: 'M', bo: 'B', bo_pause: 'BP', bo_slow: 'BL', bo_pslow: 'BPL' };
+// v296: Back-off mit Ausführung (eigene Vergleichsgruppe je Ausführung)
+const isBo = v => v === 'bo' || String(v || '').startsWith('bo_');
+const execOf = v => isBo(v) ? String(v).slice(3) : v || '';   // Ausführung ohne Back-off
+const makeBo = exec => exec ? 'bo_' + exec : 'bo';
 const EXEC_VARIANTS = { '': 'Normal', pause: 'mit Pause', slow: 'langsam' };  // Knöpfe der Ausführung im Plan (Techniken extra)
 const variantOf = s => (s && s.variant) || '';
 // „mit Pause“ und „langsam“ lassen sich zusammen wählen: Knopf v an/aus, ausgehend von der bisherigen Ausführung cur
@@ -2339,6 +2354,54 @@ const techVariant = (ex, i, n) => {
   const t = ex.tech;
   return t && TECHS[t.k] && techOn() && !(draft && draft.deload) && (t.at === 'all' || i === n - 1) ? t.k : ex.variant || '';
 };
+/* ---------- Top-Set + Back-off (v295, User-Regel 2026-11-15) ----------
+   Pro Übung im Plan (ex.scheme = 'top', ex.topN = 1|2), ab Standard, nicht bei Eigengewicht. Die Top-Sets sind normale Sätze
+   (Ziel und Tank laut Plan, Steigerung wie bisher am 1. Satz, Verlauf/Bestleistungen laufen weiter). Die übrigen Sätze sind
+   Back-offs (Variante 'bo'): 15–20 % leichter als das Top-Set (Faktor BO_FACTOR, auf die Steigerung gerundet), Wdh. so viele,
+   wie nach dem Top-Set beim angesagten Tank gehen (abzüglich Ermüdung). Gilt auch in Intro-Woche und Deload mit deren Tank. */
+const BO_FACTOR = 0.825, BO_MIN = 0.8, BO_MAX = 0.85;
+const schemeOn = ex => !!ex && ex.scheme === 'top' && typeof feat === 'function' && feat('tr-topset') && !isBodyweight(ex) && !(hasActivePlan() && activePlan().own);
+const topNOf = ex => ex.topN === 2 ? 2 : 1;
+// Variante je Satz laut Plan: Top-Sets normal, danach Back-offs (Intensitätstechnik am letzten Satz bleibt möglich)
+// Plan: Zeile „Satzschema“ (v295)
+function schemeRowHtml(ex, i) {
+  const top = ex.scheme === 'top', n = topNOf(ex);
+  return `<div class="variants plan scheme-row"><span>Satzschema</span>
+      <button class="vchip ${top ? '' : 'on'}" data-action="plan-scheme" data-i="${i}" data-v="">Gerade Sätze</button>
+      <button class="vchip ${top ? 'on' : ''}" data-action="plan-scheme" data-i="${i}" data-v="top">Top-Set + Back-off</button></div>
+    ${top ? `<div class="variants plan topn-row"><span>Top-Sets</span>${[1, 2].map(x =>
+      `<button class="vchip ${n === x ? 'on' : ''}" data-action="plan-topn" data-i="${i}" data-v="${x}">${x}</button>`).join('')}</div>
+    <p class="hint kind-hint">${n === 2 ? 'Die ersten zwei Sätze sind Top-Sets' : 'Der erste Satz ist das Top-Set'}: Ziel und Tank wie geplant, daran steigert die App.
+      Danach folgen Back-off-Sätze, 15–20 % leichter, mit so vielen Wdh., wie beim angesagten Tank gehen.</p>` : ''}`;
+}
+function planVariant(ex, i, n) {
+  if (!schemeOn(ex) || n <= topNOf(ex)) return techVariant(ex, i, n);
+  const tv = techVariant(ex, i, n);
+  if (i < topNOf(ex)) return isTech(tv) ? (ex.variant || '') : tv;  // Top-Set: Ausführung laut Plan
+  return isTech(tv) ? tv : makeBo(ex.variant || '');
+}
+// Back-off-Gewicht: möglichst nah an 82,5 % des Top-Sets, innerhalb 80–85 %, falls die Stufen das hergeben
+function boWeight(top, t) {
+  const tt = { step: 2.5, ...t };
+  const cands = [wSnap(top * BO_FACTOR, tt), wSnap(top * BO_MAX, tt, Math.floor), wSnap(top * BO_MIN, tt, Math.ceil)].filter(w => w > 0 && w < top);
+  const inside = cands.filter(w => w >= top * BO_MIN - 1e-9 && w <= top * BO_MAX + 1e-9);
+  const pool = inside.length ? inside : cands;
+  if (!pool.length) return top;
+  return pool.reduce((a, b) => Math.abs(b - top * BO_FACTOR) < Math.abs(a - top * BO_FACTOR) ? b : a);
+}
+// Vorschlag für einen Back-off-Satz i aus dem letzten normalen Satz davor (erledigt: tatsächliche Werte, sonst Vorschlag)
+function boProposal(en, i) {
+  let r = -1;
+  for (let j = i - 1; j >= 0; j--) { const vj = variantOf(en.sets[j]); if (!isBo(vj) && !isTech(vj)) { r = j; break; } }
+  if (r < 0) return null;
+  const ref = en.sets[r], done = isDone(ref);
+  const wTop = parseNum(ref.weight), reps = parseNum(ref.reps), rir = done ? parseNum(ref.rir) : rirAt(en.target, r);
+  if (wTop == null || reps == null || rir == null) return null;
+  const t = tAt(en.target, i);
+  const w = boWeight(wTop, t);
+  const r2 = Math.floor(capacityAt(reps + rir, wTop, w) - t.rir - FATIGUE * (i - r) + 1e-9);
+  return { weight: w, reps: Math.max(minReps(), r2) };
+}
 const techExtra = sets => (sets || []).reduce((a, s) => a + (TECH_FAT[variantOf(s)] || 0), 0);
 const techMinutes = sets => (sets || []).reduce((a, s) => a + (TECH_MIN[variantOf(s)] || 0) * ((s.subs || []).length || 0), 0);
 // Plan: zusätzliche Vorermüdung bzw. Minuten einer Übung mit n Sätzen
@@ -2841,6 +2904,10 @@ function openFloor(en, t, i, k) {
 
 function proposeSet(en, i, v) {
   const t = tAt(en.target, i);  // Tank dieses Satzes (ganze Zahl, absteigend)
+  if (isBo(v)) {  // Back-off (v295): immer aus dem Top-Set davor
+    const b = boProposal(en, i);
+    if (b) return { set: { weight: fmtNum(b.weight), reps: String(b.reps), rir: '', auto: true, baseWeight: b.weight, variant: v }, rule: null };
+  }
   const k = en.sets.slice(0, i).filter(s => variantOf(s) === v).length;
   let p = null, rule = null;
   if (t.hold) {
@@ -3200,13 +3267,6 @@ function ssSoloHtml(p, hidden) {
 
 // Tagesplan: mögliche Partner einer Übung (erlaubt, noch ohne Paar) – Gegenspieler zuerst, dann die größte Ersparnis
 var ssPick = null;  // { day, i }: offene Auswahl „Als Supersatz koppeln“
-// v293: Erklärung, was wo gilt (Training: nur dieses Training; Plan: dauerhaft)
-const TR_SCOPE_HTML = `<p class="hint explain tr-scope">ℹ️ Was du hier im laufenden Training änderst, gilt nur für dieses eine Training:
-  Übungen ersetzen, weglassen oder hinzufügen, Reihenfolge, Ausführung, Sätze und Supersätze. Dein Plan bleibt, wie er ist.
-  Ausnahmen sind Werte, die zur Übung selbst gehören: Max. bei 10 Wdh., Steigerung und Bandstufe gelten ab dann immer.
-  Eine hinzugefügte Übung kannst du auf Wunsch auch im Plan speichern. Dauerhaft änderst du alles andere im Reiter „Plan“.</p>`;
-const PLAN_SCOPE_HTML = `<p class="hint explain plan-scope">ℹ️ Was du hier im Plan änderst, gilt dauerhaft für alle weiteren Trainings.
-  Nur für ein einzelnes Training passt du eine Übung im laufenden Training unter „Anpassen“ an.</p>`;
 // Partner für einen spontanen Supersatz im Training: gleiche Regeln wie im Plan, nur Übungen mit offenen Sätzen, noch ohne Partner
 function trSsCandidates(ei) {
   if (!draft || draft.own || !ssOn()) return [];
@@ -3218,14 +3278,27 @@ function trSsCandidates(ei) {
   return ents.map((e, j) => j).filter(j => j !== ei && !pairs.has(j) && open(ents[j]) && ssPairOk(a, exOf(ents[j])))
     .sort((x, y) => ssAntag(a, exOf(ents[y])) - ssAntag(a, exOf(ents[x])) || ssSaves(a, exOf(ents[y])) - ssSaves(a, exOf(ents[x])) || Math.abs(x - ei) - Math.abs(y - ei));
 }
+// Dauerhaft im Plan koppeln möglich? Beide stehen im Plan dieses Trainingstags und sind dort noch nicht gekoppelt
+function trSsPlanIdx(ea, eb) {
+  const day = draft && !draft.own && findDay(draft.dayId);
+  if (!day) return null;
+  const exs = day.exercises, pairs = dayPairs(exs);
+  const ia = exs.findIndex(x => nameKey(x.name) === nameKey(ea.name)), ib = exs.findIndex(x => nameKey(x.name) === nameKey(eb.name));
+  return ia >= 0 && ib >= 0 && !pairs.has(ia) && !pairs.has(ib) ? { day, ia, ib } : null;
+}
 function trSsPickHtml(ei) {
   const c = trSsCandidates(ei), a = draft.entries[ei];
   const exOf = e => ({ ...(planExercise(e.name) || { name: e.name }), name: e.name });
   if (!c.length) return '';
+  const keep = !!a.ssKeep;
   return `<div class="ss-pick tr-ss-pick"><p class="lbl">🔗 Supersatz mit …</p>
-      <p class="hint nut-small">Gilt nur für dieses Training, dein Plan bleibt unverändert. Die Partner-Übung rückt direkt dahinter, ab den offenen Sätzen geht es im Wechsel.</p>
-      ${c.map(j => { const b = draft.entries[j], ax = exOf(a), bx = exOf(b);
-        return `<button class="vchip" data-action="tr-ss-pick" data-ei="${ei}" data-j="${j}">${esc(b.name)}<small>${ssAntag(ax, bx) ? 'Gegenspieler' : 'Unabhängige Muskelgruppen'} | ${ssSaveText(ax, bx)}</small></button>`; }).join('')}
+      <div class="seg two ss-keep"><button class="${keep ? '' : 'on'}" data-action="tr-ss-keep" data-ei="${ei}" data-v="0">Nur heute</button>
+        <button class="${keep ? 'on' : ''}" data-action="tr-ss-keep" data-ei="${ei}" data-v="1">Dauerhaft im Plan</button></div>
+      <p class="hint nut-small">${keep ? 'Wird auch im Plan gespeichert: Ab jetzt gehen die beiden in jedem Training dieses Tages im Wechsel. Lösen kannst du das im Plan.'
+        : 'Nur für dieses Training, dein Plan bleibt unverändert.'} Die Partner-Übung rückt direkt dahinter, ab den offenen Sätzen geht es im Wechsel.</p>
+      ${c.map(j => { const b = draft.entries[j], ax = exOf(a), bx = exOf(b), off = keep && !trSsPlanIdx(a, b);
+        return `<button class="vchip" data-action="tr-ss-pick" data-ei="${ei}" data-j="${j}"${off ? ' disabled' : ''}>${esc(b.name)}<small>${off
+          ? 'Nur heute möglich: steht so nicht im Plan dieses Tages' : `${ssAntag(ax, bx) ? 'Gegenspieler' : 'Unabhängige Muskelgruppen'} | ${ssSaveText(ax, bx)}`}</small></button>`; }).join('')}
     </div>`;
 }
 function ssCandidates(day, i) {
@@ -4657,7 +4730,6 @@ function renderTraining() {
     ? `<p class="sub">${fmtDate(draft.date, true)}<br>Trag nach jedem Satz ein, was du geschafft hast${feat('tr-rir-input')
       ? ' und wie viele Wdh. noch im Tank waren' : ' und tippe an, wie er sich angefühlt hat'}. Damit gilt der Satz als erledigt.</p>`
     : `<p class="sub">${fmtDate(draft.date, true)}</p>` + entryHelpHtml() + prefatHelpHtml();
-  h += TR_SCOPE_HTML;  // v293: was hier geändert wird, gilt nur für dieses Training
   if (feat('tr-prog')) h += progressionCard();
 
   // Reihenfolge nur für dieses Training ändern (der Plan bleibt, wie er ist)
@@ -4766,7 +4838,7 @@ function renderTraining() {
     // Max. bei 10 Wdh., Steigerung und Ausführung kompakt nebeneinander; die Auswahl klappt darunter auf
     const t = en.target;
     const withMax = t && !t.own && !body && feat('tr-max');
-    const vAll = en.sets.length && en.sets.every(s => variantOf(s) === variantOf(en.sets[0])) ? variantOf(en.sets[0]) : null;
+    const vAll = en.sets.length && en.sets.every(s => execOf(variantOf(s)) === execOf(variantOf(en.sets[0]))) ? execOf(variantOf(en.sets[0])) : null;  // v296: Back-off zählt nach seiner Ausführung
     const maxToday = !withMax ? '' : t.max10 != null && (t.fat || 0) >= PREFAT_SHOW - 1e-9
       ? `<small class="max-today">frisch | heute ≈ ${fmtNum(Math.round(effMax(t) * 2) / 2)}</small>` : '<small class="max-today">frisch</small>';
     // Zugeklappt: nur zeigen, wenn das Max. fehlt (dann muss es eingetragen bzw. bewusst leer gelassen werden)
@@ -4785,7 +4857,7 @@ function renderTraining() {
     }
     if (withMax && en.stepOpen && det) h += stepPick(en, ei);
     if (en.variantOpen && det) {
-      h += `<div class="variants ex-var-pick">${Object.entries(VARIANTS).filter(([v]) => v !== 'pslow').map(([v, label]) =>
+      h += `<div class="variants ex-var-pick">${Object.entries(VARIANTS).filter(([v]) => v !== 'pslow' && !isBo(v)).map(([v, label]) =>
         `<button class="vchip ${vAll != null && variantChipOn(vAll, v) ? 'on' : ''}" data-action="ex-variant" data-ei="${ei}" data-v="${v}">${label}</button>`).join('')}
         <p class="hint">Gilt für alle noch offenen Sätze. Einzelne Sätze: Satznummer antippen. ${VARIANT_BOTH_HINT}</p></div>`;
     }
@@ -4833,13 +4905,15 @@ function renderTraining() {
     const pb = draftPbFlags(en), fpb = draftFatPbFlags(en, pb);
     en.sets.forEach((s, si) => {
       const v = variantOf(s);
+      const isTop = en.target && en.target.topN && si < en.target.topN && en.sets.some(x => isBo(variantOf(x)));
+      const vLbl = isTop ? `Top-Set${v ? ' ' + VARIANTS[v] : ''}` : v ? VARIANTS[v] : '';  // v295/v296
       const st = setState(s);  // v200: erledigt = grün, unberührter Vorschlag = grau
       const nowC = ssNx && ssNx[0] === ei && ssNx[1] === si ? ' now' : '';  // v210: nächster Satz im Supersatz
       const star = `<span class="pb-star" data-pb="${ei}-${si}"${pb[si] ? '' : ' hidden'}>★ PB</span>`
         + `<span class="pb-star fpb" data-fpb="${ei}-${si}" title="Vorermüdungs-PB"${fpb[si] ? '' : ' hidden'}>💪 PB</span>`;
       h += (feat('tr-variants') ? `<button class="setno ${v ? 'has-v' : ''} ${st}${nowC}" data-action="set-variant" data-ei="${ei}" data-si="${si}" data-setno="${ei}-${si}"
-          aria-label="Satz ${si + 1}: ${VARIANTS[v]}, antippen zum Wechseln">${pr ? pr.role : ''}${si + 1}${v ? `<small>${VARIANTS[v]}</small>` : ''}${star}</button>`
-          : `<span class="setno ${st}${nowC}" data-setno="${ei}-${si}">${pr ? pr.role : ''}${si + 1}${v ? `<small>${VARIANTS[v]}</small>` : ''}${star}</span>`) + `
+          aria-label="Satz ${si + 1}: ${vLbl || VARIANTS[v]}, antippen zum Wechseln">${pr ? pr.role : ''}${si + 1}${vLbl ? `<small>${vLbl}</small>` : ''}${star}</button>`
+          : `<span class="setno ${st}${nowC}" data-setno="${ei}-${si}">${pr ? pr.role : ''}${si + 1}${vLbl ? `<small>${vLbl}</small>` : ''}${star}</span>`) + `
         ${body ? (en.target && en.target.band ? `<span class="bw-cell">Band<small>${BAND_LEVELS[en.target.band]}</small></span>`
           : `<span class="bw-cell">Körper${bodyKg != null ? `<small>${fmtNum(bodyKg)} kg</small>` : ''}</span>`)
         : `<input type="text" inputmode="decimal" autocomplete="off" placeholder="–" class="${st}"
@@ -5584,7 +5658,6 @@ function renderDay({ id }) {
     return `<label class="lbl">Name des Trainingstags
         <input class="inp" type="text" data-field="day-name" value="${esc(day.name)}"></label>
       <p class="hint">Eigener Plan: Sätze und Wiederholungen legst du pro Übung selbst fest. Die App steigert nichts.</p>
-      ${PLAN_SCOPE_HTML}
       <h2>Übungen</h2>${dayReorderHtml(day)}${dayReorder === day.id ? '' : day.exercises.map(ownExerciseCard).join('')}
       <button class="btn center" data-action="add-ex">+ Übung hinzufügen</button>
       <button class="btn primary" data-action="day-done">✔ Fertig</button>
@@ -5604,7 +5677,6 @@ function renderDay({ id }) {
         Sätze und Wiederholungen werden automatisch aus Muskelgruppe, Übungsart und Zykluswoche berechnet.`
       : 'Frei: Sätze und Wiederholungen legst du pro Übung selbst fest.'}</p>
     ${feat('day-volume') ? volumeSummary(day) : ''}
-    ${PLAN_SCOPE_HTML}
     <h2>Übungen</h2>${dayReorderHtml(day)}`;
   if (dayReorder === day.id) return h;
   const bw = data.cycle.buildWeeks;
@@ -5647,9 +5719,10 @@ function renderDay({ id }) {
         `<button class="vchip ${kindOf(ex) === k ? 'on' : ''}" data-action="plan-kind" data-i="${i}" data-k="${k}">${label}</button>`).join('')}
       </div>` : ''}
       ${feat('tr-tank-target') ? `<p class="hint kind-hint">Ziel im Tank diese Woche: <b>${weekRirText(kindOf(ex), groupOf(ex))}</b></p>` : ''}
-      ${feat('tr-variants') ? `<div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
+      ${feat('tr-variants') ? `${`<div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
         `<button class="vchip ${variantChipOn(ex.variant || '', v) ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
-      </div>${ex.name.trim() ? techPlanHtml(ex, i) : ''}` : ''}
+      </div>`}${ex.name.trim() ? techPlanHtml(ex, i) : ''}` : ''}
+      ${feat('tr-topset') && ex.name.trim() && !isBodyweight(ex) ? schemeRowHtml(ex, i) : ''}
       ${feat('tr-rir-input') || ex.amrap ? `<div class="variants plan amrap-row"><span>AMRAP</span><button class="vchip ${ex.amrap ? 'on' : ''}" data-action="plan-amrap" data-i="${i}">${ex.amrap ? 'An: so viele Wdh. wie möglich (Tank 0)' : 'Aus'}</button></div>` : ''}
       ${bodyweightRow(ex, i)}
       ${isBodyweight(ex) || !feat('tr-max') ? '' : `<label class="row">
@@ -6555,9 +6628,20 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
-  { v: 293, date: '2026-11-15', items: [
-    ['Im Training kannst du zwei Übungen spontan zum Supersatz koppeln: bei der Übung „Anpassen“ → „🔗 Supersatz“. Das gilt nur für dieses Training, dein Plan bleibt unverändert.', 'supersets'],
-    ['Neu erklärt: Was du im laufenden Training änderst, gilt nur für dieses Training. Was du im Plan änderst, gilt dauerhaft.'],
+  { v: 298, date: '2026-11-15', items: [
+    ['Neue Diagramme im Verlauf: Gewicht und Kalorien übersichtlicher, mit Gewichtstrend, Tagesziel und deinen Ernährungsphasen im Hintergrund. Die übrigen Diagramme haben denselben ruhigeren Stil.'],
+  ] },
+  { v: 297, date: '2026-11-15', items: [
+    ['Verlauf: Bei den Übungen und der Tonnage kannst du Deload-Trainings mit „Deload einbeziehen“ ein- oder ausblenden. Ohne Haken sind sie ausgeblendet.'],
+  ] },
+  { v: 296, date: '2026-11-15', items: [
+    ['Top-Set und Back-off gehen jetzt auch mit Ausführung (mit Pause, langsam). Back-offs werden nur mit Back-offs derselben Ausführung verglichen.', 'tr-topset'],
+  ] },
+  { v: 295, date: '2026-11-15', items: [
+    ['Neu: Top-Set + Back-off. Im Plan bei jeder Übung unter „Satzschema“ wählbar, mit 1 oder 2 Top-Sets. Die Top-Sets laufen wie gewohnt, danach folgen Back-off-Sätze, 15–20 % leichter. Gesteigert wird am Top-Set.', 'tr-topset'],
+  ] },
+  { v: 294, date: '2026-11-15', items: [
+    ['Im Training kannst du zwei Übungen spontan zum Supersatz koppeln: bei der Übung „Anpassen“ → „🔗 Supersatz“. Du wählst, ob das nur für heute gilt oder dauerhaft im Plan.', 'supersets'],
   ] },
   { v: 291, date: '2026-11-15', items: [
     ['Ernährungstagebuch: Du kannst jetzt 2 bis 6 Mahlzeiten am Tag einstellen und sie umbenennen, z. B. für Intervallfasten oder viele kleine Mahlzeiten. Unten im Tagebuch unter „⚙ Mahlzeiten anpassen“.', 'nut-meals'],
@@ -7159,12 +7243,12 @@ function draftEntries(day) {
     // (Deload: Sätze der letzten Woche, werden dort halbiert)
     const fixedSets = auto.has(ex.id);
     const sets = fixedSets ? auto.get(ex.id) : setsForWeek(ex, draft.deload ? bw : setsWeek, bw, adapt);
-    const target = { sets, fixedSets, reps: repsFor(day, ex), rir, rirText, max10: ex.max10, step: stepFor(ex), weights: weightsFor(ex.name), ...(ex.amrap ? { amrap: true } : {}),
+    const target = { sets, fixedSets, reps: repsFor(day, ex), rir, rirText, max10: ex.max10, step: stepFor(ex), weights: weightsFor(ex.name), ...(ex.amrap ? { amrap: true } : {}), ...(schemeOn(ex) ? { topN: topNOf(ex) } : {}),
       fat: draft.own ? 0 : preFatigue(nList, xi) };
     if (!draft.deload && !prog.load) target.hold = true;  // Gewicht/Wdh. vom letzten Mal halten
     if (adapt) target.noLoadUp = true;  // Diät/Minicut angepasst: Gewicht nicht steigern, höchstens 1 Wdh. mehr
     if (draft.own) Object.assign(target, { own: true, startWeight: ex.startWeight != null ? ex.startWeight : null });
-    setupEntry(en, target, (i, n) => techVariant(ex, i, n));  // Ausführung bzw. Intensitätstechnik laut Plan (v211)
+    setupEntry(en, target, (i, n) => planVariant(ex, i, n));  // Ausführung, Intensitätstechnik (v211) bzw. Top-Set + Back-off (v295)
     if (typeof caliApply === 'function') caliApply(en, ex);  // Calisthenics (v225): Wdh./Haltezeit je Satz
     holdApply(en, ex);  // Halteübungen in normalen Plänen (v236)
     return en;
@@ -8612,8 +8696,16 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
     const ei = Number(el.dataset.ei), j = Number(el.dataset.j);
     const a = draft.entries[ei], b = draft.entries[j];
     if (!a || !b || ei === j) return;
-    const key = 'tr' + uid();
-    a.ss = key; b.ss = key; delete a.ssRest; delete b.ssRest; a.ssOpen = false;
+    const keep = !!a.ssKeep && trSsPlanIdx(a, b);
+    let key = 'tr' + uid();  // „tr…“ = nur dieses Training
+    if (keep) {  // v294: dauerhaft im Plan koppeln (wie im Plan-Reiter)
+      ssCouple(keep.day, keep.ia, keep.ib);
+      const pa = keep.day.exercises.find(x => nameKey(x.name) === nameKey(a.name));
+      key = pa.ss;
+      saveData();
+    }
+    a.ss = key; b.ss = key; delete a.ssRest; delete b.ssRest; a.ssOpen = false; delete a.ssKeep;
+    if (keep) { const pa = keep.day.exercises.find(x => nameKey(x.name) === nameKey(a.name)); a.ssRest = b.ssRest = pa.ssRest; }
     draft.ssSolo = (draft.ssSolo || []).filter(k => k !== a.ss);
     const curEn = draft.entries[trCur()];
     draft.entries.splice(j, 1);
@@ -8621,7 +8713,12 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
     if (draft.cur != null) draft.cur = draft.entries.indexOf(curEn === b ? a : curEn);
     refreshPrefat();
     saveDraft(); render();
-    toast(`🔗 Supersatz nur für heute: ${a.name} + ${b.name}`);
+    toast(keep ? `🔗 Supersatz dauerhaft im Plan: ${a.name} + ${b.name}` : `🔗 Supersatz nur für heute: ${a.name} + ${b.name}`);
+  },
+  'tr-ss-keep': el => {
+    const en = draft.entries[el.dataset.ei];
+    en.ssKeep = el.dataset.v === '1';
+    saveDraft(); render();
   },
   'tr-ss-unpair': el => {  // spontanen Supersatz (v293) wieder trennen
     const key = draft.entries[el.dataset.ei] && draft.entries[el.dataset.ei].ss;
@@ -8869,6 +8966,16 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
     if (ex.amrap) delete ex.amrap; else ex.amrap = true;
     saveData(); render();
   },
+  'plan-scheme': el => {
+    const ex = findDay(current.params.id).exercises[el.dataset.i];
+    if (el.dataset.v === 'top') { ex.scheme = 'top'; if (!ex.topN) ex.topN = 1; } else delete ex.scheme;
+    saveData(); render();
+  },
+  'plan-topn': el => {
+    const ex = findDay(current.params.id).exercises[el.dataset.i];
+    ex.topN = Number(el.dataset.v) === 2 ? 2 : 1;
+    saveData(); render();
+  },
   'plan-variant': el => {
     const ex = findDay(current.params.id).exercises[el.dataset.i];
     ex.variant = variantToggle(ex.variant || '', el.dataset.v);
@@ -8884,17 +8991,18 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
     const ei = +el.dataset.ei;
     const en = draft.entries[ei];
     const open = en.sets.map((s, i) => i).filter(i => !isDone(en.sets[i]));
-    const vs = new Set(open.map(i => variantOf(en.sets[i])));
+    const vs = new Set(open.map(i => execOf(variantOf(en.sets[i]))));
     const v = variantToggle(vs.size === 1 ? [...vs][0] : '', el.dataset.v);
     if (v !== 'pause' && v !== 'slow' && v !== 'pslow' || el.dataset.v === '') en.variantOpen = false;  // beim Kombinieren offen lassen
-    open.forEach(i => changeVariant(en, i, v));
+    // v296: Back-off-Sätze behalten ihre Rolle, nur die Ausführung wechselt (Techniken gelten für alle)
+    open.forEach(i => changeVariant(en, i, isBo(variantOf(en.sets[i])) && !isTech(v) ? makeBo(v) : v));
     recalcSets(ei); saveDraft(); render();
   },
   // Einzelner Satz: normal -> mit Pause -> langsam -> Pause + langsam -> Reduktion -> Myo -> normal
   'set-variant': el => {
     const ei = +el.dataset.ei, si = +el.dataset.si;
     const en = draft.entries[ei];
-    const order = Object.keys(VARIANTS);
+    const order = isBo(variantOf(en.sets[si])) ? ['bo', 'bo_pause', 'bo_slow', 'bo_pslow'] : Object.keys(VARIANTS).filter(v => !isBo(v));  // v296: Back-off bleibt Back-off
     const next = order[(order.indexOf(variantOf(en.sets[si])) + 1) % order.length];
     changeVariant(en, si, next);
     recalcSets(ei); saveDraft(); render();
