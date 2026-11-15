@@ -4,7 +4,7 @@
 // Wichtig: immer direkt vom Server laden (cache: 'reload' / 'no-cache'), nicht aus dem Browser-Zwischenspeicher –
 // GitHub Pages erlaubt dort 10 Minuten, sonst landen kurz nach einem Update noch alte Dateien im neuen Cache.
 
-const CACHE = 'trainingsapp-v299';
+const CACHE = 'trainingsapp-v301';
 const FILES = [
   './',
   './index.html',
@@ -48,6 +48,9 @@ const FILES = [
   './intro-1.jpg',
   './intro-2.jpg',
   './intro-3.jpg',
+  './intro-1-en.jpg',
+  './intro-2-en.jpg',
+  './intro-3-en.jpg',
 ];
 
 self.addEventListener('install', event => {

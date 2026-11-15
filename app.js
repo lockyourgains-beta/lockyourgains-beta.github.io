@@ -9807,7 +9807,7 @@ const INTRO = [
 function introHtml() {
   const i = welc.slide || 0, s = INTRO[i], last = i === INTRO.length - 1;
   return `<div class="intro">${i === 0 ? langPickHtml() : ''}
-      <div class="intro-shot"><img src="${s.img}" alt="Beispiel aus der App"></div>
+      <div class="intro-shot"><img src="${LANG === 'en' ? s.img.replace('.jpg', '-en.jpg') : s.img}" alt="Beispiel aus der App"></div>
       <h2 id="welcome-title">${s.h}</h2>
       <p>${s.p}</p>
       <div class="intro-dots" aria-hidden="true">${INTRO.map((_, k) => `<span class="${k === i ? 'on' : ''}"></span>`).join('')}</div>

@@ -1195,7 +1195,7 @@ function renderWizStyle() {
   const opt = (k, title, body) => `<button class="split-opt freq-opt int-opt ${wiz.style === k ? 'on' : ''}" data-action="wiz-style" data-k="${k}">
       <b>${title}</b><small>${body}</small></button>`;
   return wizCard('🎚️', 'Mehr Volumen oder mehr Intensität?',
-    `Muskeln wachsen über zwei Stellschrauben: das <b>Volumen</b>, also wie viele Arbeitssätze eine Muskelgruppe pro Woche bekommt,
+    `Muskeln bekommen ihren Wachstumsreiz über zwei Stellschrauben: das <b>Volumen</b>, also wie viele Arbeitssätze eine Muskelgruppe pro Woche bekommt,
       und die <b>Intensität</b>, also wie nah du in jedem Satz ans Muskelversagen gehst, also wie viele Wiederholungen noch „im Tank“
       bleiben (RIR). Beides lässt sich gegeneinander tauschen: Mehr Sätze mit etwas mehr Luft wirken ähnlich wie weniger Sätze,
       die dafür härter sind. Wähle, was besser zu deiner Zeit, deiner Erholung und deinem Gefühl im Training passt.`,
