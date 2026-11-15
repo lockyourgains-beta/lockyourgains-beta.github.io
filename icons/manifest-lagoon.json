@@ -1,0 +1,32 @@
+{
+  "name": "LockYourGains",
+  "short_name": "Gainslocker",
+  "description": "Trainings- und Ernährungsapp mit automatischer Steigerung – alle Daten bleiben auf dem Gerät.",
+  "lang": "de",
+  "start_url": "../",
+  "scope": "../",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e7f5f6",
+  "theme_color": "#e7f5f6",
+  "icons": [
+    {
+      "src": "icon-lagoon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-lagoon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-lagoon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
