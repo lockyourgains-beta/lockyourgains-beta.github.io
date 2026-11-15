@@ -3751,3 +3751,18 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 [data-look="plain"] :is(.chart-svg, .bwc-svg) { color: var(--text); }
 [data-look="plain"] .bwc-raw { fill: var(--text); }
 .cc-when { display: block; color: var(--muted); font-size: 12px; }
+
+/* v299: Ernährungsreiter verschlankt – „Mehr“ mit schmalen Zeilen, Lücken als eine Zeile in „Dein Verlauf“ */
+.nut-more-list { padding-bottom: 4px; }
+.nut-more-list h2 { margin-bottom: 2px; }
+.nut-more-list .btn.nav { min-height: 0; margin: 0; padding: 13px 26px 13px 0; border-radius: 0; border-top: 1px solid var(--line);
+  background: none; box-shadow: none; font-size: 16px; }
+.nut-more-list .btn.nav small { display: none; }
+.nut-more-list .nut-more-row { margin: 0; padding: 0; border-top: 1px solid var(--line); background: none; box-shadow: none; }
+.nut-more-list .nut-more-row > summary { padding: 13px 0; font-size: 16px; }
+.nut-gap-txt { margin: 10px 0 8px; font-size: 15px; }
+.nut-gapline .btn.nut-gap-btn { min-height: 46px; margin: 0 0 4px; padding: 10px 14px; font-size: 16px; text-align: center; }
+.nut-gapline .nut-more { margin-top: 4px; }
+.card.nut-more-list .btn.nav { background: transparent !important; box-shadow: none !important; }
+.card.nut-more-list > .nut-more-row { border-top: 1px solid var(--line); border-radius: 0; }
+.card.nut-more-list > .nut-more-row > summary { color: var(--text); font-weight: 600; }

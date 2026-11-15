@@ -1011,6 +1011,30 @@ function nutIntakeFormHtml() {
 const NP_OPEN_BTN = `<button class="btn nav np-open-btn" data-action="np-open">📋 Eigenen Ernährungsplan übernehmen<small>Aus Excel, Google Sheets oder als Tabelle einfügen, z. B. vom Ernährungsberater</small></button>`;
 
 
+// v299 (User-Wunsch): Liste der Tageswerte der letzten 14 Tage – steht jetzt unter Ernährungstagebuch → „Woche & Monat“
+function nutEntriesHtml() {
+  const from = addDaysISO(todayISO(), -13);
+  const rows = [...data.intake].filter(x => x.date >= from).sort((a, b) => b.date.localeCompare(a.date)).map(x => `<li class="bw-row">
+      <span>${fmtDate(x.date + 'T12:00:00')}<small class="hint">${x.src === 'auto' ? ' | geschätzt' : ''}${x.p != null ? ` | E ${x.p}` : ''}${x.c != null ? ` | K ${x.c}` : ''}${x.f != null ? ` | F ${x.f}` : ''}</small></span>
+      <b>${x.kcal != null ? nutKcal(x.kcal) + ' kcal' : '–'}</b>
+      <button class="icon-btn" data-action="${x.src === 'food' ? 'food-open' : 'nut-intake-edit'}" data-date="${x.date}" aria-label="Bearbeiten">${x.src === 'food' ? '🍎' : '✎'}</button>
+      <button class="icon-btn danger" data-action="nut-intake-del" data-date="${x.date}" aria-label="Löschen">✕</button></li>`).join('');
+  return rows ? `<details class="card nut-more nut-entries"><summary>Einträge der letzten 14 Tage ansehen und bearbeiten</summary><ul class="list">${rows}</ul></details>` : '';
+}
+// v299: Tage ohne Eintrag als eine schmale Zeile (in „Dein Verlauf“), Erklärung aufklappbar
+function nutGapsLine(c) {
+  const gaps = nutGapDays();
+  if (!gaps.length || !nutHintsOn() || !c) return '';
+  const span = gaps.length === 1 ? fmtDate(gaps[0] + 'T12:00:00') : `${fmtDate(gaps[0] + 'T12:00:00')} bis ${fmtDate(gaps[gaps.length - 1] + 'T12:00:00')}`;
+  return `<div class="nut-sec nut-gapline">
+      <p class="nut-gap-txt">📝 ${gaps.length} Tag${gaps.length === 1 ? '' : 'e'} ohne Eintrag (${span})</p>
+      <button class="btn nut-gap-btn" data-action="nut-gaps-fill">Mit Tagesziel nachtragen</button>
+      <details class="nut-more"><summary>ⓘ Warum?</summary><p class="hint nut-small">Der gemessene Bedarf vergleicht, was du im Schnitt isst,
+        mit deinem Gewichtsverlauf. Je mehr Tage fehlen, desto ungenauer wird er. Hast du an diesen Tagen ungefähr nach Plan gegessen, trägt die App
+        dort dein Tagesziel ein (${nutKcal(c.kcal)} kcal, ${c.protein} g Eiweiß). Tage, an denen du deutlich mehr oder weniger gegessen hast, trag
+        lieber selbst ein (Ernährungstagebuch → Woche & Monat → Einträge).</p></details>
+    </div>`;
+}
 // Die letzten 14 Tage als Balken (Linie = Tagesziel) + Ø der letzten 7 Tage
 function nutHistoryCard(n, c) {
   const days = Array.from({ length: 14 }, (_, i) => addDaysISO(todayISO(), i - 13));
@@ -1117,6 +1141,7 @@ function nutMeasuredCard(n, c) {
   if (!nutHintsOn() || !feat('nut-measured')) return '';
   if (n.phase === 'minicut' && nutMinicutStage(n) !== 'cut') return '';
   const m = nutMeasured();
+  if (m.tdee == null) return '';  // v299: noch nicht genug Daten – Hinweis steht in „So rechnet die App“
   if (m.tdee == null) {
     return `<div class="card nut-check"><p><b>📏 Gemessener Bedarf</b></p>
       <p class="hint nut-small explain">${m.noWeight
@@ -1156,7 +1181,7 @@ const NUT_LATER_BTN = '<button class="btn" data-action="nut-suggest-later">Nicht
 // v251 (User 2026-11-14): Zielgewicht, Hinweis mit Anpassungsvorschlag und gemessener Bedarf in einer Karte „Dein Verlauf“
 function nutProgressCard(n, c, kg) {
   const sec = h => h ? h.replace('class="card ', 'class="nut-sec ') : '';
-  const parts = [sec(nutBfCard(n)), sec(nutGoalCard(n, c, kg)), sec(nutTrendCard(n, c)), sec(nutMeasuredCard(n, c))].filter(Boolean);
+  const parts = [sec(nutBfCard(n)), sec(nutGoalCard(n, c, kg)), sec(nutTrendCard(n, c)), sec(nutMeasuredCard(n, c)), nutGapsLine(nutForDay(c))].filter(Boolean);
   return parts.length ? `<div class="card nut-progress"><h2>📈 Dein Verlauf</h2>${parts.join('')}</div>` : '';
 }
 function nutTrendCard(n, c) {
@@ -1267,6 +1292,14 @@ function nutPhaseHint(n) {
   return '';
 }
 
+// v299: Stand des gemessenen Bedarfs, solange noch nicht genug Daten da sind (stand vorher als eigene Karte im Reiter)
+function nutMeasuredStatus() {
+  const m = nutMeasured();
+  if (m.tdee != null) return '';
+  return `<p class="hint nut-small">${m.noWeight
+    ? 'Stand bei dir: Genug Essens-Einträge sind da. Jetzt fehlen noch Gewichtswerte: Wiege dich 3–4× pro Woche über mindestens zwei Wochen.'
+    : `Stand bei dir: bisher ${m.days} von mindestens 14 Tagen mit Einträgen seit dem ${fmtDate(m.from + 'T12:00:00')}.`}</p>`;
+}
 function nutExplain(n, c, kg) {
   const pace = nutPace(n);
   return `<details class="card nut-help"><summary>So rechnet die App</summary>
@@ -1302,6 +1335,7 @@ function nutExplain(n, c, kg) {
       <p><b>Gemessener Bedarf:</b> Trägst du ein, was du isst (aus Health oder von Hand), vergleicht die App über die letzten
         4 Wochen (ohne die erste Woche eines neuen Ernährungsziels), wie viel du im Schnitt gegessen hast und wie sich dein Gewicht dabei verändert hat. Nimmst du z. B. bei
         2.300 kcal pro Tag 0,25 kg pro Woche ab, liegt dein Bedarf bei etwa 2.300 + 0,25 × ${deNum(NUT_KCAL_KG)} ÷ 7 ≈ 2.580 kcal.</p>
+      ${nutMeasuredStatus()}
       <p>1 kg Körpergewicht entspricht grob ${deNum(NUT_KCAL_KG)} kcal. Rechne immer nur mit Schätzwerten (±10 %): Entscheidend ist,
         wie sich dein Gewicht über mehrere Wochen entwickelt.</p>
       ${n.kcalOwn != null || n.adjust ? `<button class="btn" data-action="nut-adjust-reset">${n.kcalOwn != null ? 'Eigenes Tagesziel zurücksetzen' : 'Anpassung aus dem Gewichtsverlauf zurücksetzen'}</button>` : ''}
@@ -1393,7 +1427,7 @@ function renderNutrition() {
   } else if (planOn && !(n && nutReady(n) && kg != null)) {
     // Ernährungsplan ohne eingerichtete Phase: Ziele kommen nur aus dem Plan
     const pc = nutForDay(null);
-    h += nutPlanCard() + (feat('nut-history') ? nutHistoryCard(n || {}, pc) : '');
+    h += nutPlanCard();  // v299: Karte „Letzte Tage“ entfällt (Einträge unter Tagebuch → Woche & Monat)
   } else if (n && !nutReady(n)) {
     h += nutPhaseOnly(n);
   } else if (!n) {
@@ -1421,15 +1455,15 @@ function renderNutrition() {
       ${nutPauseCard(n)}
       ${nutPhaseHint(n)}
       ${(bwDone = true) && bwBlock}
-      ${feat('nut-history') ? nutHistoryCard(n, nutForDay(c)) : ''}
       ${nutProgressCard(n, c, kg)}
       ${nutTrainCard(n)}
-      ${typeof nutPlanActive === 'function' && nutPlanActive() ? '' : NP_OPEN_BTN}
-      ${!n.pause && !nutPauseForm && (!stage || stage === 'cut') ? '<button class="btn nav" data-action="nut-pause-open">⏸ Ernährungsziel unterbrechen<small>Zum Beispiel im Urlaub: kein Tagesziel, keine Hinweise, die Werte zählen nicht</small></button>' : ''}
-      ${feat('nut-explain') ? nutExplain(n, c, kg) : ''}
-      ${nutHintsCard()}
-      ${typeof mcAvailable === 'function' && mcAvailable() && !mcOn()
-        ? '<button class="btn nav" data-action="mc-onoff" data-v="1">🌸 Zykluskalender einschalten<small>Freiwillig: Periode eintragen, Phasen sehen, Wassertage beim Gewicht herausrechnen</small></button>' : ''}
+      <div class="card nut-more-list"><h2>Mehr</h2>
+        ${typeof nutPlanActive === 'function' && nutPlanActive() ? '' : NP_OPEN_BTN}
+        ${!n.pause && !nutPauseForm && (!stage || stage === 'cut') ? '<button class="btn nav" data-action="nut-pause-open">⏸ Ernährungsziel unterbrechen<small>Zum Beispiel im Urlaub: kein Tagesziel, keine Hinweise, die Werte zählen nicht</small></button>' : ''}
+        ${typeof mcAvailable === 'function' && mcAvailable() && !mcOn()
+          ? '<button class="btn nav" data-action="mc-onoff" data-v="1">🌸 Zykluskalender einschalten<small>Freiwillig: Periode eintragen, Phasen sehen, Wassertage beim Gewicht herausrechnen</small></button>' : ''}
+        ${feat('nut-explain') ? nutExplain(n, c, kg).replace('class="card nut-help"', 'class="nut-help nut-more-row"') : ''}
+      </div>
       <p class="hint nut-small nut-disclaimer">Alle Werte sind Richtwerte für gesunde Erwachsene. Bei Vorerkrankungen, in
         Schwangerschaft und Stillzeit oder bei Essstörungen bitte vorher ärztlich abklären.</p>`;
   }
@@ -1718,6 +1752,7 @@ Object.assign(actions, {
     toast('Gespeichert ✔');
     render();
   },
+  'nut-intake-edit': el => { const d = el.dataset.date; actions['nut-intake-open'](el); go('food', { date: d }); },
   'nut-intake-del': el => {
     const food = foodOn(el.dataset.date).length;
     if (!askOk(food ? `Alle ${food} Lebensmittel vom ${fmtDate(el.dataset.date + 'T12:00:00')} aus dem Ernährungstagebuch löschen?`

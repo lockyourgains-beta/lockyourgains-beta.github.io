@@ -6628,6 +6628,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 299, date: '2026-11-15', items: [
+    ['Ernährung aufgeräumt: „Dein Verlauf“ erscheint nur noch, wenn es etwas zu zeigen gibt. Fehlende Tage stehen dort als eine kurze Zeile. Die Liste deiner Tageswerte findest du im Ernährungstagebuch unter „Woche & Monat“, den Schalter für Hinweise unter Optionen → Profil & Ernährung.'],
+  ] },
   { v: 298, date: '2026-11-15', items: [
     ['Neue Diagramme im Verlauf: Gewicht und Kalorien übersichtlicher, mit Gewichtstrend, Tagesziel und deinen Ernährungsphasen im Hintergrund. Die übrigen Diagramme haben denselben ruhigeren Stil.'],
   ] },

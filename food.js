@@ -1653,6 +1653,7 @@ function renderFoodStats(p) {
           <i class="fstat-bar"><i style="width:${Math.min(100, Math.round(r.v.kcal / maxK * 100))}%"></i>${goal ? `<u style="left:${Math.round(goal.kcal / maxK * 100)}%"></u>` : ''}</i></button>`
         : `<div class="fstat-row empty"><span>${foodShortDay(r.d)}</span><span>–</span><span></span><span></span><span></span></div>`).join('')}
     </div><p class="hint nut-small">E = Eiweiß, KH = Kohlenhydrate, F = Fett (in g). Der Strich im Balken markiert dein Tagesziel. Tag antippen öffnet ihn.</p></div>`;
+  if (typeof nutEntriesHtml === 'function') h += nutEntriesHtml();  // v299: Tageswerte der letzten 14 Tage (vorher Karte „Letzte Tage“)
   return h;
 }
 
