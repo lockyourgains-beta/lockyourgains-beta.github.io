@@ -2418,7 +2418,7 @@ function techRowsHtml(en, ei, si) {
     const w = subWeight(en, si, j);
     return `<span class="subno ${v}" aria-label="${drop ? `Reduktion ${j + 1}` : `Mini-Satz ${j + 1}`}">${drop ? '↘' : 'M'}${j + 1}</span>
       ${drop ? `<input type="text" inputmode="decimal" autocomplete="off" class="sub-in ${x.wTouched ? '' : 'prop'}" data-field="tr-sub-w" ${at} data-j="${j}"
-          value="${x.wTouched ? esc(x.weight) : w != null ? fmtNum(w) : ''}" placeholder="kg">`
+          value="${x.wTouched ? esc(numDisp(x.weight)) : w != null ? fmtNum(w) : ''}" placeholder="kg">`
         : `<span class="sub-kg" data-subkg="${ei}-${si}-${j}">${w != null ? `${fmtNum(w)} kg` : '–'}</span>`}
       <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="sub-in ${subDone(x) ? 'done' : ''}" data-field="tr-sub-r" ${at} data-j="${j}"
         value="${esc(x.reps)}" placeholder="${x.goal || (drop ? 'max' : '3–5')}">
@@ -3770,7 +3770,7 @@ function warmupBlock(en, ei) {
     <div class="setgrid warmgrid"><span></span><span class="head">kg</span><span class="head">Wdh.</span><span class="head">` +
     (kind === 'barbell' ? 'pro Seite' : '') + '</span>' + en.warmup.map((w, wi) => `<span class="setno">A${wi + 1}</span>
       <input type="text" inputmode="decimal" autocomplete="off" placeholder="kg"
-        data-field="wu-weight" data-ei="${ei}" data-wi="${wi}" value="${esc(w.weight)}">
+        data-field="wu-weight" data-ei="${ei}" data-wi="${wi}" value="${esc(numDisp(w.weight))}">
       <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Wdh."
         data-field="wu-reps" data-ei="${ei}" data-wi="${wi}" value="${esc(w.reps)}">
       <span class="plates" data-plates="${ei}-${wi}">${kind === 'barbell' && parseNum(w.weight) ? platesPerSide(parseNum(w.weight)) : ''}</span>`).join('') +
@@ -4775,12 +4775,12 @@ function renderTraining() {
         ${body ? (en.target && en.target.band ? `<span class="bw-cell">Band<small>${BAND_LEVELS[en.target.band]}</small></span>`
           : `<span class="bw-cell">Körper${bodyKg != null ? `<small>${fmtNum(bodyKg)} kg</small>` : ''}</span>`)
         : `<input type="text" inputmode="decimal" autocomplete="off" placeholder="–" class="${st}"
-          data-field="tr-weight" data-ei="${ei}" data-si="${si}" value="${esc(s.weight)}">`}
+          data-field="tr-weight" data-ei="${ei}" data-si="${si}" value="${esc(numDisp(s.weight))}">`}
         <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="–" class="${st}"
           data-field="tr-reps" data-ei="${ei}" data-si="${si}" value="${esc(s.reps)}">
         ${en.holdSec ? `<span class="hold-cell" data-holddiff="${ei}-${si}">${holdDiffHtml(en, ei, si)}</span>`
           : rirInput ? `<input type="text" inputmode="decimal" autocomplete="off" placeholder="${tankHint(si)}"
-          class="tank" data-field="tr-rir" data-ei="${ei}" data-si="${si}" value="${esc(s.rir)}">`
+          class="tank" data-field="tr-rir" data-ei="${ei}" data-si="${si}" value="${esc(numDisp(s.rir))}">`
           : `<button class="feel-btn ${s.rir !== '' && s.rir != null ? 'set' : ''}" data-action="tr-feel-open" data-ei="${ei}" data-si="${si}"
             aria-label="Wie hat sich Satz ${si + 1} angefühlt?">${feelIcon(en, s, si)}</button>`}
         <div class="next-hint" data-next="${ei}-${si}">${next[si] || ''}</div>
@@ -5321,7 +5321,7 @@ const exNameUsed = k => data.plans.some(p => p.days.some(d => d.exercises.some(e
 function renameFormHtml(name) {
   return `<div class="replace ex-rename">
       <label class="lbl" for="ren-name">„${esc(name)}“ umbenennen</label>
-      <input class="inp" id="ren-name" type="text" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(name)}">
+      <input class="inp" id="ren-name" type="text" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(exDisp(name))}">
       <div class="row"><button class="btn" data-action="ex-rename-cancel">Abbrechen</button>
         <button class="btn primary" data-action="ex-rename-ok">✔ Speichern</button></div>
       <p class="hint">Der neue Name gilt überall: in allen Plänen und im Verlauf. Deine bisherigen Trainings, Rekorde und
@@ -5409,9 +5409,10 @@ async function exNameCommit(el) {
   if (el.dataset.busy) return;
   const day = findDay(current.params.id), i = Number(el.dataset.i), ex = day && day.exercises[i];
   if (!ex) return;
-  const from = String(el.dataset.orig || '').trim(), to = el.value.trim().replace(/\s+/g, ' ');
+  // v277: auf Englisch steht im Feld der englische Name, gespeichert wird der deutsche (exFromDisp)
+  const from = String(el.dataset.orig || '').trim(), to = exFromDisp(el.value.trim().replace(/\s+/g, ' '));
   if (!from) { if (ex.name !== to) { ex.name = to; saveData(); } return; }  // neue Übung: wird beim Tippen schon gespeichert
-  if (!to || to === from) { el.value = from; return; }
+  if (!to || to === from) { el.value = exDisp(from); return; }
   el.dataset.busy = '1';
   el.dataset.orig = to;  // nicht zweimal übernehmen (Auswahl + Verlassen des Feldes)
   try {
@@ -5420,7 +5421,7 @@ async function exNameCommit(el) {
       return;
     }
     const how = nameKey(to) === nameKey(from) ? 'all' : await askRename(from, to, 'slot');
-    if (!how) { el.value = from; el.dataset.orig = from; const info = el.parentElement && el.parentElement.querySelector('.info-btn'); if (info) info.hidden = !libEntry(from); return; }
+    if (!how) { el.value = exDisp(from); el.dataset.orig = from; const info = el.parentElement && el.parentElement.querySelector('.info-btn'); if (info) info.hidden = !libEntry(from); return; }
     if (how === 'all') renameExercise(from, to, false);
     else exSlotRename(day, i, from, to);
     render();
@@ -5453,7 +5454,7 @@ function ownExerciseCard(ex, i) {
     <div class="ex-name-row">
       <input class="inp" type="text" data-field="ex-name" data-i="${i}" data-orig="${esc(ex.name)}"
         autocomplete="off" autocorrect="off" spellcheck="false"
-        value="${esc(ex.name)}" placeholder="Übung eintippen, z. B. Bank…">
+        value="${esc(exDisp(ex.name))}" placeholder="Übung eintippen, z. B. Bank…">
       <button class="info-btn" data-action="lib-open" data-i="${i}" aria-label="Ausführung ansehen"
         ${libEntry(ex.name) ? '' : 'hidden'}>i</button>
     </div>
@@ -5549,7 +5550,7 @@ function renderDay({ id }) {
       <div class="ex-name-row">${pr ? `<span class="ss-badge">${pr.role}</span>` : ''}
         ${feat('plan-add-ex') || !ex.name.trim() ? `<input class="inp" type="text" data-field="ex-name" data-i="${i}" data-orig="${esc(ex.name)}"
           autocomplete="off" autocorrect="off" spellcheck="false"
-          value="${esc(ex.name)}" placeholder="Übung eintippen, z. B. Bank…">` : `<h3 class="plan-ex-name">${esc(ex.name)}</h3>`}
+          value="${esc(exDisp(ex.name))}" placeholder="Übung eintippen, z. B. Bank…">` : `<h3 class="plan-ex-name">${esc(ex.name)}</h3>`}
         <button class="info-btn" data-action="lib-open" data-i="${i}" aria-label="Ausführung ansehen"
           ${libEntry(ex.name) ? '' : 'hidden'}>i</button>
       </div>
@@ -5891,7 +5892,7 @@ function renderLibAdd(p) {
       <p class="hint">${KINDS[f.kind]}: ${kindInfo[f.kind]}.</p>
       <label class="lbl" for="libc-like">Ähnliche Übung <small class="hint">(freiwillig)</small></label>
       <input class="inp" id="libc-like" type="text" data-field="libc-like" autocomplete="off" autocorrect="off" spellcheck="false"
-        placeholder="z. B. Rudern Kabelzug eng" value="${esc(f.like || '')}">
+        placeholder="z. B. Rudern Kabelzug eng" value="${esc(exDisp(f.like || ''))}">
       <div class="suggest" hidden></div>
       <label class="lbl" for="libc-note">Notiz <small class="hint">(freiwillig)</small></label>
       <textarea class="inp comment" id="libc-note" rows="2" data-field="libc-note"
@@ -6009,11 +6010,11 @@ function renderSessionEdit(s) {
       const v = variantOf(st);
       h += `<span class="setno ${v ? 'has-v' : ''}">${si + 1}${v ? `<small>${VARIANTS[v]}</small>` : ''}</span>
         <input type="text" inputmode="decimal" autocomplete="off" placeholder="–"
-          data-field="se-set" data-prop="weight" data-ei="${ei}" data-si="${si}" value="${esc(st.weight)}">
+          data-field="se-set" data-prop="weight" data-ei="${ei}" data-si="${si}" value="${esc(numDisp(st.weight))}">
         <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="–"
           data-field="se-set" data-prop="reps" data-ei="${ei}" data-si="${si}" value="${esc(st.reps)}">
         <input type="text" inputmode="decimal" autocomplete="off" placeholder="–" class="tank"
-          data-field="se-set" data-prop="rir" data-ei="${ei}" data-si="${si}" value="${esc(st.rir)}">`;
+          data-field="se-set" data-prop="rir" data-ei="${ei}" data-si="${si}" value="${esc(numDisp(st.rir))}">`;
     });
     h += `</div>
       <div class="row">
@@ -6488,8 +6489,8 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
-  { v: 274, date: '2026-11-15', items: [
-    ['Sprachauswahl: Die App gibt es jetzt auch auf Englisch (Optionen → Aussehen → Sprache). Training und Plan sind schon übersetzt, die übrigen Bereiche folgen.'],
+  { v: 279, date: '2026-11-15', items: [
+    ['Sprachauswahl: Die App gibt es jetzt auch auf Englisch (Optionen → Aussehen → Sprache). Alles ist übersetzt, auch Übungsnamen, Anleitungen und alle Lebensmittel. Die Suche findet sie auf Englisch und Deutsch.'],
   ] },
   { v: 272, date: '2026-11-14', items: [
     ['Die Reihenfolge der Trainingstage lässt sich jetzt auch direkt im Training-Reiter ändern, unter den Trainingstagen. Sie wird dauerhaft im Plan gespeichert.'],
@@ -6756,8 +6757,10 @@ const CHANGES = [
 ];
 const APP_V = CHANGES[0].v;
 const WN_BASE = 196;  // letzte Version ohne „Was ist neu“
+const WN_EN = 279;  // v275: auf Englisch nur Neuerungen ab der Sprachversion (ältere gibt es nur auf Deutsch)
+const wnLang = c => LANG === 'de' || c.v >= WN_EN;
 const wnShow = f => !f || (f[0] === '!' ? !feat(f.slice(1)) : feat(f));
-const whatsNewItems = from => CHANGES.filter(c => c.v > from).flatMap(c => c.items.filter(([, f]) => wnShow(f)).map(([t]) => t));
+const whatsNewItems = from => CHANGES.filter(c => c.v > from && wnLang(c)).flatMap(c => c.items.filter(([, f]) => wnShow(f)).map(([t]) => t));
 function whatsNewInit() {
   if (data.seenV != null) return;
   data.seenV = hasOwnData() ? WN_BASE : APP_V;
@@ -6777,7 +6780,7 @@ function whatsNewCard() {
 // Optionen: alle Neuerungen zum Nachlesen
 function whatsNewOptionsCard() {
   return `<details class="card about-sec wn-opt"><summary><b>✨ Was ist neu</b></summary>
-      ${CHANGES.map(c => {
+      ${CHANGES.filter(wnLang).map(c => {
         const items = c.items.filter(([, f]) => wnShow(f));
         return items.length ? `<p class="lbl wn-v">Version ${c.v} | ${fmtDate(c.date + 'T12:00:00')}</p><ul class="wn-list">${items.map(([t]) => `<li>${t}</li>`).join('')}</ul>` : '';
       }).join('')}</details>`;
@@ -7850,7 +7853,7 @@ function changeVariant(en, i, v) {
 // Beim Ersetzen: bekanntes Max.-Gewicht der gewählten Übung eintragen
 function fillReplaceMax(input) {
   const maxInput = input.closest('.replace').querySelector('[data-field="rep-max"]');
-  const m = knownMax10(input.value);
+  const m = knownMax10(exFromDisp(input.value));
   maxInput.value = m != null ? fmtNum(m) : '';
   maxInput.classList.toggle('missing', m == null);
   const hint = input.closest('.replace').querySelector('.rep-max-hint');
@@ -8408,7 +8411,7 @@ const actions = {
     const box = el.closest('.suggest');
     const prev = box.previousElementSibling;
     const input = prev.matches('input') ? prev : prev.querySelector('input');
-    input.value = el.dataset.name;
+    input.value = exDisp(el.dataset.name);  // v277: auf Englisch englisch anzeigen, gespeichert wird über exFromDisp deutsch
     box.hidden = true;
     if (input.dataset.field === 'ex-name') exNameCommit(input);  // vor blur: das löst sonst „change“ aus (zweimal fragen)
     input.blur();
@@ -8455,7 +8458,7 @@ const actions = {
   'add-cancel': () => { draft.adding = false; saveDraft(); render(); },
   'add-ok': el => {
     const panel = el.closest('.replace');
-    const name = panel.querySelector('[data-field="add-name"]').value.trim();
+    const name = exFromDisp(panel.querySelector('[data-field="add-name"]').value.trim());
     if (!name) { alert('Bitte eine Übung eingeben.'); return; }
     const max10 = parseNum(panel.querySelector('[data-field="rep-max"]').value);
     const sets = Number(panel.querySelector('#add-sets').value);
@@ -8492,7 +8495,7 @@ const actions = {
   'rep-ok': el => {
     const en = draft.entries[el.dataset.ei];
     const panel = el.closest('.replace');
-    const name = panel.querySelector('[data-field="rep-name"]').value.trim();
+    const name = exFromDisp(panel.querySelector('[data-field="rep-name"]').value.trim());
     if (!name) { alert('Bitte eine Ersatzübung eingeben.'); return; }
     if (en.sets.some(s => s.touched) && !askOk('Bereits eingetragene Sätze dieser Übung gehen verloren. Trotzdem ersetzen?')) return;
     replaceExercise(en, name, parseNum(panel.querySelector('[data-field="rep-max"]').value));
@@ -8506,7 +8509,7 @@ const actions = {
   'plan-swap-pick': el => { if (planReplaceExercise(findDay(current.params.id), Number(el.dataset.i), el.dataset.name)) render(); },
   'plan-swap-ok': el => {
     const input = $view.querySelector(`[data-field="plan-swap-name"][data-i="${el.dataset.i}"]`);
-    if (planReplaceExercise(findDay(current.params.id), Number(el.dataset.i), input && input.value)) render();
+    if (planReplaceExercise(findDay(current.params.id), Number(el.dataset.i), input && exFromDisp(input.value))) render();
   },
   'ex-del': el => {
     const day = findDay(current.params.id);
@@ -8774,7 +8777,7 @@ const actions = {
   },
   'ex-rename-cancel': () => { exRename = null; render(); },
   'ex-rename-ok': async () => {
-    const from = exRename, to = renameCheck(from, document.getElementById('ren-name').value);
+    const from = exRename, to = renameCheck(from, exFromDisp(document.getElementById('ren-name').value));
     if (to == null) return;
     if (to !== from.trim()) {
       const how = nameKey(to) === nameKey(from) ? 'all' : await askRename(from, to, 'form');
@@ -9014,11 +9017,11 @@ const fields = {
   },
   'ex-name': el => {
     // vorhandene Übung: erst beim Verlassen übernehmen (Rückfrage beim Umbenennen, v219); neuer Platz: sofort
-    if (!String(el.dataset.orig || '').trim()) { findDay(current.params.id).exercises[el.dataset.i].name = el.value; saveData(); }
+    if (!String(el.dataset.orig || '').trim()) { findDay(current.params.id).exercises[el.dataset.i].name = exFromDisp(el.value); saveData(); }
     showSuggestions(el);
     // i-Knopf nur, wenn es zur eingetippten Übung eine Erklärung gibt
     const info = el.parentElement.querySelector('.info-btn');
-    if (info) info.hidden = !libEntry(el.value);
+    if (info) info.hidden = !libEntry(exFromDisp(el.value));
   },
   'rep-name': el => { showSuggestions(el); fillReplaceMax(el); },
   'plan-swap-name': el => showSuggestions(el),
@@ -9027,7 +9030,7 @@ const fields = {
   'libc-name': el => { libForm.name = el.value; },
   'libc-note': el => { libForm.note = el.value; },
   'libc-like': el => {
-    libForm.like = el.value;
+    libForm.like = exFromDisp(el.value);
     showSuggestions(el, EXERCISE_LIST.map(([n]) => n).filter(n => !customKeys.has(nameKey(n))));
   },
   'tr-max': el => { el.classList.toggle('missing', parseNum(el.value) == null); },

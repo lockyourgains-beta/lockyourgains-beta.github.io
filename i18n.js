@@ -15,6 +15,7 @@ const LOCALE = () => LANG === 'en' ? 'en-GB' : 'de-DE';
 const I18N_NUM = /\d+(?:[.,:/]\d+)*|\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b/g;
 const I18N_INLINE = new Set(['B', 'STRONG', 'I', 'EM', 'SMALL', 'BR', 'SUP', 'SUB', 'U', 'SPAN', 'A', 'CODE', 'MARK', 'WBR']);
 const I18N_ATTRS = ['placeholder', 'aria-label', 'title', 'alt'];
+const I18N_FULL = new Map();     // ganze Texte ohne Platzhalter (Lebensmittelnamen aus food-en.js)
 const I18N_MISS = new Set();      // fehlende Übersetzungen (zum Nachpflegen, siehe i18nMissing)
 let I18N_HARVEST = null;          // Test: Map Schlüssel → { n, views } aller angezeigten deutschen Texte
 const i18nOn = () => LANG !== 'de' || !!I18N_HARVEST;
@@ -38,6 +39,8 @@ function i18nLookup(s) {
     e.n++; e.views.add(v); I18N_HARVEST.set(k, e);
   };
   if (LANG === 'de') { harvest(); return null; }
+  const full = I18N_FULL.get(String(s).replace(/\s+/g, ' ').trim());  // v279: Lebensmittelnamen (food-en.js), ganzer Text
+  if (full) return full;
   const tr = (I18N[LANG] || {})[k];
   if (tr != null) return tr.replace(/\{(\d+)\}/g, (_, i) => vals[i] != null ? vals[i] : '');
   const alt = i18nPattern(String(s).replace(/\s+/g, ' ').trim());
@@ -163,6 +166,11 @@ function i18nInit() {
   const has = typeof data !== 'undefined' && data && ((data.sessions || []).length || (data.plans || []).length);
   LANG = LANGS[p.lang] ? p.lang : has ? 'de' : /^de\b/i.test(navigator.language || 'de') ? 'de' : 'en';
   document.documentElement.lang = LANG;
+  // v279: englische Lebensmittelnamen (groß) nur laden, wenn Englisch eingestellt ist
+  if (LANG === 'en' && !document.querySelector('script[data-food-en]')) {
+    const me = document.querySelector('script[src*="i18n.js"]');  // gleicher Ordner wie i18n.js
+    const sc = document.createElement('script'); sc.src = me ? me.src.replace(/i18n\.js.*$/, 'food-en.js') : 'food-en.js'; sc.dataset.foodEn = '1'; document.head.appendChild(sc);
+  }
   if (i18nOn()) {
     i18nApply(document.body);
     if (i18nObs) i18nObs.observe(document.body, { childList: true, subtree: true, characterData: true });
@@ -178,5 +186,27 @@ function i18nSet(l) {
 // Auswahl (Begrüßung und Optionen) – die Sprachnamen selbst nie übersetzen
 const langPickHtml = () => `<div class="seg two lang-pick" data-i18n="no">${Object.entries(LANGS).map(([k, l]) =>
   `<button class="${LANG === k ? 'on' : ''}" data-action="lang-set" data-l="${k}">${l}</button>`).join('')}</div>`;
+// Gespeicherte Zahlen als Text (z. B. „82,5“) in Eingabefeldern (v277): auf Englisch mit Punkt anzeigen; parseNum liest beides
+const numDisp = v => LANG !== 'de' && typeof v === 'string' ? v.replace(/(\d),(\d)/g, '$1.$2') : v;
+// Lebensmittelnamen (v279): food-en.js ruft das nach dem Laden auf. Gespeichert bleibt der deutsche Name.
+const i18nFull = s => s == null ? null : I18N_FULL.get(String(s).replace(/\s+/g, ' ').trim()) || null;
+function i18nFoodReg() {
+  if (typeof FOOD_EN === 'undefined') return;
+  if (typeof BLS_DATA === 'string') for (const line of BLS_DATA.split('\n')) {
+    const bar = line.indexOf('|'); if (bar < 0) continue;
+    const code = line.slice(0, bar), name = line.slice(bar + 1, line.indexOf('|', bar + 1));
+    if (FOOD_EN.bls[code]) I18N_FULL.set(name.replace(/\s+/g, ' ').trim(), FOOD_EN.bls[code]);
+  }
+  for (const [de, en] of Object.entries(FOOD_EN.base || {})) I18N_FULL.set(de, en);
+  if (typeof render === 'function' && typeof current !== 'undefined' && current) try { render(); } catch (e) { /* nichts */ }
+}
+// Übungsnamen in Eingabefeldern (v277): angezeigt übersetzt, gespeichert immer deutsch
+const exDisp = n => LANG === 'de' || !n ? n : tr(n);
+let I18N_EXREV = null;
+function exFromDisp(s) {
+  if (LANG === 'de' || !s || typeof EXERCISES === 'undefined') return s;
+  if (!I18N_EXREV) I18N_EXREV = new Map(EXERCISES.map(n => [String(tr(n)).toLowerCase(), n]));
+  return I18N_EXREV.get(String(s).trim().toLowerCase()) || s;
+}
 // Test/Pflege: fehlende Übersetzungen als Liste
 const i18nMissing = () => [...I18N_MISS].sort();

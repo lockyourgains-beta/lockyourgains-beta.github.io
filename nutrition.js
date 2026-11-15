@@ -690,7 +690,7 @@ function renderNutBody() {
     <div class="card wiz-q">
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🚶</span><h2>Wie aktiv bist du?</h2></div>
       <p class="hint wiz-q-explain explain">Gemeint ist alles zusammen: Alltag, Arbeit und Training. Wenn du schwankst, nimm lieber die
-        niedrigere Stufe. Die meisten schätzen sich zu aktiv ein.${guess ? ` Vorschlag aus deinen Daten (${guessText}): <b>${NUT_ACT[guess.lvl].label}</b>.` : ''}</p>
+        niedrigere Stufe. Die meisten schätzen sich zu aktiv ein.${guess ? ` <span class="act-guess">Vorschlag aus deinen Daten${guessText ? ` (${guessText})` : ''}: <b>${NUT_ACT[guess.lvl].label}</b>.</span>` : ''}</p>
       ${Object.entries(NUT_ACT).map(([k, a]) => `<button class="split-opt ${String(d.activity) === k ? 'on' : ''}" data-action="nut-act" data-k="${k}">
           ${guess && guess.lvl === Number(k) ? '<span class="split-tag">Vorschlag</span>' : ''}<b>${a.label}</b><small>${a.text}</small></button>`).join('')}
     </div>

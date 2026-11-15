@@ -958,7 +958,7 @@ function renderWizOwnDay() {
         <button class="icon-btn danger" data-action="own-del-ex" data-e="${e}" aria-label="Übung entfernen">✕</button></div>
       <div class="ex-name-row">
         <input class="inp" type="text" data-field="own-name" data-e="${e}" autocomplete="off" autocorrect="off" spellcheck="false"
-          value="${esc(x.name)}" placeholder="Übung eintippen, z. B. Bank…">${libInfoBtn(x.name)}
+          value="${esc(exDisp(x.name))}" placeholder="Übung eintippen, z. B. Bank…">${libInfoBtn(x.name)}
       </div>
       <div class="suggest" hidden></div>
       <div class="own-nums">
@@ -1777,7 +1777,7 @@ Object.assign(actions, {
   },
   'wiz-swap-cancel': () => { wiz.swapOpen = null; render(); },
   'wiz-swap-pick': el => wizSwap(el.dataset.name),
-  'wiz-swap-ok': () => wizSwap($view.querySelector('[data-field="wiz-swap-name"]').value),
+  'wiz-swap-ok': () => wizSwap(exFromDisp($view.querySelector('[data-field="wiz-swap-name"]').value)),
   'wiz-weeks': el => { wiz.weeks = Math.min(CYCLE_MAX, Math.max(4, Number(el.dataset.n))); render(); },
   'wiz-deload': el => { wiz.deload = el.dataset.m; render(); },
   'wiz-int': el => { wiz.intMode = el.dataset.m; render(); },
@@ -2069,7 +2069,7 @@ Object.assign(actions, {
   'wiz-add-typed': () => {
     const input = $view.querySelector('[data-field="wiz-add"]');
     if (!input.value.trim()) { alert('Bitte erst eine Übung eintippen.'); return; }
-    wizAddPick(input.value);
+    wizAddPick(exFromDisp(input.value));
   },
   'wiz-commit': () => {
     const days = buildPlanDays();
@@ -2113,7 +2113,7 @@ Object.assign(fields, {
   'wiz-dayname': el => { wiz.days[el.dataset.d].name = el.value; },
   // eigener Plan (Werte als Text, ausgewertet beim Speichern)
   'own-dayname': el => { wiz.own[wiz.oi].name = el.value; },
-  'own-name': el => { wiz.own[wiz.oi].exercises[el.dataset.e].name = el.value; showSuggestions(el); },
+  'own-name': el => { wiz.own[wiz.oi].exercises[el.dataset.e].name = exFromDisp(el.value); showSuggestions(el); },
   'own-sets': el => { wiz.own[wiz.oi].exercises[el.dataset.e].sets = el.value; },
   'own-reps': el => { wiz.own[wiz.oi].exercises[el.dataset.e].reps = el.value; },
   'own-kg': el => { wiz.own[wiz.oi].exercises[el.dataset.e].kg = el.value; },

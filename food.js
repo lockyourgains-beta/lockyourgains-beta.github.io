@@ -826,15 +826,24 @@ function foodMacroMini(per) {
 
 // Suchtext: Name, Name ohne Leerzeichen (so findet „Hähnchenbrust“ auch „Hähnchen Brust, ohne Haut, roh“ aus dem BLS),
 // Zusatzbegriffe und alles zusammen (mit Marke)
+// v279: auf Englisch zählt der englische Name (food-en.js), der deutsche bleibt zusätzlich im Suchtext
+const FOOD_TAGS_EN = { brot: 'bread', getreide: 'grain cereal', kuchen: 'cake', 'gebäck': 'pastry baked goods', nudeln: 'noodles', pasta: 'pasta',
+  obst: 'fruit', 'gemüse': 'vegetables', 'hülsenfrüchte': 'legumes pulses beans', 'nüsse': 'nuts', kartoffeln: 'potatoes', pilze: 'mushrooms',
+  milchprodukte: 'dairy', 'getränke': 'drinks', alkohol: 'alcohol', fett: 'fat', 'öl': 'oil', 'gewürze': 'spices', 'süßigkeiten': 'sweets',
+  fisch: 'fish', fleisch: 'meat', 'geflügel': 'poultry', wurst: 'sausage', aufschnitt: 'cold cuts', gericht: 'dish meal', 'käse': 'cheese' };
 function foodText(f) {
-  const name = norm(f.name), compact = name.replace(/\s+/g, ''), tags = norm(f.tags || '');
-  return { name, compact, tags, text: name + ' ' + norm(f.brand || '') + ' ' + tags + ' ' + name.replace(/[\s,/()-]+/g, '') };
+  const en = LANG !== 'de' && typeof i18nFull === 'function' ? i18nFull(f.name) : null;
+  const name = norm(en || f.name), compact = name.replace(/\s+/g, '');
+  let tags = norm(f.tags || '');
+  if (en) tags += ' ' + norm((f.tags || '').split(/\s+/).map(w => FOOD_TAGS_EN[w] || '').join(' '));
+  return { name, compact, tags, text: name + ' ' + norm(f.brand || '') + ' ' + tags + ' ' + name.replace(/[\s,/()-]+/g, '') + (en ? ' ' + norm(f.name) : '') };
 }
 // Suchwort und seine Einzahl-Formen (der BLS nennt „Linse“, „Tomate“, „Kartoffel“ – gesucht wird oft „Linsen“ …)
 function foodStems(w) {
   const v = [w];
   if (w.length >= 5 && w.endsWith('n')) v.push(w.slice(0, -1));
   if (w.length >= 6 && w.endsWith('en')) v.push(w.slice(0, -2));
+  if (LANG !== 'de' && w.length >= 4 && w.endsWith('s')) v.push(w.slice(0, -1), w.endsWith('es') ? w.slice(0, -2) : w);  // eggs → egg, tomatoes → tomato
   return v;
 }
 const reEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -859,14 +868,15 @@ function foodSearch(q) {
   const full = norm(q).trim().replace(/\s+/g, ' ');
   const hits = [];
   const check = (f, cached) => {
+    const ver = LANG + (typeof I18N_FULL !== 'undefined' ? I18N_FULL.size : 0);  // neu nach Sprachwechsel / Laden von food-en.js
     let t = cached ? FOOD_TEXT.get(f) : null;
-    if (!t) { t = foodText(f); if (cached) FOOD_TEXT.set(f, t); }
+    if (!t || t.ver !== ver) { t = foodText(f); t.ver = ver; if (cached) FOOD_TEXT.set(f, t); }
     if (!words.every(v => v.some(w => t.text.includes(w)))) return;
     const g = cached ? foodGet(f.key) : f;
     const bls = f.src === 'bls';
     const ws = Math.min(...words[0].filter(w => t.text.includes(w)).map(w => foodWordScore(t, w, !bls)));
     const score = (t.name === full ? -0.3 : 0) + ws - (g.last ? 0.5 : 0) - (g.fav ? 0.5 : 0)
-      + (bls ? 0.6 + (/tiefgefroren/.test(t.name) ? 0.3 : 0) : 0);
+      + (bls ? 0.6 + (/tiefgefroren|\bfrozen\b/.test(t.name) ? 0.3 : 0) : 0);
     hits.push([score, g]);
   };
   for (const key of Object.keys(data.foods)) {

@@ -409,7 +409,8 @@ const EX_ALIAS = {
   'Handstand-Liegestütze an der Wand': 'hspu handstand push-ups', 'Toter Hang (Dead Hang)': 'hängen',
   'Bulgarian Split Squats ohne Gewicht': 'split squats', 'Burpees': 'burpee',
 };
-const exSearchText = name => EX_ALIAS[name] ? `${name} ${EX_ALIAS[name]}` : name;
+// v277: auf Englisch findet die Suche auch den englischen Namen
+const exSearchText = name => [name, EX_ALIAS[name], LANG !== 'de' ? tr(name) : ''].filter(Boolean).join(' ');
 const SPORT_NEW = new Set(['Archer-Liegestütze', 'Pseudo-Planche-Liegestütze', 'Einarmige Liegestütze', 'Klatsch-Liegestütze', 'Ring-Dips',
   'Dips an der geraden Stange (Straight Bar Dips)', 'Handstand-Liegestütze an der Wand', 'Handstand an der Wand', 'Planche (Tuck)', 'Archer-Klimmzüge',
   'Einarmige Klimmzüge', 'Negative Klimmzüge', 'Schulterblatt-Klimmzüge (Scapula Pulls)', 'Muscle-ups', 'Ring-Rudern', 'Front Lever (Tuck)',

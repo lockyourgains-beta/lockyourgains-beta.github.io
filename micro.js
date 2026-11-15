@@ -182,7 +182,7 @@ function microRow(k, s, c) {
         ${pct != null ? `<span class="mic-bar${r.max != null ? ' max' : ''}"><i style="width:${Math.min(100, Math.round(pct))}%"></i></span>` : ''}
         <small class="mic-ref">${microRefText(r, u)}${pct != null && r.max == null ? ` | ${Math.round(pct)} %` : ''}</small></summary>
       <div class="mic-info"><p>${MICRO_INFO[k]}</p>
-        ${top.length ? `<p class="hint nut-small"><b>Bei dir vor allem aus:</b> ${top.map(([nm, x]) => `${esc(nm)} (${microFmt(x / n)} ${u})`).join(' | ')}</p>` : ''}
+        ${top.length ? `<p class="hint nut-small"><b>Bei dir vor allem aus:</b> ${top.map(([nm, x]) => `${esc(i18nFull(nm) || nm)} (${microFmt(x / n)} ${u})`).join(' | ')}</p>` : ''}
         ${gap ? `<p class="hint nut-small">Für ${Math.round((1 - s.kc[k] / s.kcal) * 100)} % deiner Kalorien kennt die App diesen Wert nicht (z. B. gescannte Produkte), die Zahl ist eher zu niedrig.</p>` : ''}
         ${women ? `<p class="mic-women">♀ ${women}</p>` : ''}</div>
     </details>`;
