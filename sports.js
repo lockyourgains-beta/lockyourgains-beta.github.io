@@ -122,7 +122,7 @@ function renderHyrox() {
     <button class="btn nav" data-action="hx-open" data-v="hyroxhist">📈 Zeiten und Bestzeiten<small>alle Durchgänge, Bestzeit je Abschnitt</small></button>`;
 }
 function hxSessionRow(s) {
-  return `<button class="hx-day done" data-action="hx-ses" data-id="${s.id}"><span class="hx-dow">${new Date(s.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}</span>
+  return `<button class="hx-day done" data-action="hx-ses" data-id="${s.id}"><span class="hx-dow">${new Date(s.date).toLocaleDateString(LOCALE(), { day: '2-digit', month: '2-digit' })}</span>
     <span class="hx-dtxt"><b>${esc(HX_TYPES[s.type].label)}</b><small>${s.segs.length} Abschnitte | ${s.mode === 'live' ? 'mit Uhr' : 'eingetragen'}</small></span><span class="hx-dst">${hxTime(s.total)}</span></button>`;
 }
 

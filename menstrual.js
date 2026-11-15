@@ -116,7 +116,7 @@ function renderMcal() {
     const cls = ['mc-day', i ? `mc-${i.phase}` : '', i && i.pred ? 'pred' : '', starts.has(iso) ? 'start' : '', iso === today ? 'today' : '', iso > today ? 'future' : ''].filter(Boolean).join(' ');
     cells += `<button class="${cls}" data-action="mc-day" data-d="${iso}">${d}</button>`;
   }
-  const title = first.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+  const title = first.toLocaleDateString(LOCALE(), { month: 'long', year: 'numeric' });
   const lens = mcLengths();
   const s = mcStarts();
   const cur = mcInfo();

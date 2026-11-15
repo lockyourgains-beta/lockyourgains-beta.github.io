@@ -39,7 +39,7 @@ const goalAt = (def, i) => i < def.goals.length ? def.goals[i]
 
 const fmtCount = v => `${v}`;
 const fmtT = v => fmtTons(v * 1000);
-const deNum = v => v.toLocaleString('de-DE');
+const deNum = v => v.toLocaleString(LOCALE());
 
 const STATIC_SERIES = [
   { id: 'count', cat: 'Trainings', goals: [1, 10, 25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000], step: 250,
@@ -157,6 +157,21 @@ function loyaltySeries(name, k) {
   };
 }
 
+// v271 (User 2026-11-14): Für jede Übung mit Gewicht: Max. bei 10 Wdh. gegenüber dem Startwert (dem ersten Max. in der App),
+// je +10 % ein Erfolg (linear vom Start: +10 %, +20 %, +30 % …). Die kg-Meilensteine bleiben daneben bestehen.
+function max10Series(name, k, base) {
+  const s = shortName(name);
+  return {
+    id: `m10-${k}`, cat: 'Übungen', goals: [10], step: 10,
+    names: [], icons: ['📈'],
+    name: g => `${s}: +${g} %`,
+    // Einfach-Modus kennt das „Max. bei 10 Wdh.“ nicht: dort nur „Kraft“, ohne die gerechneten kg
+    desc: g => feat('tr-max') ? `Max. bei 10 Wdh. ${g} % über deinem Startwert (${fmtNum(round1(base))} kg → ${fmtNum(round1(base * (1 + g / 100)))} kg)`
+      : `Deine Kraft bei ${name} ist ${g} % über deinem Start`,
+    value: c => c.m10Pct[k] || 0, fmt: v => `+${fmtNum(Math.max(0, Math.round(v)))} %`,
+  };
+}
+
 function awardAt(def, i, g) {
   return {
     id: `${def.id}:${g}`, cat: def.cat, icon: def.icons[Math.min(i, def.icons.length - 1)],
@@ -237,7 +252,7 @@ function achievementProgress() {
 function trainingProgress() {
   const c = {
     count: 0, total: 0, month: 0, session: 0, streak: 0, fullWeeks: 0, cycles: 0,
-    rel: { bench: 0, squat: 0, dead: 0 }, reps: { pullup: 0, dips: 0, pushup: 0 }, maxW: {}, exCount: {}, caliMet: {},
+    rel: { bench: 0, squat: 0, dead: 0 }, reps: { pullup: 0, dips: 0, pushup: 0 }, maxW: {}, exCount: {}, caliMet: {}, m10Base: {}, m10Pct: {},
   };
   const months = {}, weeks = {}, deloadWeeks = new Set(), known = new Set();
   const series = STATIC_SERIES.map(def => ({ def, i: 0 }));
@@ -271,6 +286,20 @@ function trainingProgress() {
       // Gewichtsserie startet beim ersten Gewicht – Meilensteine liegen immer darüber
       if (maxW > 0 && !known.has('w' + k)) { known.add('w' + k); series.push({ def: weightSeries(e.name, k, maxW), i: 0 }); }
       c.maxW[k] = Math.max(c.maxW[k] || 0, maxW);
+      // v271: Max. bei 10 Wdh. aus den normalen Arbeitssätzen (frisch gerechnet, wie im Diagramm „Max. bei 10 Wdh.“)
+      const ws = ofVariant(real, '').filter(x => x.weight > 0 && x.reps > 0);
+      if (ws.length && !isBodyweightName(e.name)) {
+        const fat = typeof sessionFat === 'function' ? sessionFat(s, s.entries.indexOf(e)) : 0;
+        const est = Math.max(...ws.map(x => x.weight / repFactor(x.reps + (x.rir || 0)) / (1 - fat)));
+        if (!c.m10Base[k] && est > 0) {
+          // Startwert (User 2026-11-14): eingetragenes Max. oder die Leistung im ersten Training, je nachdem, was höher ist –
+          // so gibt ein vorsichtig zu niedrig eingetragener Wert keine Erfolge ohne echte Steigerung
+          const t = e.target && e.target.max10;
+          c.m10Base[k] = Math.max(t > 0 ? t : 0, est);
+          series.push({ def: max10Series(e.name, k, c.m10Base[k]), i: 0 });
+        }
+        if (c.m10Base[k]) c.m10Pct[k] = Math.max(c.m10Pct[k] || 0, (est / c.m10Base[k] - 1) * 100);
+      }
       if (/^klimmzuge/.test(n)) c.reps.pullup = Math.max(c.reps.pullup, maxReps);
       if (/^(dips|bankdips)/.test(n)) c.reps.dips = Math.max(c.reps.dips, maxReps);
       if (/^liegestutze/.test(n)) c.reps.pushup = Math.max(c.reps.pushup, maxReps);
@@ -439,8 +468,8 @@ function niceTicks(lo, hi) {
 
 function fmtTick(t, spanDays) {
   return spanDays <= 100
-    ? new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
-    : new Date(t).toLocaleDateString('de-DE', { month: 'short', year: '2-digit' });
+    ? new Date(t).toLocaleDateString(LOCALE(), { day: '2-digit', month: '2-digit' })
+    : new Date(t).toLocaleDateString(LOCALE(), { month: 'short', year: '2-digit' });
 }
 
 function drawChart() {

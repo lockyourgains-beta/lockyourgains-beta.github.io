@@ -646,7 +646,7 @@ function foodOpenCard() {
   const open = foodOpenDays();
   if (!open.length) return '';
   const d = open[0];
-  const label = d === addDaysISO(todayISO(), -1) ? 'Gestern' : new Date(d + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'numeric' });
+  const label = d === addDaysISO(todayISO(), -1) ? 'Gestern' : new Date(d + 'T12:00:00').toLocaleDateString(LOCALE(), { weekday: 'long', day: 'numeric', month: 'numeric' });
   const t = foodTotals(foodOn(d));
   const rest = foodRest(d);
   const miss = foodUsualMissing(d);
@@ -691,7 +691,7 @@ function foodCloseHtml(date, list) {
 const foodNum = v => fmtNum(round1(v));
 const foodKcal = v => deNum(Math.round(v || 0));
 function foodDayLabel(date) {
-  const long = new Date(date + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
+  const long = new Date(date + 'T12:00:00').toLocaleDateString(LOCALE(), { weekday: 'short', day: 'numeric', month: 'short' });
   const rel = date === todayISO() ? 'Heute' : date === addDaysISO(todayISO(), -1) ? 'Gestern' : '';
   return rel ? `${rel}<small>${long}</small>` : long;
 }
@@ -1447,7 +1447,7 @@ function foodDayVals(date) {
   const t = foodTotals(list);
   return { kcal: Math.round(t.kcal), p: Math.round(t.p), c: Math.round(t.c), f: Math.round(t.f), src: 'food' };
 }
-const foodShortDay = d => new Date(d + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' });
+const foodShortDay = d => new Date(d + 'T12:00:00').toLocaleDateString(LOCALE(), { weekday: 'short', day: 'numeric', month: 'numeric' });
 
 // Karte ganz oben im Ernährungs-Reiter
 function foodTopCard() {
@@ -1473,7 +1473,7 @@ function renderFoodCal(p) {
     const cls = ['fcal-day', v ? 'has' : '', foodClosed(iso) ? 'closed' : '', iso === T ? 'today' : '', fut ? 'future' : ''].filter(Boolean).join(' ');
     cells += `<button class="${cls}" data-action="food-cal-day" data-d="${iso}" ${fut ? 'disabled' : ''}><b>${d}</b><small>${v ? (v.kcal >= 1000 ? fmtNum(Math.round(v.kcal / 100) / 10) + 'k' : Math.round(v.kcal)) : ''}</small></button>`;
   }
-  const title = first.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+  const title = first.toLocaleDateString(LOCALE(), { month: 'long', year: 'numeric' });
   const lastDay = `${month}-${String(month === T.slice(0, 7) ? Number(T.slice(8)) : days).padStart(2, '0')}`;
   return `<div class="card fcal">
       <div class="mc-head"><button class="icon-btn" data-action="food-cal-month" data-d="-1" aria-label="Voriger Monat">‹</button>
@@ -1529,7 +1529,7 @@ function foodBarChart(days, metric, rangeKey) {
   });
   svg += `<line class="fb-avg" x1="${L}" x2="${L + pw}" y1="${y(avg)}" y2="${y(avg)}"/>`;
   const head = sel != null
-    ? `<small>${new Date(days[sel] + 'T12:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}</small><b>${foodBarFmt(metric, vals[sel])}</b>`
+    ? `<small>${new Date(days[sel] + 'T12:00:00').toLocaleDateString(LOCALE(), { weekday: 'long', day: 'numeric', month: 'long' })}</small><b>${foodBarFmt(metric, vals[sel])}</b>`
     : `<small>Ø pro Tag | ${have.length} von ${days.filter(d => d <= T).length} Tagen erfasst</small><b>${foodBarFmt(metric, avg)}</b>`;
   return `<div class="card fbar"><div class="seg four fb-metric">${Object.entries(FOOD_BAR_METRICS).map(([k, m]) =>
       `<button class="${k === metric ? 'on' : ''}" data-action="food-bar-metric" data-k="${k}">${m.label}</button>`).join('')}</div>
@@ -1554,7 +1554,7 @@ function renderFoodStats(p) {
   const goal = foodGoal(T);
   const avg = k => got.length ? got.reduce((a, r) => a + (r.v[k] || 0), 0) / got.length : null;
   const A = { kcal: avg('kcal'), p: avg('p'), c: avg('c'), f: avg('f') };
-  const title = range === 'month' ? new Date(days[0] + 'T12:00:00').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })
+  const title = range === 'month' ? new Date(days[0] + 'T12:00:00').toLocaleDateString(LOCALE(), { month: 'long', year: 'numeric' })
     : `${foodShortDay(days[0])} – ${foodShortDay(days[6])}`;
   const next = addDaysISO(days[days.length - 1], 1);
   let h = `<div class="seg two"><button class="${range === 'week' ? 'on' : ''}" data-action="food-stats-range" data-r="week">Woche</button>

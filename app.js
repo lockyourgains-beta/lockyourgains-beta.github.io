@@ -493,13 +493,13 @@ function parseNum(s) {
   return isFinite(n) ? n : null;
 }
 
-const fmtNum = n => String(n).replace('.', ',');
+const fmtNum = n => LANG === 'en' ? String(n) : String(n).replace('.', ',');  // v273: Englisch mit Punkt
 
 function fmtDate(iso, long) {
   const opts = long
     ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
     : { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' };
-  return new Date(iso).toLocaleDateString('de-DE', opts);
+  return new Date(iso).toLocaleDateString(LOCALE(), opts);
 }
 
 // Tonnage = Summe aus Gewicht × Wiederholungen aller Sätze (Sätze ohne Gewicht zählen nicht)
@@ -509,8 +509,8 @@ const sessionTonnage = s => s.entries.reduce((sum, e) => sum + setsTonnage(e.set
 
 // 850 kg / 12,4 t / 1.234,5 t
 const fmtTons = kg => kg >= 1000
-  ? `${(Math.round(kg / 100) / 10).toLocaleString('de-DE')} t`
-  : `${Math.round(kg).toLocaleString('de-DE')} kg`;
+  ? `${(Math.round(kg / 100) / 10).toLocaleString(LOCALE())} t`
+  : `${Math.round(kg).toLocaleString(LOCALE())} kg`;
 
 /* Ausreißer (v215, User 2026-11-12): extreme Tippfehler, die trotz Rückfrage gespeichert wurden (Komma/Null vergessen),
    bleiben sichtbar, zählen aber nicht für Vorschläge, Max., Deload, Bestleistungen und Tonnage.
@@ -3311,7 +3311,7 @@ const COMPL_DISCLAIMER = 'Die App dokumentiert nur. Sie bewertet nichts und erse
   + 'besprichst du am besten mit deiner Ärztin oder deinem Arzt bzw. in der Physiotherapie.';
 const COMPL_HIGH_NOTE = '🩺 Starke Beschwerden besprichst du am besten bald mit deiner Ärztin oder deinem Arzt.';
 const areaName = (k, side) => (BODY_AREAS[k] || { label: k }).label + (side && SIDES[side] ? ' ' + SIDES[side] : '');
-const dShort = iso => new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+const dShort = iso => new Date(iso).toLocaleDateString(LOCALE(), { day: '2-digit', month: '2-digit' });
 const heavierSet = (a, b) => (b.weight || 0) > (a.weight || 0) || ((b.weight || 0) === (a.weight || 0) && (b.reps || 0) > (a.reps || 0)) ? b : a;
 
 // neuester Eintrag dieses Zyklus (Grundlage für die Hinweise im Training)
@@ -3687,7 +3687,8 @@ function stagnationText(h) {
   const alts = alternativesFor(h.name);
   return `Geschätztes Max. bei 10 Wdh.: ${fmtNum(h.prev)} → ${fmtNum(h.last)} kg` +
     (h.stalled > 1 ? ` (${h.stalled} Zyklen ohne Fortschritt)` : '') +
-    `<br>Ideen: ${alts.length ? `Variante wechseln (z. B. ${alts.map(esc).join(' oder ')}), ` : ''}` +
+    // v273: Übungsnamen in eigenem Element, damit der Satz drumherum stückweise übersetzt werden kann
+    `<br>Ideen: ${alts.length ? `Variante wechseln (z. B. ${alts.map(a => `<span class="ex-alt">${esc(a)}</span>`).join(' oder ')}), ` : ''}` +
     'Volumen anpassen (Sätze pro Muskelgruppe ±1) oder Intensität ändern (anderer Wdh.-Bereich, Ausführung „mit Pause“ oder „langsam“).';
 }
 
@@ -3972,6 +3973,7 @@ function render() {
   $view.innerHTML = v.render(current.params);
   if (v.after) v.after(current.params);  // z. B. Diagramm zeichnen, wenn die Breite bekannt ist
   explainFold();  // v209: Erklärtexte ab dem 4. Besuch einklappen
+  i18nApply($view); i18nApply($title);  // v273: angezeigte Texte übersetzen (i18n.js)
   syncBackKey();
   syncTyping();  // Feld beim Neuzeichnen verschwunden (z. B. Seitenwechsel) -> Leiste wieder zeigen
   if (typeof tourCheck === 'function') tourCheck();  // Einführung beim ersten Öffnen (tour.js)
@@ -4118,7 +4120,7 @@ function hintsCard() {
       <button class="btn small compl-link" data-action="compl-open" data-from="start">Besser geworden? Verlauf & ändern</button>`;
   }
   for (const s of hints) {
-    h += `<div class="hint-item"><div><b>Stillstand bei ${esc(s.name)}</b><br><small>${stagnationText(s)}</small></div>
+    h += `<div class="hint-item"><div><b>Stillstand bei <span class="ex-alt">${esc(s.name)}</span></b><br><small>${stagnationText(s)}</small></div>
       <button class="icon-btn" data-action="hint-dismiss" data-key="${esc(s.key)}" aria-label="Hinweis ausblenden">✕</button></div>`;
   }
   return h + '</div>';
@@ -4459,7 +4461,10 @@ function renderStart() {
     + (typeof reviewStartCard === 'function' ? reviewStartCard() : '') + hintsCard();
   h += `<h2 class="start-days-h">Trainingstage <small class="hint">| ${esc(activePlan().name)}</small></h2>`
     // v246 (User 2026-11-14): „Wenig Zeit?“ hängt direkt am nächsten Trainingstag (ohne nächsten Tag wie bisher unten)
-    + data.days.map((d, i) => dayBtn(d, i) + (d === nextDay && !draft ? `<div class="tl-attach">${timeLimitHtml()}</div>` : '')).join('');
+    // v272 (User 2026-11-14): Reihenfolge der Tage auch hier dauerhaft ändern (wie im Plan-Reiter, planDayOrderHtml)
+    + (planDayOrder && data.days.length > 1 ? planDayOrderHtml()
+      : data.days.map((d, i) => dayBtn(d, i) + (d === nextDay && !draft ? `<div class="tl-attach">${timeLimitHtml()}</div>` : '')).join('')
+        + (data.days.length > 1 ? '<button class="btn outline center pday-order-btn" data-action="pday-order">⇅ Reihenfolge der Tage ändern</button>' : ''));
   const tlAttached = !draft && !!nextDay;
   const tlShown = !draft && !tlAttached && (timeEdit || limit);
   if (tlShown) h += timeLimitHtml();
@@ -6483,6 +6488,15 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 274, date: '2026-11-15', items: [
+    ['Sprachauswahl: Die App gibt es jetzt auch auf Englisch (Optionen → Aussehen → Sprache). Training und Plan sind schon übersetzt, die übrigen Bereiche folgen.'],
+  ] },
+  { v: 272, date: '2026-11-14', items: [
+    ['Die Reihenfolge der Trainingstage lässt sich jetzt auch direkt im Training-Reiter ändern, unter den Trainingstagen. Sie wird dauerhaft im Plan gespeichert.'],
+  ] },
+  { v: 271, date: '2026-11-14', items: [
+    ['Neue Erfolge: Für jede Übung mit Gewicht zählt dein erstes Max. bei 10 Wdh. als Startwert. Jedes Mal, wenn du es um weitere 10 % steigerst, gibt es einen Erfolg. Die kg-Meilensteine bleiben.'],
+  ] },
   { v: 270, date: '2026-11-14', items: [
     ['Ernährung, Aufbau: Die App vergleicht jetzt über vier Wochen statt zwei. Die Zunahme ist so klein, dass sich erst dann sicher erkennen lässt, wie es läuft.'],
     ['Plan erstellen: Direkt nach der Wahl (automatisch, aus Excel oder eigener Plan) fragt die App, ob du mit ihrer Steigerungslogik trainieren möchtest (vorausgewählt) oder immer den gleichen Plan ohne Vorgaben.'],
@@ -7744,7 +7758,7 @@ function importData(file) {
     }
     const plans = Array.isArray(d.plans) ? `${d.plans.length} ${d.plans.length === 1 ? 'Plan' : 'Plänen'}` : `${d.days.length} Trainingstagen`;
     const at = d.exportedAt && !isNaN(new Date(d.exportedAt)) ? new Date(d.exportedAt) : null;
-    const from = at ? ` vom ${at.toLocaleDateString('de-DE')}, ${at.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr,` : '';
+    const from = at ? ` vom ${at.toLocaleDateString(LOCALE())}, ${at.toLocaleTimeString(LOCALE(), { hour: '2-digit', minute: '2-digit' })} Uhr,` : '';
     if (!(await uiConfirm(`Sicherung${from} mit ${plans} und ${d.sessions.length} Trainings laden?\n\nDie aktuellen Daten werden ersetzt.`))) return;
     data = upgradeData({
       app: 'trainingsapp', version: 1,
@@ -9417,6 +9431,7 @@ function appearanceCard() {
       style="--sw-bg-l:${c.bg[0]};--sw-bg-d:${c.bg[1]};--sw-a:${c.a[0]};--sw-b:${c.a[1]}"><span class="sw"><i></i></span>${c.label}</button>`;
   return `<div class="card profile-card">
       <h2>Aussehen</h2>
+      <p class="lbl">Sprache</p>${langPickHtml()}
       <p class="lbl">Stil</p>
       <div class="variants look-pick">${Object.entries(LOOKS).map(([k, l]) =>
         `<button class="vchip ${currentLook() === k ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`).join('')}</div>
@@ -9506,7 +9521,7 @@ const INTRO = [
 ];
 function introHtml() {
   const i = welc.slide || 0, s = INTRO[i], last = i === INTRO.length - 1;
-  return `<div class="intro">
+  return `<div class="intro">${i === 0 ? langPickHtml() : ''}
       <div class="intro-shot"><img src="${s.img}" alt="Beispiel aus der App"></div>
       <h2 id="welcome-title">${s.h}</h2>
       <p>${s.p}</p>
@@ -9704,6 +9719,7 @@ actions['profile-theme'] = el => {
   data.profile = { ...(data.profile || {}), theme: el.dataset.k || null };
   saveData(); applyTheme(); render();
 };
+actions['lang-set'] = el => { if (el.dataset.l !== LANG) i18nSet(el.dataset.l); };  // v273
 actions['profile-look'] = el => {
   data.profile = { ...(data.profile || {}), look: el.dataset.k || null };
   saveData(); applyTheme(); render();
@@ -10065,6 +10081,7 @@ actions['welcome-import'] = () => {
 async function boot() {
   channelInit();
   await storeInit();  // Daten aus IndexedDB (bzw. Umzug dorthin) – erst danach zeichnen
+  i18nInit();  // v273: Sprache (gespeichert, sonst bisherige Nutzer Deutsch, neue nach Handysprache)
   applyTheme();
   registerCustomExercises();  // Übungsliste und Bibliothek um eigene Übungen ergänzen (library.js ist jetzt geladen)
   prefatMigrate();
