@@ -3714,3 +3714,10 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .variants.look-pick .vchip { flex: 1 1 auto; min-width: 0; padding: 0 3px; font-size: 12px; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .variants.look-pick .vchip.on::before { content: none; }
 [data-look="plain"] .variants.look-pick .vchip { font-size: 10.5px; letter-spacing: 0; padding: 0 2px; }
+
+/* v291: Mahlzeiten einstellbar */
+.meal-cfg .meal-n .vchip { flex: 1 1 0; min-width: 0; padding: 0; }
+.meal-cfg .meal-name { margin-top: 8px; }
+.meal-cfg .meal-name span { flex: none; width: 28px; font-size: 22px; text-align: center; }
+.meal-cfg .meal-name .inp { flex: 1; min-width: 0; }
+.meal-cfg-link { display: block; margin: 4px auto 6px; font-size: 16px; }

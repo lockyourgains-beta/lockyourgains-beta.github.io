@@ -286,7 +286,7 @@ function renderNutPlan() {
         <p><b>${esc(d.label)}</b>${d === today ? ' <span class="badge">heute</span>' : ''}</p>
         <div class="nut-goal-row food-sum"><span>Kalorien<b>${nutKcal(d.kcal)}</b></span><span>Eiweiß<b>${d.p} g</b></span>
           <span>Kohlenh.<b>${d.c} g</b></span><span>Fett<b>${d.f} g</b></span></div>
-        ${Object.keys(d.meals || {}).length ? `<details class="nut-more"><summary>Mahlzeiten</summary>${Object.entries(MEALS).filter(([k]) => d.meals[k])
+        ${Object.keys(d.meals || {}).length ? `<details class="nut-more"><summary>Mahlzeiten</summary>${Object.keys(MEALS).filter(k => d.meals[k]).map(k => [k, mealInfo(k)])
           .map(([k, [icon, label]]) => `<p class="np-meal"><b>${icon} ${label}</b><br>${d.meals[k].map(i => `${esc(i.name)}${i.g ? ` | ${fmtNum(i.g)} g` : ''} | ${nutKcal(i.kcal)} kcal`).join('<br>')}</p>`).join('')}</details>` : ''}
       </div>`).join('')}
       <button class="btn" data-action="np-pick">📄 Neuen Plan importieren</button>
@@ -453,7 +453,7 @@ Object.assign(actions, {
     }
     foodSync(date);
     saveData();
-    if (reopened) foodReopenToast(); else toast(`${MEALS[k][1]} wie geplant eingetragen ✔`);
+    if (reopened) foodReopenToast(); else toast(`${mealLabel(k)} wie geplant eingetragen ✔`);
     render();
   },
 });

@@ -204,6 +204,14 @@ function upgradeData(d) {
     }
     d.lookV = 1;
   }
+  // v292 (User-Wunsch): neue Nutzer starten mit „Standard“. Wer die App schon nutzt und nie selbst gewählt hat, sah bisher
+  // „Kraftraum“ und behält ihn (einmalig fest eingetragen).
+  if (!d.lookV2) {
+    const p = d.profile;
+    const used = (d.sessions || []).length || (d.plans || []).length || (d.foodLog || []).length || (p && (p.mode || p.name || p.sex));
+    if (used && p && p.look === undefined) p.look = 'kraft';
+    d.lookV2 = 1;
+  }
   if (!Array.isArray(d.customExercises)) d.customExercises = [];  // eigene Übungen: [{ name, kind, group, like, note }]
   if (!Array.isArray(d.dayTemplates)) d.dayTemplates = [];  // selbst erstellte Trainingstage: [{ id, name, intensity, groups }]
   // Periodisierung: buildWeeks Aufbauwochen, danach 1 Deload-Woche – jede Woche ist ein Durchlauf (siehe cycleInfo)
@@ -472,7 +480,7 @@ const FEATURE_MODE = {
   'plan-cycle-settings': 'x', 'plan-week-jump': 's', 'cycle-len': 's', 'cycle-adjust': 's', 'plan-week-prog': 'x', 'plan-volume': 'x', 'plan-rir': 'x', 'custom-ex': 's',
   'day-templates': 's', 'supersets': 's',
   // Ernährung
-  'nut-minicut': 's', 'nut-pace': 's', 'nut-own-kcal': 's', 'nut-macros': 's', 'nut-micro': 's', 'nut-macro-pct': 'x', 'nut-protein-detail': 's',
+  'nut-minicut': 's', 'nut-pace': 's', 'nut-own-kcal': 's', 'nut-macros': 's', 'nut-micro': 's', 'nut-meals': 's', 'nut-macro-pct': 'x', 'nut-protein-detail': 's',
   'nut-health': 's', 'nut-history': 's', 'nut-trend-detail': 's', 'nut-measured': 'x', 'nut-train-q': 's', 'nut-explain': 's',
 };
 // Bestehende Nutzer ohne Wahl: Experte (so fehlt nach dem Update nichts); neue wählen bei der Begrüßung
@@ -3176,7 +3184,8 @@ function ssSyncNow() {
 // Kopf des Paars im Training
 function ssHeadHtml(p, first = true) {
   return `<div class="ss-head"><span class="ss-title">🔗 Supersatz<small data-ss-round="${p.i}">${ssRoundText(p)}</small></span>
-      <button class="btn small outline" data-action="ss-solo" data-ei="${p.i}">Heute einzeln</button></div>` + (first
+      ${String(draft.entries[p.i].ss || '').startsWith('tr') ? `<button class="btn small outline" data-action="tr-ss-unpair" data-ei="${p.i}">Lösen</button>`
+        : `<button class="btn small outline" data-action="ss-solo" data-ei="${p.i}">Heute einzeln</button>`}</div>` + (first
     ? `<p class="hint explain ss-how">Immer im Wechsel: Satz A, ${ssRestText(p.rest)} Pause, Satz B, ${ssRestText(p.rest)} Pause, dann wieder A.
       Die Pause ist kürzer als bei einzelnen Übungen, weil sich die eine Muskelgruppe erholt, während die andere arbeitet
       (2 min, bei zwei Isolationsübungen 90 s). Der nächste Satz ist markiert, der Pausen-Timer zeigt, was danach dran ist.
@@ -3191,6 +3200,34 @@ function ssSoloHtml(p, hidden) {
 
 // Tagesplan: mögliche Partner einer Übung (erlaubt, noch ohne Paar) – Gegenspieler zuerst, dann die größte Ersparnis
 var ssPick = null;  // { day, i }: offene Auswahl „Als Supersatz koppeln“
+// v293: Erklärung, was wo gilt (Training: nur dieses Training; Plan: dauerhaft)
+const TR_SCOPE_HTML = `<p class="hint explain tr-scope">ℹ️ Was du hier im laufenden Training änderst, gilt nur für dieses eine Training:
+  Übungen ersetzen, weglassen oder hinzufügen, Reihenfolge, Ausführung, Sätze und Supersätze. Dein Plan bleibt, wie er ist.
+  Ausnahmen sind Werte, die zur Übung selbst gehören: Max. bei 10 Wdh., Steigerung und Bandstufe gelten ab dann immer.
+  Eine hinzugefügte Übung kannst du auf Wunsch auch im Plan speichern. Dauerhaft änderst du alles andere im Reiter „Plan“.</p>`;
+const PLAN_SCOPE_HTML = `<p class="hint explain plan-scope">ℹ️ Was du hier im Plan änderst, gilt dauerhaft für alle weiteren Trainings.
+  Nur für ein einzelnes Training passt du eine Übung im laufenden Training unter „Anpassen“ an.</p>`;
+// Partner für einen spontanen Supersatz im Training: gleiche Regeln wie im Plan, nur Übungen mit offenen Sätzen, noch ohne Partner
+function trSsCandidates(ei) {
+  if (!draft || draft.own || !ssOn()) return [];
+  const ents = draft.entries, pairs = draftPairs(), en = ents[ei];
+  const exOf = e => ({ ...(planExercise(e.name) || { name: e.name }), name: e.name });
+  const open = e => e.sets.some(s => !isDone(s));
+  if (!en || pairs.has(ei) || !open(en)) return [];
+  const a = exOf(en);
+  return ents.map((e, j) => j).filter(j => j !== ei && !pairs.has(j) && open(ents[j]) && ssPairOk(a, exOf(ents[j])))
+    .sort((x, y) => ssAntag(a, exOf(ents[y])) - ssAntag(a, exOf(ents[x])) || ssSaves(a, exOf(ents[y])) - ssSaves(a, exOf(ents[x])) || Math.abs(x - ei) - Math.abs(y - ei));
+}
+function trSsPickHtml(ei) {
+  const c = trSsCandidates(ei), a = draft.entries[ei];
+  const exOf = e => ({ ...(planExercise(e.name) || { name: e.name }), name: e.name });
+  if (!c.length) return '';
+  return `<div class="ss-pick tr-ss-pick"><p class="lbl">🔗 Supersatz mit …</p>
+      <p class="hint nut-small">Gilt nur für dieses Training, dein Plan bleibt unverändert. Die Partner-Übung rückt direkt dahinter, ab den offenen Sätzen geht es im Wechsel.</p>
+      ${c.map(j => { const b = draft.entries[j], ax = exOf(a), bx = exOf(b);
+        return `<button class="vchip" data-action="tr-ss-pick" data-ei="${ei}" data-j="${j}">${esc(b.name)}<small>${ssAntag(ax, bx) ? 'Gegenspieler' : 'Unabhängige Muskelgruppen'} | ${ssSaveText(ax, bx)}</small></button>`; }).join('')}
+    </div>`;
+}
 function ssCandidates(day, i) {
   const exs = day.exercises, pairs = dayPairs(exs), ex = exs[i];
   return exs.map((e, j) => j).filter(j => j !== i && exs[j].name.trim() && !pairs.has(j) && ssPairOk(ex, exs[j]))
@@ -4620,6 +4657,7 @@ function renderTraining() {
     ? `<p class="sub">${fmtDate(draft.date, true)}<br>Trag nach jedem Satz ein, was du geschafft hast${feat('tr-rir-input')
       ? ' und wie viele Wdh. noch im Tank waren' : ' und tippe an, wie er sich angefühlt hat'}. Damit gilt der Satz als erledigt.</p>`
     : `<p class="sub">${fmtDate(draft.date, true)}</p>` + entryHelpHtml() + prefatHelpHtml();
+  h += TR_SCOPE_HTML;  // v293: was hier geändert wird, gilt nur für dieses Training
   if (feat('tr-prog')) h += progressionCard();
 
   // Reihenfolge nur für dieses Training ändern (der Plan bleibt, wie er ist)
@@ -4662,10 +4700,12 @@ function renderTraining() {
             data-ei="${ei}" aria-label="Kommentar">💬 Kommentar</button>` : ''}
           <button class="icon-btn swap" data-action="rep-open" data-ei="${ei}">⇄ Ersetzen</button>
           ${en.added || draft.entries.length < 2 ? '' : `<button class="icon-btn skip-btn" data-action="tr-skip-ex" data-ei="${ei}">✕ Heute weglassen</button>`}
+          ${!pr && trSsCandidates(ei).length ? `<button class="icon-btn ss-tr-btn" data-action="tr-ss-open" data-ei="${ei}" aria-expanded="${!!en.ssOpen}">🔗 Supersatz</button>` : ''}
           <button class="icon-btn pain-btn" data-action="pain-open" data-ei="${ei}">🩹 Zwickt</button>
           <button class="icon-btn vid-btn" data-action="vid-open-list" data-name="${esc(en.name)}">🎥 Video</button>
         </div>` : ''}
       </div>`;
+    if (en.ssOpen && det && !pr) h += trSsPickHtml(ei);
     if (en.added) {
       h += `<div class="added-row"><span>Heute zusätzlich</span>
         <button class="icon-btn" data-action="added-remove" data-ei="${ei}">Entfernen</button></div>`;
@@ -5544,6 +5584,7 @@ function renderDay({ id }) {
     return `<label class="lbl">Name des Trainingstags
         <input class="inp" type="text" data-field="day-name" value="${esc(day.name)}"></label>
       <p class="hint">Eigener Plan: Sätze und Wiederholungen legst du pro Übung selbst fest. Die App steigert nichts.</p>
+      ${PLAN_SCOPE_HTML}
       <h2>Übungen</h2>${dayReorderHtml(day)}${dayReorder === day.id ? '' : day.exercises.map(ownExerciseCard).join('')}
       <button class="btn center" data-action="add-ex">+ Übung hinzufügen</button>
       <button class="btn primary" data-action="day-done">✔ Fertig</button>
@@ -5563,6 +5604,7 @@ function renderDay({ id }) {
         Sätze und Wiederholungen werden automatisch aus Muskelgruppe, Übungsart und Zykluswoche berechnet.`
       : 'Frei: Sätze und Wiederholungen legst du pro Übung selbst fest.'}</p>
     ${feat('day-volume') ? volumeSummary(day) : ''}
+    ${PLAN_SCOPE_HTML}
     <h2>Übungen</h2>${dayReorderHtml(day)}`;
   if (dayReorder === day.id) return h;
   const bw = data.cycle.buildWeeks;
@@ -6457,8 +6499,8 @@ const OPT_SECS = {
     sub: () => { const p = data.profile || {}; return [LOOKS[currentLook()], PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || '']].join(' | '); } },
   train: { icon: '🏋️', title: 'Training', render: () => motivCard() + restCard() + platesCard() + (typeof tourCard === 'function' ? tourCard() : '') + explainCard() + hintOffCard(),
     sub: () => `Motivation ${MOTIV_OPTS[motivMode()][1].toLowerCase()} | Pausen-Timer ${restCfg().off ? 'aus' : 'an'} | Langhantel ${barKg()} kg` },
-  me: { icon: '👤', title: 'Profil & Ernährung', render: () => profileCard() + (typeof nutHintsCard === 'function' ? nutHintsCard() : '') + (typeof mcOptionsCard === 'function' ? mcOptionsCard() : ''),
-    sub: () => [(data.profile || {}).name || 'Name, Geschlecht', 'Hinweise zur Ernährung', typeof mcAvailable === 'function' && mcAvailable() ? 'Zykluskalender' : ''].filter(Boolean).join(' | ') },
+  me: { icon: '👤', title: 'Profil & Ernährung', render: () => profileCard() + (typeof nutHintsCard === 'function' ? nutHintsCard() : '') + (typeof mealCfgCard === 'function' ? mealCfgCard() : '') + (typeof mcOptionsCard === 'function' ? mcOptionsCard() : ''),
+    sub: () => [(data.profile || {}).name || 'Name, Geschlecht', 'Hinweise zur Ernährung', typeof mealOn === 'function' && mealOn() ? 'Mahlzeiten' : '', typeof mcAvailable === 'function' && mcAvailable() ? 'Zykluskalender' : ''].filter(Boolean).join(' | ') },
   data: { icon: '💾', title: 'Deine Daten', render: () => dataSecHtml(),
     sub: () => `${data.sessions.length} Trainings | ${data.lastExport ? `letzte Sicherung vor ${daysSinceISO(data.lastExport)} Tag${daysSinceISO(data.lastExport) === 1 ? '' : 'en'}` : 'noch nie gesichert'}`,
     warn: () => backupDue() && data.sessions.length >= 2 },
@@ -6513,6 +6555,13 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 293, date: '2026-11-15', items: [
+    ['Im Training kannst du zwei Übungen spontan zum Supersatz koppeln: bei der Übung „Anpassen“ → „🔗 Supersatz“. Das gilt nur für dieses Training, dein Plan bleibt unverändert.', 'supersets'],
+    ['Neu erklärt: Was du im laufenden Training änderst, gilt nur für dieses Training. Was du im Plan änderst, gilt dauerhaft.'],
+  ] },
+  { v: 291, date: '2026-11-15', items: [
+    ['Ernährungstagebuch: Du kannst jetzt 2 bis 6 Mahlzeiten am Tag einstellen und sie umbenennen, z. B. für Intervallfasten oder viele kleine Mahlzeiten. Unten im Tagebuch unter „⚙ Mahlzeiten anpassen“.', 'nut-meals'],
+  ] },
   { v: 290, date: '2026-11-15', items: [
     ['Der Stil „Schwarzweiß“ entfällt, die übrigen fünf Stile passen jetzt in eine Zeile. Wer Schwarzweiß hatte, sieht jetzt „Kraftraum“.'],
   ] },
@@ -8553,6 +8602,33 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
     saveDraft(); render();
     toast(`„${en.name}“ heute weggelassen`);
   },
+  // v293 (User-Wunsch): zwei Übungen spontan zum Supersatz koppeln, nur für dieses Training
+  'tr-ss-open': el => {
+    const en = draft.entries[el.dataset.ei];
+    en.ssOpen = !en.ssOpen;
+    saveDraft(); render();
+  },
+  'tr-ss-pick': el => {
+    const ei = Number(el.dataset.ei), j = Number(el.dataset.j);
+    const a = draft.entries[ei], b = draft.entries[j];
+    if (!a || !b || ei === j) return;
+    const key = 'tr' + uid();
+    a.ss = key; b.ss = key; delete a.ssRest; delete b.ssRest; a.ssOpen = false;
+    draft.ssSolo = (draft.ssSolo || []).filter(k => k !== a.ss);
+    const curEn = draft.entries[trCur()];
+    draft.entries.splice(j, 1);
+    draft.entries.splice(draft.entries.indexOf(a) + 1, 0, b);  // Partner direkt dahinter
+    if (draft.cur != null) draft.cur = draft.entries.indexOf(curEn === b ? a : curEn);
+    refreshPrefat();
+    saveDraft(); render();
+    toast(`🔗 Supersatz nur für heute: ${a.name} + ${b.name}`);
+  },
+  'tr-ss-unpair': el => {  // spontanen Supersatz (v293) wieder trennen
+    const key = draft.entries[el.dataset.ei] && draft.entries[el.dataset.ei].ss;
+    draft.entries.forEach(e => { if (e.ss === key) { delete e.ss; delete e.ssRest; } });
+    refreshPrefat();
+    saveDraft(); render();
+  },
   'added-remove': el => {
     const en = draft.entries[el.dataset.ei];
     if (en.sets.some(s => s.touched) && !askOk(`„${en.name}“ mit den eingetragenen Sätzen entfernen?`)) return;
@@ -9495,13 +9571,13 @@ for (const k of ['alert', 'confirm', 'prompt']) {
   const orig = window[k];
   if (typeof orig === 'function') window[k] = function (msg, ...rest) { return orig.call(window, emojiOff() ? plainStrip(String(msg)) : msg, ...rest); };
 }
-// Stile (v234): drei neue Designs, dazu die bisherigen „Standard“ und „Schlicht“. Ohne Angabe im Profil (neue Nutzer): Kraftraum.
+// Stile (v234): drei neue Designs, dazu die bisherigen „Standard“ und „Schlicht“. Ohne Angabe im Profil (neue Nutzer, seit v292): Standard.
 // v290 (User-Wunsch): „Schwarzweiß“ (bw) gestrichen, damit alle Stile in eine Zeile passen; gespeichertes bw wird über currentLook zu Kraftraum
 const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht' };  // v248: Puristen = Tabellen-Optik
 const currentLook = () => {
   const p = data.profile;
-  const l = p && p.look !== undefined ? p.look || '' : 'kraft';
-  return l in LOOKS ? l : 'kraft';
+  const l = p && p.look !== undefined ? p.look || '' : '';  // v292: ohne Wahl „Standard“
+  return l in LOOKS ? l : 'kraft';  // unbekannt (z. B. das gestrichene „Schwarzweiß“): Kraftraum
 };
 
 // Diskopumper und Booty-Plan schließen sich aus: angezeigt wird nur der passende (ohne Angabe beide)

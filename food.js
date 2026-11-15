@@ -502,7 +502,45 @@ const FOOD_TAGS = [
 const FOOD_TAG_MAP = new Map();
 for (const [words, names] of FOOD_TAGS) for (const n of names) FOOD_TAG_MAP.set(n, ((FOOD_TAG_MAP.get(n) || '') + ' ' + words).trim());
 
-const MEALS = { b: ['🌅', 'Frühstück'], l: ['☀️', 'Mittagessen'], d: ['🌙', 'Abendessen'], s: ['🍎', 'Snacks'] };
+// Alle bekannten Mahlzeiten in Tagesreihenfolge (Kennung → [Symbol, Name]). v291 (User-Wunsch): Anzahl einstellbar ab „Standard“
+// (data.mealCfg = { n: 2–6, names: { Kennung: eigener Name } }); ohne Einstellung bzw. im Modus Einfach die vier bisherigen.
+const MEALS = { b: ['🌅', 'Frühstück'], m1: ['🍽️', 'Erste Mahlzeit'], s1: ['🥨', 'Snack vormittags'], l: ['☀️', 'Mittagessen'],
+  s: ['🍎', 'Snacks'], m2: ['🍽️', 'Zweite Mahlzeit'], d: ['🌙', 'Abendessen'], late: ['🌛', 'Spätmahlzeit'] };
+const MEAL_TPL = { 2: ['m1', 'm2'], 3: ['b', 'l', 'd'], 4: ['b', 'l', 'd', 's'], 5: ['b', 's1', 'l', 's', 'd'], 6: ['b', 's1', 'l', 's', 'd', 'late'] };
+const mealOn = () => typeof feat === 'function' && feat('nut-meals');
+const mealN = () => { const n = mealOn() && data.mealCfg ? data.mealCfg.n : 4; return MEAL_TPL[n] ? n : 4; };
+const mealKeys = () => MEAL_TPL[mealN()];
+// [Symbol, Name]: eigener Name (ab Standard), bei 5/6 Mahlzeiten heißen die Snacks nach der Tageszeit
+const mealStdName = k => k === 's' && mealN() >= 5 ? 'Snack nachmittags' : (MEALS[k] || ['', 'Mahlzeit'])[1];
+function mealInfo(k) {
+  const own = mealOn() && data.mealCfg && data.mealCfg.names && (data.mealCfg.names[k] || '').trim();
+  return [(MEALS[k] || ['🍽️'])[0], own || mealStdName(k)];
+}
+// Einstellung „Mahlzeiten“ (Tagebuch → „⚙ Mahlzeiten anpassen“ und Optionen → Profil & Ernährung)
+function mealCfgCard() {
+  if (!mealOn()) return '';
+  const n = mealN(), names = (data.mealCfg && data.mealCfg.names) || {};
+  return `<div class="card meal-cfg">
+      <h2>🍽️ Mahlzeiten</h2>
+      <p class="hint">Wie viele Mahlzeiten isst du meist am Tag? Danach richtet sich dein Ernährungstagebuch.</p>
+      <div class="variants meal-n">${[2, 3, 4, 5, 6].map(x => `<button class="vchip ${n === x ? 'on' : ''}" data-action="meal-n" data-n="${x}">${x}</button>`).join('')}</div>
+      <p class="lbl">Namen</p>
+      ${mealKeys().map(k => `<label class="row meal-name"><span aria-hidden="true">${MEALS[k][0]}</span>
+        <input class="inp" type="text" data-field="meal-name" data-k="${k}" autocomplete="off" maxlength="30"
+          value="${esc((names[k] || '').trim())}" placeholder="${esc(mealStdName(k))}"></label>`).join('')}
+      <p class="hint nut-small">Leer lassen heißt Standardname, z. B. „Pre-Workout“ oder „Nach dem Training“ geht auch. Bisher Eingetragenes bleibt
+        erhalten: Tage mit anderen Mahlzeiten zeigen diese weiterhin an.</p>
+    </div>`;
+}
+const mealLabel = k => mealInfo(k)[1];
+// Mahlzeit, wenn keine angegeben ist: die letzte (bisher „Snacks“)
+const mealDefault = () => { const ks = mealKeys(); return ks.includes('s') ? 's' : ks[ks.length - 1]; };
+// Mahlzeiten eines Tages: die eingestellten plus alle, die an dem Tag schon Einträge oder einen Plan haben (nichts verschwindet)
+function dayMealKeys(list, plan) {
+  const keys = mealKeys();  // Reihenfolge der Vorlage (bei 4 wie bisher: Snacks zuletzt), weitere des Tages danach
+  const extra = new Set([...list.map(e => e.meal), ...Object.keys(plan || {})].filter(k => k in MEALS && !keys.includes(k)));
+  return [...keys, ...Object.keys(MEALS).filter(k => extra.has(k))];
+}
 
 const FOOD_BASE_LIST = FOOD_BASE.map(([name, kcal, p, c, f, pl, pg]) => (
   { key: 'b:' + name, name, brand: '', per: [kcal, p, c, f, ...(FOOD_BASE_FS[name] || [null, null])], portion: pl ? { label: pl, g: pg } : null, src: 'base', tags: FOOD_TAG_MAP.get(name) || '' }));
@@ -620,8 +658,8 @@ function foodUsualMissing(date) {
   for (let i = 1; i <= 14; i++) { const d = addDaysISO(date, -i); const l = foodOn(d); if (l.length) days.push(l); }
   if (days.length < 5) return [];
   const today = foodOn(date);
-  return Object.keys(MEALS).filter(k => !today.some(e => e.meal === k)
-    && days.filter(l => l.some(e => e.meal === k)).length / days.length >= 0.8).map(k => MEALS[k][1]);
+  return mealKeys().filter(k => !today.some(e => e.meal === k)
+    && days.filter(l => l.some(e => e.meal === k)).length / days.length >= 0.8).map(k => mealLabel(k));
 }
 
 // Tag abschließen (fill: Rest mit dem Tagesziel auffüllen)
@@ -783,7 +821,8 @@ function renderFood(p) {
     ${date === todayISO() ? foodOpenCard() : ''}`;
   const planDay = typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanDay(date) : null;
   const planMeals = (planDay && planDay.meals) || {};
-  for (const [k, [icon, label]] of Object.entries(MEALS)) {
+  for (const k of dayMealKeys(list, planMeals)) {
+    const [icon, label] = mealInfo(k);
     const items = list.filter(e => e.meal === k);
     const kcal = foodTotals(items).kcal;
     const prev = yesterday.filter(e => e.meal === k);
@@ -811,6 +850,7 @@ function renderFood(p) {
         <p class="hint nut-small">Nicht erfasst, geschätzt: Eiweiß ${pr} g | Kohlenhydrate ${ca} g | Fett ${fa} g</p></div>`;
   }
   h += foodCloseHtml(date, list);
+  if (mealOn()) h += `<button class="link-btn meal-cfg-link" data-action="meal-cfg-open">⚙ Mahlzeiten anpassen</button>`;
   return h + `<p class="hint explain nut-small">Die Tagessumme zählt automatisch für deinen Tagesvergleich, die letzten 14 Tage und den gemessenen
     Bedarf. Werte der Grundliste sind Durchschnittswerte. Bei Markenprodukten ist der Barcode genauer.</p>`;
 }
@@ -1164,7 +1204,7 @@ function renderFoodAmt(p) {
   if (!f) return '<p class="hint">Dieses Lebensmittel gibt es nicht mehr.</p>';
   const id = e ? e.id : f.key;
   if (!foodAmt || foodAmt.for !== id) {
-    foodAmt = { for: id, g: e ? fmtNum(e.g) : String(f.portion ? f.portion.g : 100), meal: e ? e.meal : p.meal || 's' };
+    foodAmt = { for: id, g: e ? fmtNum(e.g) : String(f.portion ? f.portion.g : 100), meal: e ? e.meal : MEALS[p.meal] ? p.meal : mealDefault() };
   }
   const g = parseNum(foodAmt.g);
   const chips = f.supp ? [1, 2, 3].map(x => [`${x} Stück`, x])
@@ -1183,14 +1223,14 @@ function renderFoodAmt(p) {
       <div class="variants food-chips">${chips.map(([l, v]) => `<button class="vchip ${g === v ? 'on' : ''}" data-action="food-g-set" data-g="${v}">${l}</button>`).join('')}</div>
       <div id="food-sum">${foodAmtSumFor(f, g)}</div>
     </div>
-    <div class="variants food-meals">${Object.entries(MEALS).map(([k, [icon, label]]) =>
-      `<button class="vchip ${foodAmt.meal === k ? 'on' : ''}" data-action="food-meal" data-k="${k}">${icon} ${label}</button>`).join('')}</div>
+    <div class="variants food-meals">${dayMealKeys([{ meal: foodAmt.meal }]).map(k => { const [icon, label] = mealInfo(k);
+      return `<button class="vchip ${foodAmt.meal === k ? 'on' : ''}" data-action="food-meal" data-k="${k}">${icon} ${label}</button>`; }).join('')}</div>
     <button class="btn primary" data-action="food-save">${e ? '✔ Speichern' : '＋ Hinzufügen'}</button>
     <div class="row food-amt-more">
       <button class="btn" data-action="food-fav">${f.fav ? '⭐ Favorit' : '☆ Als Favorit merken'}</button>
       ${!foodBuiltin(f) ? `<button class="btn" data-action="${f.supp ? 'supp-edit' : 'food-own-edit'}">✎ Werte ändern</button>` : ''}
     </div>
-    ${e ? `<button class="btn danger" data-action="food-del" data-id="${e.id}">Aus ${MEALS[e.meal][1]} entfernen</button>` : ''}`;
+    ${e ? `<button class="btn danger" data-action="food-del" data-id="${e.id}">Aus „${mealLabel(e.meal)}“ entfernen</button>` : ''}`;
 }
 
 /* ----- Eigenes Lebensmittel ----- */
@@ -1233,7 +1273,7 @@ function renderFoodOwn() {
 
 views.food = { title: 'Ernährungstagebuch', tab: 'nutrition', back: 'nutrition', render: renderFood,
   after: () => { if (typeof nutPctUpdate === 'function') nutPctUpdate(); } };  // v260: Makros in % auch im Tagebuch
-views.foodadd = { title: p => MEALS[p.meal] ? MEALS[p.meal][1] : 'Hinzufügen', tab: 'nutrition',
+views.foodadd = { title: p => MEALS[p.meal] ? mealLabel(p.meal) : 'Hinzufügen', tab: 'nutrition',
   back: p => ['food', { date: p.date }], render: renderFoodAdd };
 views.foodamt = { title: p => p.id ? 'Eintrag ändern' : 'Menge', tab: 'nutrition',
   back: p => p.id ? ['food', { date: p.date }] : ['foodadd', { date: p.date, meal: p.meal }], render: renderFoodAmt };
@@ -1329,7 +1369,7 @@ Object.assign(actions, {
     const items = foodOn(date).filter(e => e.meal === k).map(({ key, name, brand, g, per, mic, supp }) =>
       ({ key, name, brand, g, per, ...(mic ? { mic } : {}), ...(supp ? { supp } : {}) }));
     if (!items.length) return;
-    const name = await uiPrompt(`Name für diese Mahlzeit (${items.length} Lebensmittel)`, MEALS[k][1]);
+    const name = await uiPrompt(`Name für diese Mahlzeit (${items.length} Lebensmittel)`, mealLabel(k));
     if (!name || !name.trim()) return;
     data.foodMeals.push({ id: uid(), name: name.trim(), items });
     saveData();
@@ -1338,7 +1378,7 @@ Object.assign(actions, {
   'food-meal-add': el => {
     const m = data.foodMeals.find(x => x.id === el.dataset.id);
     if (!m) return;
-    const date = current.params.date || todayISO(), meal = current.params.meal || 's';
+    const date = current.params.date || todayISO(), meal = MEALS[current.params.meal] ? current.params.meal : mealDefault();
     const reopened = foodReopen(date);
     m.items.forEach(it => data.foodLog.push({ ...it, id: uid(), date, meal }));
     foodSync(date);
@@ -1440,6 +1480,17 @@ fields['food-g'] = el => {
   $view.querySelectorAll('.food-chips .vchip').forEach(b => b.classList.toggle('on', Number(b.dataset.g) === parseNum(el.value)));
 };
 fields['food-form'] = el => { foodForm[el.dataset.k] = el.value; };
+fields['meal-name'] = el => {
+  data.mealCfg = { n: mealN(), ...(data.mealCfg || {}) };
+  data.mealCfg.names = { ...(data.mealCfg.names || {}), [el.dataset.k]: el.value.slice(0, 30) };
+  saveData();
+};
+actions['meal-n'] = el => {
+  data.mealCfg = { names: {}, ...(data.mealCfg || {}), n: Number(el.dataset.n) };
+  saveData(); render();
+};
+actions['meal-cfg-open'] = () => go('mealcfg', { date: current.params.date || todayISO() });
+views.mealcfg = { title: 'Mahlzeiten', tab: 'nutrition', back: p => ['food', { date: p.date }], render: () => mealCfgCard() };
 
 // Eingabetaste im Suchfeld: online suchen
 document.addEventListener('keydown', e => {
