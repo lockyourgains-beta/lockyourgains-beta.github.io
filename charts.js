@@ -385,7 +385,7 @@ function renderAwards() {
       ${open.slice(6).map(a => awardCard(a, true)).join('')}</details>`;
   }
   h += '<h2>Freigeschaltet</h2>';
-  if (!done.length) h += '<p class="hint">Noch keine. Speichere dein erstes Training!</p>';
+  if (!done.length) h += '<p class="hint">Noch keine. Speichere dein erstes Training.</p>';
   for (const cat of AWARD_CATS) {
     const list = done.filter(a => a.cat === cat).sort((x, y) => y.date.localeCompare(x.date));
     if (!list.length) continue;
@@ -1499,7 +1499,7 @@ function reviewStartCard() {
   if (!ci.deload || data.reviewHidden === cs || data.sessions.some(s => s.cycleStart === cs && s.deload && !s.light)) return '';
   const r = cycleReview(cs);
   if (!r || r.trainings < 2) return '';
-  return `<div class="card review-card"><p class="review-kicker">🏁 Zyklus ${r.no} geschafft!</p>
+  return `<div class="card review-card"><p class="review-kicker">🏁 Zyklus ${r.no} geschafft</p>
       <p class="review-teaser">${reviewTeaser(r)}</p>
       <button class="btn primary" data-action="review-open" data-cs="${esc(cs)}">Rückblick ansehen</button>
       <button class="btn link" data-action="review-hide" data-cs="${esc(cs)}">Ausblenden</button></div>`;
@@ -1513,7 +1513,7 @@ function renderCycleReview({ cs }) {
   const hours = r.minutes >= 60 ? `${fmtNum(round1(r.minutes / 60))} Std.` : `${r.minutes} min`;
   const cars = Math.round(r.kg / 1000 / CAR_TONS);
   let h = `<div class="card review-head"><p class="review-kicker">🏁 Zyklus ${r.no}</p>
-      <h2>Stark gemacht!</h2>
+      <h2>Stark gemacht</h2>
       <p class="hint">${r.weeks} Woche${r.weeks === 1 ? '' : 'n'} Aufbau, ${r.trainings} Trainings${r.minutes ? ` und ${hours} Training` : ''}.
         Das hast du in diesem Zyklus geschafft:</p></div>
     <div class="review-tiles">

@@ -257,7 +257,7 @@ function caliStageSeries(lad, i) {
     id: 'cl-' + lad.id + '-' + i, cat: 'Calisthenics', goals: [1],
     names: [last ? `${lad.title}-Leiter komplett` : `${shortName(nm)}: ${caliGoalText(g)}`], icons: [last ? '👑' : '🤸'],
     name: () => `${lad.title}: Stufe ${i + 1}`,
-    desc: () => `${lad.title}-Leiter, Stufe ${i + 1} von ${lad.steps.length}: ${nm}, ${caliGoalText(g)} geschafft${last ? '. Die ganze Leiter!' : ''}`,
+    desc: () => `${lad.title}-Leiter, Stufe ${i + 1} von ${lad.steps.length}: ${nm}, ${caliGoalText(g)} geschafft${last ? '. Die ganze Leiter.' : ''}`,
     value: c => (c.caliMet || {})[key] || 0, fmt: v => v ? 'geschafft' : 'offen',
   };
 }

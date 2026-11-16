@@ -177,7 +177,7 @@ function renderHyroxLive() {
 }
 function hxSummary(d, b) {
   const total = d.times.reduce((a, x) => a + x, 0) + d.rox.reduce((a, x) => a + x, 0);
-  return `<div class="card hx-live"><p class="hx-kicker">Geschafft!</p><p class="hx-clock">${hxTime(total)}</p>
+  return `<div class="card hx-live"><p class="hx-kicker">Geschafft</p><p class="hx-clock">${hxTime(total)}</p>
       <p class="hint">${esc(HX_TYPES[d.type].label)} | Roxzone ${hxTime(d.rox.reduce((a, x) => a + x, 0))}</p></div>
     <div class="card"><h2>Abschnitte</h2><div class="hx-segs">${d.segs.map((g, i) => `<div class="hx-seg done ${g.run ? 'run' : 'st'}"><span class="hx-sno">${g.run ? '🏃' : (g.st + 1)}</span>
       <span class="hx-sname">${esc(g.label)}</span><span class="hx-stime">${hxTime(d.times[i])}${b[g.k] ? `<small class="${d.times[i] <= b[g.k] ? 'good' : ''}">${hxDiff(d.times[i], b[g.k])}</small>` : '<small class="good">erste Zeit</small>'}</span></div>`).join('')}</div></div>
@@ -359,7 +359,7 @@ function hxWeek(r) {
     const raceWd = (new Date(r.date + 'T12:00:00').getDay() + 6) % 7, monday = thisMonday();
     if (addDaysISO(monday, raceWd) === r.date) {
       for (const k of [raceWd - 1, raceWd - 2]) if (k >= 0) { const moved = days[k].filter(x => !x.kraft); days[k] = days[k].filter(x => x.kraft && false); moved.forEach(x => days[Math.max(0, k - 2)].push(x)); }
-      days[raceWd] = [{ t: '🏁 Wettkampf', d: `${r.name || 'Hyrox'}. Viel Erfolg!`, race: true }];
+      days[raceWd] = [{ t: '🏁 Wettkampf', d: `${r.name || 'Hyrox'}. Viel Erfolg`, race: true }];
       for (let k = 0; k < 7; k++) days[k] = days[k].filter(x => x.t !== 'Ruhetag');  // der Wettkampf ist der Höhepunkt der Woche
     }
   }
@@ -404,7 +404,7 @@ function hxRaceCard() {
   }
   const weeks = Math.ceil(d / 7);
   return `<div class="card hx-race"><p class="hx-kicker">Nächster Wettkampf | Phase ${esc(ph.label)}</p><h2>${esc(r.name || 'Hyrox')}</h2>
-      <p class="hx-meta">${fmtDate(r.date + 'T12:00:00', true)} | ${esc(HX_DIVS[r.div || hxDiv()].label)} | <b>${d === 0 ? 'heute!' : d === 1 ? 'morgen' : d < 14 ? `noch ${d} Tage` : `noch ${weeks} Wochen`}</b></p>
+      <p class="hx-meta">${fmtDate(r.date + 'T12:00:00', true)} | ${esc(HX_DIVS[r.div || hxDiv()].label)} | <b>${d === 0 ? 'heute' : d === 1 ? 'morgen' : d < 14 ? `noch ${d} Tage` : `noch ${weeks} Wochen`}</b></p>
       ${r.goal || p ? `<div class="hx-goal">${r.goal ? `<div><small>Ziel</small><b>${hxTime(r.goal)}</b></div>` : ''}${p ? `<div><small>Prognose</small><b>${hxTime(p.total)}</b></div>` : ''}
         ${r.goal && p ? `<div><small>Abstand</small><b class="${p.total <= r.goal ? 'good' : ''}">${hxDiff(p.total, r.goal)}</b></div>` : ''}</div>` : ''}
       <p class="hint">${esc(ph.text)}</p>

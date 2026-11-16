@@ -967,7 +967,7 @@ function nutGoalCard(n, c, kg) {
         <span>Ziel<b>${fmtNum(n.goalKg)} kg</b></span></div>
       <div class="bar"><div style="width:${Math.round(frac * 100)}%"></div></div>
       <p class="hint nut-small">${!reached ? `Noch ${fmtNum(round1(Math.abs(left)))} kg${eta}.`
-        : Math.abs(left) <= 1 ? '🎉 Ziel erreicht! Zeit für ein neues Ernährungsziel.'
+        : Math.abs(left) <= 1 ? '🎉 Ziel erreicht. Zeit für ein neues Ernährungsziel.'
         : total < 0 ? `⚠️ Du bist ${fmtNum(round1(Math.abs(left)))} kg unter deinem Ziel. Zeit, ${n.phase === 'minicut' ? 'den Minicut' : 'die Diät'} zu beenden.`
         : `⚠️ Du bist ${fmtNum(round1(Math.abs(left)))} kg über deinem Ziel. Setz dir ein neues Zielgewicht oder wechsle dein Ernährungsziel.`}</p>
       ${reached ? '<button class="btn outline" data-action="nut-setup">Ernährungsziel wechseln</button>' : ''}

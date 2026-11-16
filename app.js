@@ -4412,13 +4412,13 @@ const MOTIV_OPTS = { soft: ['🤗', 'Freundlich', 'Mit Lob, ohne Druck'], hard: 
   off: ['🔕', 'Gar nicht', 'Keine solchen Hinweise'] };
 const motivMode = () => { const m = (data.profile || {}).motiv; return MOTIV_OPTS[m] ? m : 'soft'; };
 const MOTIV = {
-  weekPart: { soft: (d, t) => `${d} von ${t} Trainings diese Woche. Stark! 💪`,
+  weekPart: { soft: (d, t) => `${d} von ${t} Trainings diese Woche. Stark 💪`,
     hard: (d, t) => `${d} von ${t}. ${t - d === 1 ? 'Eins fehlt noch' : `${t - d} fehlen noch`}. Zieh's durch.` },
-  weekDone: { soft: () => 'Woche geschafft! Gönn dir die Erholung.',
+  weekDone: { soft: () => 'Woche geschafft. Gönn dir die Erholung.',
     hard: (d, t) => `${d === t ? `${d} von ${t}.` : 'Woche komplett.'} Genau so, nächste Woche wieder.` },
-  pb: { soft: (ex, more) => `Neue Bestleistung bei ${ex}${more}. Richtig gut!`,
-    hard: (ex, more) => `Neue Bestleistung bei ${ex}${more}. Du siehst: Die harte Arbeit zahlt sich aus!` },
-  back: { soft: day => `Schön, dass du da bist! Als Nächstes wartet <b>${day}</b>, wann immer es dir passt.`,
+  pb: { soft: (ex, more) => `Neue Bestleistung bei ${ex}${more}. Richtig gut.`,
+    hard: (ex, more) => `Neue Bestleistung bei ${ex}${more}. Du siehst: Die harte Arbeit zahlt sich aus.` },
+  back: { soft: day => `Schön, dass du da bist. Als Nächstes wartet <b>${day}</b>, wann immer es dir passt.`,
     hard: (day, n) => `${n} Tage ohne Training. <b>${day}</b> wartet. Heute ist ein guter Tag dafür.` },
   short: { soft: () => 'Wenig Zeit heute? Die App kürzt das Training auf deine Minuten.',
     hard: () => 'Wenig Zeit ist kein Grund auszulassen. Die App kürzt das Training auf deine Minuten.' },
@@ -6652,6 +6652,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 304, date: '2026-11-16', items: [
+    ['Stil „Standard“ ruhiger: Knöpfe und Karten in einer klaren Farbe statt Farbverlauf, ohne Leuchtschatten, etwas leichtere Schrift bei großen Zahlen.'],
+  ] },
   { v: 303, date: '2026-11-16', items: [
     ['Neu: Einheit kg oder lb, wählbar unter Optionen → Aussehen. Bei lb rechnet die App mit lb-Stufen (Stange 45 lb, Scheiben 45 / 35 / 25 / 10 / 5 / 2,5 lb), Größe und Maße sind in Zoll, Lebensmittel-Mengen in Unzen. Deine Daten bleiben erhalten.'],
   ] },
@@ -7095,7 +7098,7 @@ function renderCycleFeel({ id, late }) {
   const atMax = adj >= FEEL_MAX, atMin = adj <= -FEEL_MAX;
   return `<div class="card wiz-q">
       <p class="sub">${esc(findDay(id).name)}</p>
-      <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🏁</span><h2>${late ? 'Zyklus geschafft!' : 'Gleich kommt die Deload-Woche.'} Wie hat sich das Training in diesem Zyklus angefühlt?</h2></div>
+      <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🏁</span><h2>${late ? 'Zyklus geschafft.' : 'Gleich kommt die Deload-Woche.'} Wie hat sich das Training in diesem Zyklus angefühlt?</h2></div>
       <p class="hint wiz-q-explain">${late ? 'Danach richtet die App den neuen Zyklus aus.'
         : 'Jetzt spürst du die Belastung noch am deutlichsten. Deine Antwort gilt ab der nächsten Intro-Woche. Die Deload-Woche bleibt, wie sie ist.'}${rir && adj ? ` Bisher angepasst: ${adj > 0 ? '+' : '−'}${fmtNum(Math.abs(adj))} Wdh. im Tank.` : ''}</p>
       ${opt('hard', 'Zu schwer', atMax ? 'Mehr Luft gibt die App nicht dazu, sie ist schon an ihrer Grenze. Es bleibt wie im letzten Zyklus.'
@@ -7119,7 +7122,7 @@ function renderPauseCheck({ id, days }) {
   const long = days >= 14;
   return `<div class="card wiz-q">
       <p class="sub">${esc(findDay(id).name)}</p>
-      <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">👋</span><h2>Schön, dass du wieder da bist!</h2></div>
+      <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">👋</span><h2>Schön, dass du wieder da bist</h2></div>
       <p class="hint wiz-q-explain">Dein letztes Training ist <b>${days} Tage</b> her. Wie möchtest du weitermachen?</p>
       ${opt('dl', `Mit leichter Woche einsteigen${long ? ' (empfohlen)' : ''}`, 'Es geht mit einer leichten Deload-Woche los, danach beginnt der Zyklus mit der Intro-Woche.')}
       ${feat('tr-rir-input') ? opt('new', 'Neuer Zyklus mit der Intro-Woche', 'Für kürzere Pausen oder wenn du dich fit fühlst: Der Zyklus beginnt neu, ohne leichte Woche davor.') : ''}

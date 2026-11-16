@@ -864,7 +864,7 @@ const FIG_TEXT = {
   skull: {
     steps: ['Auf der Bank liegen, Gewicht mit gestreckten Armen über der Brust.', 'Nur die Unterarme beugen und das Gewicht Richtung Stirn senken.',
       'Wieder strecken.'],
-    tips: ['Oberarme bleiben fast senkrecht.', 'Langsam und kontrolliert, der Kopf ist nah!'],
+    tips: ['Oberarme bleiben fast senkrecht.', 'Langsam und kontrolliert, der Kopf ist nah.'],
   },
   benchdip: {
     also: 'Brust, vordere Schulter',

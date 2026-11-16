@@ -2651,7 +2651,7 @@ header.tr h1 { font-size: 20px; letter-spacing: -.01em; }
 .trh-rest.over button { background: var(--success); color: #fff; }
 .trh-bar.rest { height: 4px; margin-top: 5px; }
 .trh-bar.rest i { background: var(--accent); transition: width 1s linear; }
-@keyframes rest-pop { 0% { transform: scale(.96); } 60% { transform: scale(1.02); } 100% { transform: scale(1); } }
+@keyframes rest-pop { from { transform: scale(.97); } to { transform: scale(1); } }
 .rest-card .lbl { margin-top: 14px; }
 .rest-tones { margin: 10px 0 4px; }
 .rest-tones .vchip { flex: 1 1 40%; }
@@ -3010,7 +3010,7 @@ header .beta-badge { flex: none; margin-left: 6px; padding: 3px 8px; border-radi
 .dlg {
   width: 100%; max-width: 400px; max-height: 100%; overflow-y: auto; padding: 22px 20px 18px;
   border-radius: 24px; background: var(--card); color: var(--text); box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .5);
-  transform: translateY(14px) scale(.97); transition: transform .28s cubic-bezier(.2, 1.2, .3, 1);
+  transform: translateY(14px) scale(.97); transition: transform .28s cubic-bezier(.22, 1, .36, 1);
 }
 .dlg-back.show .dlg { transform: none; }
 .dlg-title { margin: 0 0 10px; font-size: 21px; line-height: 1.25; }
@@ -3778,3 +3778,28 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .intro-unit { display: flex; align-items: center; gap: 12px; margin: -4px 0 12px; }
 .intro-unit > span { flex: none; color: var(--muted); font-size: 15px; font-weight: 600; }
 .intro-unit .seg { flex: 1; margin: 0; }
+
+/* v304: Stil „Standard“ ruhiger (Prüfung nach unslop): flache Akzentfarbe statt Verlauf, kein farbiges Leuchten,
+   große Zahlen und Titel 700 statt 800. Erfolge und Erfolgsmeldung bleiben, wie sie sind (User-Wunsch). */
+:root:not([data-look]) .btn.primary,
+:root:not([data-look]) .sessions-opt.on,
+:root:not([data-look]) .welcome-icon,
+:root:not([data-look]) .food-top-main.primary,
+:root:not([data-look]) .day-btn.next { background: var(--accent); box-shadow: none; }
+:root:not([data-look]) .card.cycle { background: var(--accent); box-shadow: var(--shadow); }
+:root:not([data-look]) .card.cycle.is-deload { background: #f0850d; box-shadow: var(--shadow); }
+:root:not([data-look]) .btn.primary::before,
+:root:not([data-look]) .card.cycle::before { display: none; }
+:root:not([data-look]) .bar div { background: var(--accent); }
+:root:not([data-look]) .review-card { background: var(--card); }
+:root:not([data-look]) header h1,
+:root:not([data-look]) .ex-card .ex-head h2,
+:root:not([data-look]) .nut-kcal,
+:root:not([data-look]) .review-kicker,
+:root:not([data-look]) .day-no,
+:root:not([data-look]) .day-btn.next .day-txt,
+:root:not([data-look]) .badge.next-badge,
+:root:not([data-look]) .sessions-opt b,
+:root:not([data-look]) .cc-val b,
+:root:not([data-look]) .trh-rest-t b,
+:root:not([data-look]) .ss-title { font-weight: 700; }
