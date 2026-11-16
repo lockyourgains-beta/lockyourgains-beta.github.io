@@ -830,10 +830,10 @@ function renderFood(p) {
         <div class="food-meal-head"><b>${icon} ${label}</b><span class="hint">${items.length ? nutKcal(kcal) + ' kcal' : ''}</span></div>
         ${items.map(e => `<div class="food-row">
           <button class="food-pick" data-action="food-entry" data-id="${e.id}">
-            <span>${e.supp ? '💊 ' : ''}${esc(e.name)}<small>${e.brand ? esc(e.brand) + ' | ' : ''}${foodNum(e.g)} ${e.supp ? 'Stück' : 'g'}</small></span>
+            <span>${e.supp ? '💊 ' : ''}${esc(e.name)}<small>${e.brand ? esc(e.brand) + ' | ' : ''}${e.supp ? foodNum(e.g) + ' Stück' : amtTxt(e.g)}</small></span>
             <b>${e.supp ? 'Ergänzung' : foodKcal(foodVal(e.per, e.g)[0]) + ' kcal'}</b></button>
           <button class="icon-btn danger" data-action="food-del" data-id="${e.id}" aria-label="Entfernen">✕</button></div>`).join('')}
-        ${!items.length && planMeals[k] ? `<p class="hint nut-small np-plan-hint">📋 Plan: ${planMeals[k].map(i => `${esc(i.name)}${i.g ? ` ${fmtNum(i.g)} g` : ''}`).join(' | ')}</p>` : ''}
+        ${!items.length && planMeals[k] ? `<p class="hint nut-small np-plan-hint">📋 Plan: ${planMeals[k].map(i => `${esc(i.name)}${i.g ? ` ${amtTxt(i.g)}` : ''}`).join(' | ')}</p>` : ''}
         <div class="row">
           ${!items.length && planMeals[k] ? `<button class="btn primary" data-action="food-plan-meal" data-meal="${k}">✔ Wie geplant</button>` : ''}
           <button class="btn" data-action="food-add" data-meal="${k}">＋ Hinzufügen</button>
@@ -1208,8 +1208,9 @@ function renderFoodAmt(p) {
   }
   const g = parseNum(foodAmt.g);
   const chips = f.supp ? [1, 2, 3].map(x => [`${x} Stück`, x])
-    : [...(f.portion ? [[`${f.portion.label} (${f.portion.g} g)`, f.portion.g], [`2 × (${f.portion.g * 2} g)`, f.portion.g * 2]] : []),
-      ...[50, 100, 150, 200, 250].filter(x => !f.portion || (x !== f.portion.g && x !== f.portion.g * 2)).map(x => [`${x} g`, x])];
+    : [...(f.portion ? [[`${f.portion.label} (${amtTxt(f.portion.g)})`, f.portion.g], [`2 × (${amtTxt(f.portion.g * 2)})`, f.portion.g * 2]] : []),
+      ...(unitLb() ? [1, 2, 4, 6, 8].map(oz => Math.round(oz * OZ_G * 10) / 10) : [50, 100, 150, 200, 250])  // v303: bei lb in oz
+        .filter(x => !f.portion || (x !== f.portion.g && x !== f.portion.g * 2)).map(x => [amtTxt(x), x])];
   const [kcal, pr, ca, fa, fib, sug] = f.per;
   const fsTxt = fib != null || sug != null ? ` | Ballaststoffe ${foodNum(fib || 0)} g | Zucker ${foodNum(sug || 0)} g` : '';
   const src = f.src === 'off' ? ' | aus Open Food Facts' : f.src === 'base' ? ' | Durchschnittswert'
@@ -1218,8 +1219,8 @@ function renderFoodAmt(p) {
       <p class="food-amt-name"><b>${esc(f.name)}</b>${f.brand ? `<small>${esc(f.brand)}</small>` : ''}</p>
       <p class="hint nut-small">${f.supp ? `💊 Nahrungsergänzung | je Stück: ${suppMicText(f, 1)}`
         : `je 100 g: ${foodKcal(kcal)} kcal | Eiweiß ${foodNum(pr)} g | Kohlenhydrate ${foodNum(ca)} g | Fett ${foodNum(fa)} g${fsTxt}${src}`}</p>
-      <label class="row"><span>${f.supp ? 'Anzahl (Stück)' : 'Menge in Gramm'}</span>
-        <input class="inp kg" id="food-g" type="text" inputmode="decimal" autocomplete="off" data-field="food-g" value="${esc(foodAmt.g)}"></label>
+      <label class="row"><span>${f.supp ? 'Anzahl (Stück)' : unitLb() ? 'Menge in Unzen (oz)' : 'Menge in Gramm'}</span>
+        <input class="inp kg" id="food-g" type="text" inputmode="decimal" autocomplete="off" data-field="food-g"${f.supp ? ' data-pcs="1"' : ''} value="${esc(foodAmt.g)}"></label>
       <div class="variants food-chips">${chips.map(([l, v]) => `<button class="vchip ${g === v ? 'on' : ''}" data-action="food-g-set" data-g="${v}">${l}</button>`).join('')}</div>
       <div id="food-sum">${foodAmtSumFor(f, g)}</div>
     </div>

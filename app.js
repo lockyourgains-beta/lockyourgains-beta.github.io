@@ -212,6 +212,12 @@ function upgradeData(d) {
     if (used && p && p.look === undefined) p.look = 'kraft';
     d.lookV2 = 1;
   }
+  // v303: Einheit kg | lb – wer die App schon nutzt, bleibt bei kg (sonst entschiede die Handy-Region)
+  if (!d.unitV) {
+    const p = d.profile, used = (d.sessions || []).length || (d.plans || []).length || (d.foodLog || []).length || (d.bodyweight || []).length;
+    if (used && p && !p.unit) p.unit = 'kg';
+    d.unitV = 1;
+  }
   if (!Array.isArray(d.customExercises)) d.customExercises = [];  // eigene Übungen: [{ name, kind, group, like, note }]
   if (!Array.isArray(d.dayTemplates)) d.dayTemplates = [];  // selbst erstellte Trainingstage: [{ id, name, intensity, groups }]
   // Periodisierung: buildWeeks Aufbauwochen, danach 1 Deload-Woche – jede Woche ist ein Durchlauf (siehe cycleInfo)
@@ -516,7 +522,9 @@ const setsTonnage = sets => sets.filter(x => !x.outlier).reduce((a, x) => a + (x
 const sessionTonnage = s => s.entries.reduce((sum, e) => sum + setsTonnage(e.sets), 0);
 
 // 850 kg / 12,4 t / 1.234,5 t
-const fmtTons = kg => kg >= 1000
+const fmtTons = kg => unitLb()  // v303: lb – große Mengen als „27.3k lb“
+  ? (kg / LB_KG >= 10000 ? `${(Math.round(kg / LB_KG / 100) / 10).toLocaleString(LOCALE())}k lb` : `${Math.round(kg / LB_KG).toLocaleString(LOCALE())} lb`)
+  : kg >= 1000
   ? `${(Math.round(kg / 100) / 10).toLocaleString(LOCALE())} t`
   : `${Math.round(kg).toLocaleString(LOCALE())} kg`;
 
@@ -882,7 +890,17 @@ function stepOwn(ex) {
   for (const d of data.days) for (const e of d.exercises || []) if (e.step != null && nameKey(e.name) === nameKey(ex.name)) return e.step;
   return null;
 }
-const stepFor = ex => { const s = stepOwn(ex); return s != null ? s : (DUMBBELL.test(norm(ex.name)) ? 2 : 2.5); };
+const stepFor = ex => { const s = stepOwn(ex); return unitStep(s != null ? s : (DUMBBELL.test(norm(ex.name)) ? 2 : 2.5)); };
+// v303: Einheit lb – Steigerung in lb-Stufen (2,5 / 5 / 10 / 25 lb, in kg gespeichert); eine kg-Stufe wird zur nächstliegenden lb-Stufe
+const STEP_LB = [2.5, 5, 10, 25];
+const stepOpts = () => unitLb() ? STEP_LB.map(v => v * LB_KG) : STEP_OPTIONS;
+function unitStep(kg) {
+  if (!unitLb() || kg == null) return kg;
+  const lb = kg / LB_KG;
+  return STEP_LB.reduce((a, b) => Math.abs(b - lb) < Math.abs(a - lb) ? b : a) * LB_KG;
+}
+const sameStep = (a, b) => a != null && b != null && Math.abs(a - b) < 1e-6;
+const fineStep = () => unitLb() ? 2.5 * LB_KG : STEP_FINE;
 // Steigerung an allen Tagen des Plans mit dieser Übung setzen
 function setStepAll(name, v) {
   let n = 0;
@@ -894,6 +912,7 @@ const STEP_OPTIONS = [1.25, 2, 2.5, 5, 10];
 const MAX_FRESH_NOTE = 'Gemeint ist frisch: so viel, wie du schaffst, wenn die Übung die erste für diese Muskelgruppe im Training ist, nicht nach anderen Übungen für denselben Muskel. Steht sie weiter hinten, zieht die App die Vorermüdung selbst ab.';
 const MAX_UNKNOWN_HINT = 'Du weißt dein Max. bei 10 Wdh. nicht? Kein Problem: Lass das Feld leer und taste dich mit den ersten Sätzen an ein Gewicht heran, das sich passend anfühlt. Trag ein, was du geschafft hast (Gewicht, Wdh. und Tank): Die App errechnet daraus den Wert und die weitere Steigerung.';  // wählbare Gewichtssprünge pro Übung
 const STEP_HINT = 'Um so viel geht das Gewicht hoch, wenn die App mehr Gewicht vorschlägt. 1,25 kg braucht kleine Scheiben (z. B. 2 × 0,625 kg oder Mikro-Scheiben). Gut für Übungen, bei denen 2,5 kg auf einmal zu viel ist (z. B. Schulterdrücken, Seitheben). 5 kg passt z. B. zu Maschinen mit 5-kg-Stufen, 10 kg zu Maschinen mit großen Steckgewichten (z. B. Beinpresse).';
+const STEP_HINT_LB = 'Um so viel geht das Gewicht hoch, wenn die App mehr Gewicht vorschlägt. 2,5 lb braucht kleine Scheiben (2 × 1,25 lb). Gut für Übungen, bei denen 5 lb auf einmal zu viel ist (z. B. Schulterdrücken, Seitheben). 10 lb passt z. B. zu Maschinen mit 10-lb-Stufen, 25 lb zu Maschinen mit großen Steckgewichten (z. B. Beinpresse).';
 
 const round2 = x => Math.round(x * 100) / 100;
 const roundTo = (w, step, fn = Math.round) => round2(fn(w / step) * step);
@@ -1051,7 +1070,7 @@ function stepUp(cap, w, t, k, goal, strict = false) {
 function setInput(field, ei, j, value) {
   const input = $view.querySelector(`[data-field="${field}"][data-ei="${ei}"][data-si="${j}"]`);
   if (!input) return;
-  input.value = value;
+  input.value = typeof isWeightInput === 'function' && isWeightInput(input) ? unitShow(value) : value;  // v303: lb
   input.classList.remove('flash');
   void input.offsetWidth;
   input.classList.add('flash');
@@ -2532,7 +2551,7 @@ function techSubSync(ei) {
   en.sets.forEach((s, si) => (isTech(variantOf(s)) ? s.subs || [] : []).forEach((x, j) => {
     const w = subWeight(en, si, j);
     const inp = $view.querySelector(`[data-field="tr-sub-w"][data-ei="${ei}"][data-si="${si}"][data-j="${j}"]`);
-    if (inp && !x.wTouched && document.activeElement !== inp) inp.value = w != null ? fmtNum(w) : '';
+    if (inp && !x.wTouched && document.activeElement !== inp) inp.value = w != null ? unitShow(fmtNum(w)) : '';
     const kg = $view.querySelector(`[data-subkg="${ei}-${si}-${j}"]`);
     if (kg) kg.textContent = w != null ? `${fmtNum(w)} kg` : '–';
   }));
@@ -3850,7 +3869,7 @@ function warmWeight(en, pct, work) {
   const step = (en.target && en.target.step) || stepFor(planExercise(en.name) || { name: en.name, step: null });
   const tw = en.target && en.target.weights;
   const w = tw ? wSnap(pct * work, en.target, Math.floor) : Math.max(step, roundTo(pct * work, step));
-  return warmupKind(en) === 'barbell' ? Math.max(BAR_KG, w) : w;
+  return warmupKind(en) === 'barbell' ? Math.max(barKg(), w) : w;
 }
 
 // Selbst angepasstes Aufwärmen vom letzten Mal (Anteil vom ersten Arbeitssatz + Wdh.), sonst null
@@ -3933,10 +3952,11 @@ const warmupForSession = en => en.warmup
 function warmupSets(work) {
   const bar = barKg();
   if (!work || work <= bar) return [];
+  const big = unitLb() ? 45 * LB_KG : 20, small = unitLb() ? 25 * LB_KG : 10;  // v303: lb in 45-/25-lb-Schritten
   const list = [bar];
   let w = bar;
-  while (work - w >= 20 && w + 20 < work) { w += 20; list.push(w); }
-  if (w + 10 < work) list.push(w + 10);
+  while (work - w >= big && w + big < work) { w += big; list.push(round2(w)); }
+  if (w + small < work) list.push(round2(w + small));
   return list;
 }
 
@@ -3950,10 +3970,14 @@ function warmupReps(w, work) {
 // Scheiben-Rechner (v204, User-Wunsch 2026-11-11): Stange und vorhandene Scheiben einstellbar (profile.plates = { bar, have })
 const PLATE_ALL = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5];
 const BAR_OPTS = [20, 15, 10];
-const barKg = () => { const b = ((data.profile || {}).plates || {}).bar; return BAR_OPTS.includes(b) ? b : BAR_KG; };
-const platesHave = () => {
-  const h = ((data.profile || {}).plates || {}).have;
-  return Array.isArray(h) && h.length ? PLATE_ALL.filter(p => h.includes(p)) : PLATES;
+// v303: bei lb eigene Stange und Scheiben in lb (profile.platesLb), sonst wie bisher in kg (profile.plates)
+const BAR_OPTS_LB = [45, 35, 25], PLATE_ALL_LB = [45, 35, 25, 10, 5, 2.5, 1.25], PLATES_LB = [45, 35, 25, 10, 5, 2.5];
+const plateCfg = () => ((data.profile || {})[unitLb() ? 'platesLb' : 'plates']) || {};
+const barUnit = () => { const b = plateCfg().bar; return unitLb() ? (BAR_OPTS_LB.includes(b) ? b : 45) : (BAR_OPTS.includes(b) ? b : BAR_KG); };
+const barKg = () => unitLb() ? barUnit() * LB_KG : barUnit();
+const platesHave = () => {  // in der Einheit (kg bzw. lb)
+  const h = plateCfg().have, all = unitLb() ? PLATE_ALL_LB : PLATE_ALL;
+  return Array.isArray(h) && h.length ? all.filter(p => h.includes(p)) : unitLb() ? PLATES_LB : PLATES;
 };
 const isBarbellEx = en => /langhantel/.test(norm(en.name));
 // Zeile im Training: Scheiben für den nächsten offenen Satz (alle erledigt: letzter Satz)
@@ -3976,9 +4000,9 @@ function platesCard() {
   return `<div class="card plates-card">
       <h2>Langhantel</h2>
       <p class="lbl">Stange</p>
-      <div class="seg three">${BAR_OPTS.map(b => `<button class="${bar === b ? 'on' : ''}" data-action="plates-bar" data-v="${b}">${b} kg</button>`).join('')}</div>
+      <div class="seg three">${(unitLb() ? BAR_OPTS_LB : BAR_OPTS).map(b => `<button class="${barUnit() === b ? 'on' : ''}" data-action="plates-bar" data-v="${b}">${b} ${unitLb() ? 'lb' : 'kg'}</button>`).join('')}</div>
       <p class="lbl">Deine Scheiben</p>
-      <div class="variants plate-chips">${PLATE_ALL.map(p => `<button class="vchip ${have.includes(p) ? 'on' : ''}" data-action="plates-toggle" data-v="${p}">${fmtNum(p)}</button>`).join('')}</div>
+      <div class="variants plate-chips">${(unitLb() ? PLATE_ALL_LB : PLATE_ALL).map(p => `<button class="vchip ${have.includes(p) ? 'on' : ''}" data-action="plates-toggle" data-v="${p}">${fmtNum(p)}</button>`).join('')}</div>
       <p class="hint explain">Danach rechnet die App bei Langhantel-Übungen aus, welche Scheiben auf jede Seite gehören, im Training und beim Aufwärmen.
         Passt es nicht genau, steht der Rest in Klammern.</p>
     </div>`;
@@ -3986,7 +4010,7 @@ function platesCard() {
 
 // Scheiben pro Seite, z. B. 80 kg -> „25 + 5“
 function platesPerSide(total) {
-  let rest = Math.round((total - barKg()) / 2 * 100) / 100;
+  let rest = Math.round((uW(total) - barUnit()) / 2 * 100) / 100;  // v303: in kg bzw. lb
   if (rest <= 0) return 'nur Stange';
   const out = [];
   for (const p of platesHave()) {
@@ -5731,8 +5755,8 @@ function renderDay({ id }) {
           autocomplete="off" data-field="ex-max" data-i="${i}" placeholder="kg"
           value="${ex.max10 == null ? '' : fmtNum(ex.max10)}">
       </label>
-      ${feat('tr-step') ? `<div class="variants plan"><span>Steigerung${stepOwn(ex) == null ? ' <small class="hint">(auto)</small>' : ''}</span>${STEP_OPTIONS.map(v =>
-        `<button class="vchip ${stepFor(ex) === v ? 'on' : ''}" data-action="set-step" data-i="${i}" data-v="${v}">${fmtNum(v)} kg</button>`).join('')}
+      ${feat('tr-step') ? `<div class="variants plan"><span>Steigerung${stepOwn(ex) == null ? ' <small class="hint">(auto)</small>' : ''}</span>${stepOpts().map(v =>
+        `<button class="vchip ${sameStep(stepFor(ex), v) ? 'on' : ''}" data-action="set-step" data-i="${i}" data-v="${v}">${fmtNum(v)} kg</button>`).join('')}
       </div>` : ''}`}
     </div>`;
     if (pr && pr.role === 'B') h += '</div>';
@@ -6628,6 +6652,13 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 303, date: '2026-11-16', items: [
+    ['Neu: Einheit kg oder lb, wählbar unter Optionen → Aussehen. Bei lb rechnet die App mit lb-Stufen (Stange 45 lb, Scheiben 45 / 35 / 25 / 10 / 5 / 2,5 lb), Größe und Maße sind in Zoll, Lebensmittel-Mengen in Unzen. Deine Daten bleiben erhalten.'],
+  ] },
+  { v: 302, date: '2026-11-15', items: [
+    ['Gewicht im Verlauf: Die Kalorienbalken sind leicht farbig, eine dünne Linie zeigt den Schnitt der angezeigten Tage.'],
+    ['Erfolge: Oben steht jetzt, worauf sich die Werte beziehen (Max. bei 10 Wdh. oder schwerstes Gewicht).'],
+  ] },
   { v: 299, date: '2026-11-15', items: [
     ['Ernährung aufgeräumt: „Dein Verlauf“ erscheint nur noch, wenn es etwas zu zeigen gibt. Fehlende Tage stehen dort als eine kurze Zeile. Die Liste deiner Tageswerte findest du im Ernährungstagebuch unter „Woche & Monat“, den Schalter für Hinweise unter Optionen → Profil & Ernährung.'],
   ] },
@@ -7494,11 +7525,11 @@ function stepAskHint(en) {
   const t = en.target, ex = planExercise(en.name);
   if (!ex || ex.step != null || ex.stepAsked || t.weights || DUMBBELL.test(norm(en.name))) return '';
   const w = parseNum((en.sets[0] || {}).weight), st = t.step || 2.5;
-  if (!(w > 0) || w > STEP_ASK_KG || st <= STEP_FINE || st / w <= STEP_ASK_JUMP) return '';
+  if (!(w > 0) || w > STEP_ASK_KG || st <= fineStep() + 1e-6 || st / w <= STEP_ASK_JUMP) return '';
   const ei = draft.entries.indexOf(en);
   return `⚖️ Kleine Gewichte: Von ${fmtNum(w)} auf ${fmtNum(w + st)} kg wären ${Math.round(st / w * 100)} % mehr, ein großer Sprung.
-    Kannst du an diesem Gerät auch 1,25 kg feiner einstellen, z. B. mit einer kleinen Zusatzscheibe?
-    <span class="hint-btns"><button class="vchip" data-action="step-ask" data-ei="${ei}" data-v="1">Ja, in 1,25-kg-Schritten</button>
+    Kannst du an diesem Gerät auch ${fmtNum(fineStep())} kg feiner einstellen, z. B. mit einer kleinen Zusatzscheibe?
+    <span class="hint-btns"><button class="vchip" data-action="step-ask" data-ei="${ei}" data-v="1">Ja, in ${fmtNum(fineStep())}-kg-Schritten</button>
       <button class="vchip" data-action="step-ask" data-ei="${ei}" data-v="0">Nein, geht nicht</button></span>`;
 }
 
@@ -7601,14 +7632,14 @@ function knownMax10(name) {
 
 // Gewichtssprung der Übung im Training: kleiner Knopf, aufgeklappt die Auswahl 1,25 / 2 / 2,5 / 5 / 10 kg
 const stepChip = (en, ei) => `<button class="step-chip" data-action="tr-step-open" data-ei="${ei}" aria-expanded="${!!en.stepOpen}">Steigerung:
-    <b>${fmtNum(en.target.step || 2.5)} kg</b> <span aria-hidden="true">✎</span></button>`;
+    <b>${fmtNum(en.target.step || unitStep(2.5))} kg</b> <span aria-hidden="true">✎</span></button>`;
 function stepPick(en, ei) {
-  const cur = en.target.step || 2.5;
+  const cur = en.target.step || unitStep(2.5);
   return `<div class="step-pick">
-      <div class="variants plan"><span>Steigerung</span>${STEP_OPTIONS.map(v =>
-        `<button class="vchip ${cur === v ? 'on' : ''}" data-action="tr-step" data-ei="${ei}" data-v="${v}">${fmtNum(v)} kg</button>`).join('')}
+      <div class="variants plan"><span>Steigerung</span>${stepOpts().map(v =>
+        `<button class="vchip ${sameStep(cur, v) ? 'on' : ''}" data-action="tr-step" data-ei="${ei}" data-v="${v}">${fmtNum(v)} kg</button>`).join('')}
       </div>
-      <p class="hint">${STEP_HINT} Die Auswahl wird im Plan gespeichert und gilt auch für alle weiteren Trainings dieser Übung.</p>
+      <p class="hint">${unitLb() ? STEP_HINT_LB : STEP_HINT} Die Auswahl wird im Plan gespeichert und gilt auch für alle weiteren Trainings dieser Übung.</p>
     </div>`;
 }
 
@@ -8044,7 +8075,7 @@ function changeVariant(en, i, v) {
 function fillReplaceMax(input) {
   const maxInput = input.closest('.replace').querySelector('[data-field="rep-max"]');
   const m = knownMax10(exFromDisp(input.value));
-  maxInput.value = m != null ? fmtNum(m) : '';
+  maxInput.value = m != null ? unitShow(fmtNum(m)) : '';
   maxInput.classList.toggle('missing', m == null);
   const hint = input.closest('.replace').querySelector('.rep-max-hint');
   if (hint) hint.hidden = m != null || !input.value.trim();
@@ -8398,14 +8429,15 @@ const actions = {
   },
   // Scheiben-Rechner (v204)
   'plates-bar': el => {
-    data.profile = { ...(data.profile || {}), plates: { have: platesHave(), ...((data.profile || {}).plates || {}), bar: Number(el.dataset.v) } };
+    const key = unitLb() ? 'platesLb' : 'plates';
+    data.profile = { ...(data.profile || {}), [key]: { have: platesHave(), ...((data.profile || {})[key] || {}), bar: Number(el.dataset.v) } };
     saveData(); render();
   },
   'plates-toggle': el => {
     const p = Number(el.dataset.v), have = platesHave();
     const next = have.includes(p) ? have.filter(x => x !== p) : [...have, p];
     if (!next.length) { toast('Mindestens eine Scheibe muss ausgewählt sein'); return; }
-    data.profile = { ...(data.profile || {}), plates: { bar: barKg(), have: PLATE_ALL.filter(x => next.includes(x)) } };
+    data.profile = { ...(data.profile || {}), [unitLb() ? 'platesLb' : 'plates']: { bar: barUnit(), have: (unitLb() ? PLATE_ALL_LB : PLATE_ALL).filter(x => next.includes(x)) } };
     saveData(); render();
   },
   'rest-tone': el => {
@@ -8484,7 +8516,7 @@ const actions = {
     const en = draft.entries[el.dataset.ei];
     const ex = en && planExercise(en.name);
     if (ex) { ex.stepAsked = 1; saveData(); }
-    if (el.dataset.v === '1') { actions['tr-step']({ dataset: { ei: el.dataset.ei, v: String(STEP_FINE) } }); toast('Steigerung jetzt 1,25 kg ✔'); }
+    if (el.dataset.v === '1') { actions['tr-step']({ dataset: { ei: el.dataset.ei, v: String(fineStep()) } }); toast(`Steigerung jetzt ${fmtNum(fineStep())} kg ✔`); }
     else { saveDraft(); render(); }
   },
   'tr-step-open': el => {
@@ -8649,7 +8681,7 @@ const actions = {
     const panel = el.closest('.replace');
     const name = exFromDisp(panel.querySelector('[data-field="add-name"]').value.trim());
     if (!name) { alert('Bitte eine Übung eingeben.'); return; }
-    const max10 = parseNum(panel.querySelector('[data-field="rep-max"]').value);
+    const max10 = parseNum(unitKgStr(panel.querySelector('[data-field="rep-max"]').value));
     const sets = Number(panel.querySelector('#add-sets').value);
     const keep = panel.querySelector('#add-keep').checked;
     const day = findDay(draft.dayId);
@@ -8741,7 +8773,7 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
     const name = exFromDisp(panel.querySelector('[data-field="rep-name"]').value.trim());
     if (!name) { alert('Bitte eine Ersatzübung eingeben.'); return; }
     if (en.sets.some(s => s.touched) && !askOk('Bereits eingetragene Sätze dieser Übung gehen verloren. Trotzdem ersetzen?')) return;
-    replaceExercise(en, name, parseNum(panel.querySelector('[data-field="rep-max"]').value));
+    replaceExercise(en, name, parseNum(unitKgStr(panel.querySelector('[data-field="rep-max"]').value)));
     en.replacing = false;
     refreshPrefat();
     saveDraft(); render();
@@ -9493,7 +9525,17 @@ function swipeView(dir, click) {
 
 document.addEventListener('input', e => {
   const el = e.target.closest('[data-field]');
-  if (el && fields[el.dataset.field]) fields[el.dataset.field](el);
+  if (!el || !fields[el.dataset.field]) return;
+  // v303: Einheit lb – der Handler bekommt den Wert in kg (intern immer kg), danach steht im Feld wieder das Getippte
+  const lenIn = typeof unitLb === 'function' && unitLb() && isLengthInput(el);  // Größe/Maße in Zoll → cm
+  const grIn = typeof unitLb === 'function' && unitLb() && isGramInput(el);    // Lebensmittel in oz → g
+  if (typeof unitLb === 'function' && unitLb() && (isWeightInput(el) || lenIn || grIn) && el.value.trim() !== '' && (lenIn || parseNum(el.value) != null)) {
+    const shown = el.value;
+    el.value = lenIn ? lenCmStr(shown) : grIn ? ozGStr(shown) : unitKgStr(shown);
+    try { fields[el.dataset.field](el); } finally { if (el.isConnected) el.value = shown; }
+    return;
+  }
+  fields[el.dataset.field](el);
 });
 
 document.addEventListener('change', e => {
@@ -9717,6 +9759,8 @@ function appearanceCard() {
   return `<div class="card profile-card">
       <h2>Aussehen</h2>
       <p class="lbl">Sprache</p>${langPickHtml()}
+      <p class="lbl">Einheit</p>${unitPickHtml()}
+      <p class="hint nut-small" data-nounit>Gewichte in kg oder lb. Bei lb sind auch Körpergröße und Maße in Zoll und Lebensmittel-Mengen in Unzen (oz). Deine Daten bleiben erhalten, du kannst jederzeit wechseln.</p>
       <p class="lbl">Stil</p>
       <div class="variants look-pick">${Object.entries(LOOKS).map(([k, l]) =>
         `<button class="vchip ${currentLook() === k ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`).join('')}</div>
@@ -9806,7 +9850,7 @@ const INTRO = [
 ];
 function introHtml() {
   const i = welc.slide || 0, s = INTRO[i], last = i === INTRO.length - 1;
-  return `<div class="intro">${i === 0 ? langPickHtml() : ''}
+  return `<div class="intro">${i === 0 ? langPickHtml() + `<div class="intro-unit"><span>Einheit</span>${unitPickHtml()}</div>` : ''}
       <div class="intro-shot"><img src="${LANG === 'en' ? s.img.replace('.jpg', '-en.jpg') : s.img}" alt="Beispiel aus der App"></div>
       <h2 id="welcome-title">${s.h}</h2>
       <p>${s.p}</p>
@@ -10005,6 +10049,17 @@ actions['profile-theme'] = el => {
   saveData(); applyTheme(); render();
 };
 actions['lang-set'] = el => { if (el.dataset.l !== LANG) i18nSet(el.dataset.l); };  // v273
+actions['unit-set'] = el => {  // v303: kg | lb – nur Anzeige und Eingabe, die Daten bleiben in kg
+  const u = el.dataset.u === 'lb' ? 'lb' : 'kg';
+  data.profile = { ...(data.profile || {}), unit: u };
+  saveData();
+  if (draft) {  // laufendes Training: Steigerung der offenen Übungen auf die Einheit umstellen
+    draft.entries.forEach(en => { if (en.target && en.target.step) en.target.step = u === 'lb' ? unitStep(en.target.step) : (stepFor(planExercise(en.name) || { name: en.name, step: null })); });
+    saveDraft();
+  }
+  if (typeof welc !== 'undefined' && welc && typeof welcomeRedraw === 'function') welcomeRedraw();
+  render();
+};
 actions['profile-look'] = el => {
   data.profile = { ...(data.profile || {}), look: el.dataset.k || null };
   saveData(); applyTheme(); render();

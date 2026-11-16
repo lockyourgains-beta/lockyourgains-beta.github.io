@@ -91,10 +91,13 @@ const I18N_DONE = new WeakMap();  // Knoten → zuletzt geschriebener Text (nich
 // Wörterbuch-Schlüssel bleiben unverändert, i18nKey macht aus allen Leerzeichen (auch festen) wieder eines.
 const PIPE_RE = /[ \t\n\u00a0]+\|[ \t\n\u00a0]+/g, PIPE_TO = '\u00a0\u00a0|\u00a0 ';
 function pipeText(t) {
-  if (t.data.indexOf('|') < 0) return;
+  const lb = unitLb() && /kg|cm/i.test(t.data);
+  if (t.data.indexOf('|') < 0 && !lb) return;
   const p = t.parentElement;
   if (p && p.closest('[data-i18n="no"], textarea, script, style, code, pre')) return;
-  const d = t.data.replace(PIPE_RE, PIPE_TO);
+  let d = t.data;
+  if (lb && !(p && p.closest('[data-nounit]'))) d = unitConv(d);  // v303: Einheiten-Auswahl selbst nicht umrechnen
+  if (d.indexOf('|') >= 0) d = d.replace(PIPE_RE, PIPE_TO);
   if (d !== t.data) t.data = d;
 }
 function pipeAll(root) {
@@ -103,7 +106,73 @@ function pipeAll(root) {
   if (root.nodeType !== 1) return;
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (let n = w.nextNode(); n; n = w.nextNode()) pipeText(n);
+  if (unitLb()) unitInputs(root);
 }
+
+/* ---------- v303 (User-Wunsch): Einheit kg | lb ----------
+   Intern bleibt alles in kg (Daten, Sicherungen, Rechnungen). Bei lb rechnet diese Schicht nur Anzeige und Eingabe um:
+   Texte „82,5 kg“ → „181,9 lb“ (auch „KG“ in Spaltenköpfen), Werte in Gewichtsfeldern, Getipptes zurück in kg (app.js, input).
+   Raster, Steigerung, Scheiben und Aufwärmen rechnen bei lb mit lb-Stufen (app.js: stepFor, platesPerSide, warmupSets). */
+const LB_KG = 0.45359237;
+// Ohne Wahl: lb nur bei Region USA (Handy-Einstellung „en-US“); bisherige Nutzer haben seit v303 fest „kg“ (upgradeData)
+const unitDefault = () => /-US/i.test((typeof navigator !== 'undefined' && navigator.language) || '') ? 'lb' : 'kg';
+const unitLb = () => typeof data !== 'undefined' && !!data && ((data.profile && data.profile.unit) || unitDefault()) === 'lb';
+const uW = kg => unitLb() ? kg / LB_KG : kg;   // kg → Anzeigeeinheit
+const uK = v => unitLb() ? v * LB_KG : v;      // Anzeigeeinheit → kg
+const uName = () => unitLb() ? 'lb' : 'kg';
+// „g pro kg“ (Eiweiß, Fett): bei lb als „g pro lb“ umgerechnet (der Text „kg“ wird in der Anzeige zu „lb“)
+const perKgDisp = v => fmtNum(unitLb() ? Math.round(v * LB_KG * 100) / 100 : v);
+// Zahl in deutscher oder englischer Schreibweise lesen (82,5 | 82.5 | 1.234,5 | 1,234.5)
+function unitParse(s) {
+  const t = LANG === 'de' ? s.replace(/\.(?=\d{3}\b)/g, '').replace(',', '.') : s.replace(/,(?=\d{3}\b)/g, '');
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : null;
+}
+const unitFmt = kg => fmtNum(Math.round(kg / LB_KG * 10) / 10);
+function unitConv(s) {
+  return s
+    .replace(/(\d+(?:[.,]\d+)*)(\s?(?:–|-|bis|to)\s?)(\d+(?:[.,]\d+)*)(\s?|-)kg\b/g, (m, a, mid, b, sp) => {
+      const x = unitParse(a), y = unitParse(b);
+      return x == null || y == null ? m : `${unitFmt(x)}${mid}${unitFmt(y)}${sp}lb`;
+    })
+    .replace(/(\d+(?:[.,]\d+)*)(\s?|-)kg\b/g, (m, a, sp) => { const x = unitParse(a); return x == null ? m : `${unitFmt(x)}${sp}lb`; })
+    .replace(/(\d+(?:[.,]\d+)?)(\s?)cm\b/g, (m, a, sp) => { const x = unitParse(a); return x == null ? m : `${fmtNum(Math.round(x / IN_CM * 10) / 10)}${sp}in`; })
+    .replace(/\bkg\b/g, 'lb').replace(/\bKG\b/g, 'LB').replace(/\bcm\b/g, 'in');
+}
+// Gewichtsfelder: Wert (kg) beim Anzeigen in lb, Platzhalter „kg“ → „lb“
+const WEIGHT_FIELDS = new Set(['tr-weight', 'tr-sub-w', 'tr-max', 'rep-max', 'ex-max', 'ex-start', 'first-max', 'wu-weight', 'add-max', 'bw-kg', 'home-w']);
+const isWeightInput = el => !!el && !!el.dataset && (WEIGHT_FIELDS.has(el.dataset.field) || (el.dataset.field === 'se-set' && el.dataset.prop === 'weight')
+  || (el.dataset.field === 'nut-in' && (el.dataset.k === 'kg' || el.dataset.k === 'goalKg')) || el.dataset.unit === 'kg');
+// Längen (Körpergröße, Körpermaße): bei lb in Zoll; die Größe auch als 5'11 eintippbar
+const IN_CM = 2.54;
+// Lebensmittel-Mengen: bei lb in Unzen (oz); Makros bleiben in Gramm
+const OZ_G = 28.349523125;
+const isGramInput = el => !!el && !!el.dataset && el.dataset.field === 'food-g' && !el.dataset.pcs;
+const amtTxt = g => unitLb() ? `${fmtNum(Math.round(g / OZ_G * 10) / 10)} oz` : `${fmtNum(Math.round(g * 10) / 10)} g`;
+const ozGStr = shown => { if (!unitLb()) return shown; const n = unitParse(String(shown)); return n == null ? shown : fmtNum(Math.round(n * OZ_G * 10) / 10); };
+const isLengthInput = el => !!el && !!el.dataset && ((el.dataset.field === 'nut-in' && el.dataset.k === 'height') || el.dataset.field === 'meas-in' || el.dataset.unit === 'cm');
+function lenCmStr(shown) {
+  if (!unitLb()) return shown;
+  const m = String(shown).match(/^\s*(\d+)\s*['′’]\s*(\d+(?:[.,]\d+)?)?/);
+  const inch = m ? +m[1] * 12 + (m[2] ? unitParse(m[2]) : 0) : unitParse(String(shown));
+  return inch == null ? shown : fmtNum(Math.round(inch * IN_CM * 10) / 10);
+}
+function unitInputs(root) {
+  const list = root.matches && root.matches('input') ? [root] : root.querySelectorAll ? root.querySelectorAll('input') : [];
+  for (const el of list) {
+    if (el.placeholder && /\bkg\b/.test(el.placeholder)) el.placeholder = el.placeholder.replace(/\bkg\b/g, 'lb');
+    if (el.placeholder && /\bcm\b/.test(el.placeholder)) el.placeholder = el.placeholder.replace(/\bcm\b/g, 'in');
+    const len = isLengthInput(el), gr = isGramInput(el);
+    if ((!isWeightInput(el) && !len && !gr) || el.dataset.ulDone) continue;  // jedes Feld nur einmal (danach tippt man selbst in lb)
+    const n = el.value.trim() === '' ? null : unitParse(el.value);
+    if (n != null) el.value = len ? fmtNum(Math.round(n / IN_CM * 10) / 10) : gr ? fmtNum(Math.round(n / OZ_G * 10) / 10) : unitFmt(n);
+    if (len && el.inputMode === 'numeric') el.inputMode = 'decimal';
+    el.dataset.ulDone = '1';
+  }
+}
+// Für Code, der Werte direkt ins Feld schreibt (setInput) bzw. aus dem Feld liest
+const unitShow = kgStr => { if (!unitLb() || kgStr === '' || kgStr == null) return kgStr; const n = unitParse(String(kgStr)); return n == null ? kgStr : unitFmt(n); };
+const unitKgStr = shown => { if (!unitLb()) return shown; const n = unitParse(String(shown)); return n == null ? shown : fmtNum(Math.round(n * LB_KG * 1000) / 1000); };
 function i18nText(t) {
   if (!t.data.trim() || I18N_DONE.get(t) === t.data) return;
   const p = t.parentElement;
@@ -211,6 +280,9 @@ function i18nSet(l) {
   setTimeout(() => location.reload(), 60);
 }
 // Auswahl (Begrüßung und Optionen) – die Sprachnamen selbst nie übersetzen
+// v303: Einheit wählen (Begrüßung und Optionen → Aussehen)
+const unitPickHtml = () => `<div class="seg two unit-pick" data-nounit>${[['kg', 'kg'], ['lb', 'lb']].map(([k, l]) =>
+  `<button class="${(unitLb() ? 'lb' : 'kg') === k ? 'on' : ''}" data-action="unit-set" data-u="${k}">${l}</button>`).join('')}</div>`;
 const langPickHtml = () => `<div class="seg two lang-pick" data-i18n="no">${Object.entries(LANGS).map(([k, l]) =>
   `<button class="${LANG === k ? 'on' : ''}" data-action="lang-set" data-l="${k}">${l}</button>`).join('')}</div>`;
 // Gespeicherte Zahlen als Text (z. B. „82,5“) in Eingabefeldern (v277): auf Englisch mit Punkt anzeigen; parseNum liest beides

@@ -39,6 +39,8 @@ const goalAt = (def, i) => i < def.goals.length ? def.goals[i]
 
 const fmtCount = v => `${v}`;
 const fmtT = v => fmtTons(v * 1000);
+// v303: Tonnen bei lb als „220k lb“ (1 t ≈ 2.205 lb)
+const tU = t => unitLb() ? `${(Math.round(t / LB_KG)).toLocaleString(LOCALE())}k lb` : `${t.toLocaleString(LOCALE())} t`;
 const deNum = v => v.toLocaleString(LOCALE());
 
 const STATIC_SERIES = [
@@ -65,17 +67,17 @@ const STATIC_SERIES = [
     names: ['Erste Tonne', 'Möbelpacker', 'Umzugsprofi', 'Kraftprotz', 'Gabelstapler', 'Elefantenstemmer',
       'Tonnen-Titan', 'Containerschiff', 'Kranführer', 'Lokomotive', 'Eiffelturm'],
     icons: ['🪨', '🛋️', '🚚', '💪', '📦', '🐘', '🦣', '🚢', '🏗️', '🚂', '🗼'],
-    name: g => `Schwerlast ${deNum(g)} t`, desc: g => `${deNum(g)} t insgesamt bewegt`,
+    name: g => `Schwerlast ${tU(g)}`, desc: g => `${tU(g)} insgesamt bewegt`,
     value: c => c.total / 1000, fmt: fmtT },
   { id: 'month', cat: 'Tonnage', goals: [10, 25, 50, 75, 100], step: 25,
     names: ['Fleißiger Monat', 'Monats-Malocher', 'Vulkanmonat', 'Monats-Monster', 'Hundert-Tonnen-Monat'],
     icons: ['🐝', '⛏️', '🌋', '👹', '💯'],
-    name: g => `Monat mit ${g} t`, desc: g => `${g} t in einem Kalendermonat`,
+    name: g => `Monat mit ${tU(g)}`, desc: g => `${tU(g)} in einem Kalendermonat`,
     value: c => c.month / 1000, fmt: fmtT },
   { id: 'session', cat: 'Tonnage', goals: [5, 10, 15, 20, 25], step: 5,
     names: ['Schwerstarbeiter', 'Eisenfresser', 'Maschine', 'Bulldozer', 'Abrissbirne'],
     icons: ['⚒️', '🔩', '⚙️', '🚜', '💥'],
-    name: g => `${g} t an einem Tag`, desc: g => `${g} t in einem Training`,
+    name: g => `${tU(g)} an einem Tag`, desc: g => `${tU(g)} in einem Training`,
     value: c => c.session / 1000, fmt: fmtT },
   // Kraft im Verhältnis zum Körpergewicht (braucht Einträge unter Diagramme → Körpergewicht)
   { id: 'rel-bench', cat: 'Kraft', goals: [1, 1.25, 1.5], names: ['Eigengewicht gedrückt', 'Bankdrück-Ass', 'Bank-Bestie'],
@@ -134,6 +136,7 @@ const shortName = n => n.replace(/\s*\(.*?\)\s*/g, ' ').trim();
 // Für jede trainierte Übung: Gewichts-Meilensteine ab dem ersten Gewicht –
 // Grundübungen, Kurzhantel- und Assistenzübungen in 5-kg-Schritten, sonst in 10-kg-Schritten
 function weightSeries(name, k, firstWeight) {
+  if (unitLb()) return weightSeriesLb(name, k, firstWeight);  // v303: eigene lb-Meilensteine
   const kind = kindOf({ name });
   const step = kind === 'compound' || kind === 'assist' || /kurzhantel/.test(norm(name)) ? 5 : 10;
   const special = (LIFT_NAMES.find(([re]) => re.test(norm(name))) || [null, {}])[1];
@@ -145,6 +148,29 @@ function weightSeries(name, k, firstWeight) {
   };
 }
 
+// v303 (User-Wunsch): bei lb eigene Meilensteine in lb – Grund-, Assistenz- und Kurzhantelübungen alle 10 lb, sonst alle 20 lb
+const lbOf = kg => Math.round(kg / LB_KG * 10) / 10;
+function weightSeriesLb(name, k, firstWeight) {
+  const kind = kindOf({ name });
+  const step = kind === 'compound' || kind === 'assist' || /kurzhantel/.test(norm(name)) ? 10 : 20;
+  return {
+    id: `wl-${k}`, cat: 'Übungen', goals: [(Math.floor(lbOf(firstWeight) / step) + 1) * step], step,
+    names: [], icons: [GROUP_ICONS[groupOf({ name })] || '🏋️'],
+    name: g => `${shortName(name)}: ${g} lb`, desc: g => `Erstmals ${g} lb bei ${name}`,
+    value: c => lbOf(c.maxW[k] || 0), fmt: v => `${fmtNum(v)} lb`,
+  };
+}
+// Klassische Scheiben-Marken bei Bankdrücken, Kniebeugen und Kreuzheben: 135 / 225 / 315 / 405 / 495 lb (1–5 × 45 lb je Seite)
+const PLATE_GOALS = [135, 225, 315, 405, 495];
+const PLATE_NAMES = ['Eine Scheibe', 'Zwei Scheiben', 'Drei Scheiben', 'Vier Scheiben', 'Fünf Scheiben'];
+function plateSeries(name, k) {
+  const s = shortName(name);
+  return {
+    id: `pl-${k}`, cat: 'Kraft', goals: PLATE_GOALS, names: PLATE_NAMES.map(n => `${s}: ${n}`), icons: ['🏋️'],
+    desc: g => `${g} lb bei ${name} (${PLATE_GOALS.indexOf(g) + 1} × 45 lb je Seite)`,
+    value: c => lbOf(c.maxW[k] || 0), fmt: v => `${fmtNum(v)} lb`,
+  };
+}
 // Für jede trainierte Übung: Treue (Anzahl Trainings mit dieser Übung)
 function loyaltySeries(name, k) {
   const s = shortName(name);
@@ -285,6 +311,7 @@ function trainingProgress() {
       if (!known.has(k)) { known.add(k); series.push({ def: loyaltySeries(e.name, k), i: 0 }); }
       // Gewichtsserie startet beim ersten Gewicht – Meilensteine liegen immer darüber
       if (maxW > 0 && !known.has('w' + k)) { known.add('w' + k); series.push({ def: weightSeries(e.name, k, maxW), i: 0 }); }
+      if (maxW > 0 && unitLb() && !known.has('p' + k) && Object.values(REL_LIFTS).some(re => re.test(n))) { known.add('p' + k); series.push({ def: plateSeries(e.name, k), i: 0 }); }
       c.maxW[k] = Math.max(c.maxW[k] || 0, maxW);
       // v271: Max. bei 10 Wdh. aus den normalen Arbeitssätzen (frisch gerechnet, wie im Diagramm „Max. bei 10 Wdh.“)
       const ws = ofVariant(real, '').filter(x => x.weight > 0 && x.reps > 0);
@@ -347,8 +374,11 @@ function awardCard(a, open) {
 function renderAwards() {
   const { done, next } = achievementProgress();
   const open = next.sort((x, y) => y.value / y.goal - x.value / x.goal);
-  let h = `<div class="stats one"><div class="stat"><span>Freigeschaltet</span><b>${done.length} Erfolge</b>
-    <small>Jede Serie geht endlos weiter. Nach jeder Stufe wartet die nächste.</small></div></div>`;
+  let h = `<div class="stats one"><div class="stat"><span>Freigeschaltet</span><b>${done.length} Erfolge</b></div></div>`;  // v302: Erklärung „endlos“ gestrichen (User-Wunsch)
+  // v302 (User-Wunsch): genau sagen, worauf sich die Werte beziehen
+  h += `<p class="hint explain aw-basis">${feat('tr-max')
+    ? '„+ %“ bei einer Übung: dein Max. bei 10 Wdh. (frisch, aus deinen Sätzen geschätzt) im Vergleich zu deinem Startwert. kg-Meilensteine und „× Körpergewicht“: das schwerste Gewicht, das du in einem Satz bewegt hast, egal mit wie vielen Wdh.'
+    : '„+ %“ bei einer Übung: wie viel stärker du im Vergleich zu deinem Start bist. kg-Meilensteine und „× Körpergewicht“: das schwerste Gewicht, das du in einem Satz bewegt hast.'}</p>`;
   h += '<h2>Als Nächstes</h2>' + open.slice(0, 6).map(a => awardCard(a, true)).join('');
   if (open.length > 6) {
     h += `<details class="award-cat"><summary>Alle nächsten Ziele (${open.length})</summary>
@@ -389,22 +419,22 @@ function chartPoints() {
         weeks.set(w, p);
       }
       return [...weeks.values()].map(p => ({
-        t: p.t, v: round1(p.kg / 1000), unit: 't', note: `Woche ab ${fmtDate(new Date(p.t).toISOString())} | ${p.n} Trainings`,
+        t: p.t, v: round1(uW(p.kg) / 1000), unit: unitLb() ? 'k lb' : 't', note: `Woche ab ${fmtDate(new Date(p.t).toISOString())} | ${p.n} Trainings`,
       }));
     }
     return sessions.map(s => ({
-      t: Date.parse(s.date), v: round1(sessionTonnage(s) / 1000), unit: 't', deload: !!s.deload, note: s.dayName,
+      t: Date.parse(s.date), v: round1(uW(sessionTonnage(s)) / 1000), unit: unitLb() ? 'k lb' : 't', deload: !!s.deload, note: s.dayName,
     }));
   }
   if (chartMode() === 'bw') {
     return data.bodyweight
-      .map(b => ({ t: Date.parse(b.date), v: b.kg, unit: 'kg' }))
+      .map(b => ({ t: Date.parse(b.date), v: round1(uW(b.kg)), unit: uName() }))
       .sort((a, b) => a.t - b.t);
   }
   if (chartMode() === 'meas') {
     const k = chartState.meas;
     return data.measures.filter(m => m.v && m.v[k] != null)
-      .map(m => ({ t: Date.parse(m.date + 'T12:00:00'), v: m.v[k], unit: 'cm' }))
+      .map(m => ({ t: Date.parse(m.date + 'T12:00:00'), v: unitLb() ? round1(m.v[k] / IN_CM) : m.v[k], unit: unitLb() ? 'in' : 'cm' }))
       .sort((a, b) => a.t - b.t);
   }
   const k = nameKey(chartState.name);
@@ -429,13 +459,14 @@ function chartPoints() {
     } else {
       v = Math.max(...weighted.map(x => x.weight));
     }
+    if (unit === 'kg' && unitLb()) { v = round1(uW(v)); unit = 'lb'; }  // v303: Einheit lb
     pts.push({
       t: Date.parse(s.date), v, unit, sets,
       dayName: s.dayName, replacedFrom: e.replacedFrom, deload: !!s.deload,
     });
   }
   // Gemischte Einheiten: Einträge mit Gewicht haben Vorrang
-  return pts.some(p => p.unit === 'kg') ? pts.filter(p => p.unit === 'kg') : pts;
+  return pts.some(p => p.unit === 'kg' || p.unit === 'lb') ? pts.filter(p => p.unit === 'kg' || p.unit === 'lb') : pts;
 }
 
 // Sichtbares Zeitfenster [x0, x1] plus erlaubter Bereich für den rechten Rand
@@ -540,7 +571,8 @@ function drawChart() {
   // Körpergewicht: Zielgewicht und Beginn der Ernährungsphasen (Zielgewicht nur, wenn es nah an den Werten liegt)
   const marks = chartMode() === 'bw' ? nutMarks() : null;
   const vals = (vis.length ? vis : pts).map(p => p.v);
-  const goal = marks && marks.goal != null && marks.goal >= Math.min(...vals) - 4 && marks.goal <= Math.max(...vals) + 4 ? marks.goal : null;
+  const gU = marks && marks.goal != null ? round1(uW(marks.goal)) : null;  // v303
+  const goal = gU != null && gU >= Math.min(...vals) - 8 && gU <= Math.max(...vals) + 8 ? gU : null;
   if (goal != null) vals.push(goal);
   const ticks = niceTicks(Math.min(...vals), Math.max(...vals));
   const lo = ticks[0], hi = ticks[ticks.length - 1];
@@ -563,7 +595,7 @@ function drawChart() {
   svg += `<g clip-path="url(#plot-clip)">`;
   if (goal != null) {
     svg += `<line class="c-goal" x1="${L}" x2="${L + pw}" y1="${Y(goal)}" y2="${Y(goal)}"/>
-      <text class="c-mark" x="${L + pw - 4}" y="${Y(goal) - 5}" text-anchor="end">Ziel ${fmtNum(goal)} kg</text>`;
+      <text class="c-mark" x="${L + pw - 4}" y="${Y(goal) - 5}" text-anchor="end">Ziel ${fmtNum(goal)} ${uName()}</text>`;
   }
   if (marks) svg += phaseBands(marks.phases, X, x0, x1, T, ph);
   if (pts.length > 1) {
@@ -1098,7 +1130,7 @@ Object.assign(actions, {
     drawChart();
   },
   'bw-save': () => {
-    const kg = parseNum(document.getElementById('bw-kg').value);
+    const kg = parseNum(unitKgStr(document.getElementById('bw-kg').value));  // v303: bei lb Eingabe in lb
     if (kg == null || kg < 20 || kg > 400) { alert('Bitte ein gültiges Körpergewicht in kg eintragen.'); return; }
     const lastKg = currentBodyweight();
     if (lastKg != null && Math.abs(lastKg - kg) >= TYPO_KG && !askOk(`${fmtNum(kg)} kg? Zuletzt waren es ${fmtNum(lastKg)} kg.\n\nOK = so speichern, Abbrechen = zurück`)) return;
@@ -1150,7 +1182,7 @@ function bwcData() {
     const d = b.date.slice(0, 10), x = byDay.get(d) || { s: 0, n: 0 };
     x.s += b.kg; x.n++; byDay.set(d, x);
   }
-  const w = [...byDay].map(([d, x]) => ({ d, t: Date.parse(d + 'T12:00:00'), v: round1(x.s / x.n) })).sort((a, b) => a.t - b.t);
+  const w = [...byDay].map(([d, x]) => ({ d, t: Date.parse(d + 'T12:00:00'), v: round1(uW(x.s / x.n)) })).sort((a, b) => a.t - b.t);  // v303: Anzeigeeinheit
   const T = todayISO();
   const dates = new Set([...data.intake.map(x => x.date), ...(data.foodLog || []).map(x => x.date)]);
   const k = typeof foodDayVals !== 'function' ? [] : [...dates].filter(d => d <= T).map(d => {
@@ -1225,7 +1257,8 @@ function drawBwCmp() {
   // oben: Körpergewicht – Trendlinie mit Verlauf, Wiegungen als kleine Punkte, Zielgewicht, Phasen als Flächen
   if (vw.length) {
     const wv = vw.flatMap(p => [p.v, p.tr]);
-    const goal = marks && marks.goal != null && marks.goal >= Math.min(...wv) - 4 && marks.goal <= Math.max(...wv) + 4 ? marks.goal : null;
+    const gU = marks && marks.goal != null ? round1(uW(marks.goal)) : null;  // v303
+    const goal = gU != null && gU >= Math.min(...wv) - 8 && gU <= Math.max(...wv) + 8 ? gU : null;
     const ticks = niceTicks(Math.min(...wv, ...(goal != null ? [goal] : [])), Math.max(...wv, ...(goal != null ? [goal] : [])));
     const lo = ticks[0], hi = ticks[ticks.length - 1];
     const Y = v => T1 + (1 - (v - lo) / (hi - lo)) * H1;
@@ -1234,7 +1267,7 @@ function drawBwCmp() {
     svg += '<g clip-path="url(#bwc-clip)">';
     if (marks) svg += phaseBands(marks.phases, X, x0, x1, T1, H1);
     if (goal != null) svg += `<line class="c-goal" x1="${L}" x2="${L + pw}" y1="${f1(Y(goal))}" y2="${f1(Y(goal))}"/>
-      <text class="c-mark" x="${L + pw - 4}" y="${f1(Y(goal) - 5)}" text-anchor="end">Ziel ${fmtNum(goal)} kg</text>`;
+      <text class="c-mark" x="${L + pw - 4}" y="${f1(Y(goal) - 5)}" text-anchor="end">Ziel ${fmtNum(goal)} ${uName()}</text>`;
     const P = w.map(p => ({ x: X(p.t), y: Y(p.tr) }));
     if (w.length > 1) {
       const sm = smoothPath(P);
@@ -1275,6 +1308,11 @@ function drawBwCmp() {
     }
     if (goalK) svg += `<line class="bwc-goal" x1="${L}" x2="${L + pw}" y1="${f1(Y(goalK))}" y2="${f1(Y(goalK))}"/>
       <text class="c-mark" x="${L + pw - 4}" y="${f1(Y(goalK) - 5)}" text-anchor="end">Ziel ${deNum(Math.round(goalK))}</text>`;
+    // v302 (User-Wunsch): dünne Linie = Schnitt der angezeigten Balken
+    const bAvg = bars.reduce((a, p) => a + p.v, 0) / bars.length;
+    const nearGoal = goalK && Math.abs(Y(bAvg) - Y(goalK)) < 12;
+    svg += `<line class="bwc-avg2" x1="${L}" x2="${L + pw}" y1="${f1(Y(bAvg))}" y2="${f1(Y(bAvg))}"/>
+      <text class="bwc-avg2-t" x="${L + 4}" y="${f1(Y(bAvg) + (nearGoal && Y(bAvg) > Y(goalK) ? 13 : -5))}">Ø ${deNum(Math.round(bAvg))}</text>`;
     svg += '</g>';
     if (week) svg += `<text class="c-mark" x="${L + pw}" y="${T2 - 12}" text-anchor="end">Ø je Woche</text>`;
   } else {
@@ -1288,11 +1326,11 @@ function drawBwCmp() {
   const wShow = picked ? wSel : vw[vw.length - 1], kShow = picked ? kSel : vk[vk.length - 1];
   const dd = p => fmtDate(p.d + 'T12:00:00');
   tip.innerHTML = sel ? `<div class="cc-vals">
-      <div class="cc-val"><small><i class="cc-key w"></i>Gewicht</small><b>${wShow ? fmtNum(wShow.v) + ' kg' : '–'}</b>${wShow ? `<em>Trend ${fmtNum(wShow.tr)}</em>` : ''}${!picked && wShow ? `<span class="cc-when">${dd(wShow)}</span>` : ''}</div>
+      <div class="cc-val"><small><i class="cc-key w"></i>Gewicht</small><b>${wShow ? fmtNum(wShow.v) + ' ' + uName() : '–'}</b>${wShow ? `<em>Trend ${fmtNum(wShow.tr)}</em>` : ''}${!picked && wShow ? `<span class="cc-when">${dd(wShow)}</span>` : ''}</div>
       <div class="cc-val"><small><i class="cc-key k"></i>Kalorien</small><b>${kShow ? deNum(kShow.v) + ' kcal' : '–'}</b>${!picked && kShow ? `<span class="cc-when">${dd(kShow)}</span>` : ''}</div>
     </div>${picked ? `<div class="cc-date">${dd(sel)}</div>` : '<div class="cc-date">Letzte Werte. Zum Vergleichen eines Tages darüberfahren.</div>'}` : '';
   chartGeo = { X, pw, x0, x1, vis: [], end: chartState.end, bwc: days };
-  stats.innerHTML = (vw.length ? chartStats(vw.map(p => ({ ...p, unit: 'kg' })), 'kg') : '')
+  stats.innerHTML = (vw.length ? chartStats(vw.map(p => ({ ...p, unit: uName() })), uName()) : '')
     + (avg != null ? `<p class="hint bwc-kavg">Kalorien im Zeitraum: im Schnitt <b>${deNum(Math.round(avg))} kcal</b> an ${vk.length} Tag${vk.length === 1 ? '' : 'en'} mit Einträgen.</p>` : '');
   updateRangeControls(win);
 }

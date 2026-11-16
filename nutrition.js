@@ -597,6 +597,7 @@ function nutBasicsCard(kcal, kg) {
   const seen = !!(data.profile && data.profile.nutBasicsSeen) || !nutHintsOn();
   const fiber = kcal ? Math.round(kcal / 100) : null;  // 10 g je 1.000 kcal
   const water = kg ? fmtNum(round1(kg / 20)) : null;   // 1 Liter je 20 kg Körpergewicht
+  const waterOz = kg ? deNum(Math.round(kg / 20 * 33.814 / 5) * 5) : null;  // v303: bei lb in fl oz (gleiche Menge)
   // v207: immer eingeklappt (steht jetzt als Zeile ganz unten)
   return `<details class="card nut-help nut-basics">
       <summary data-action="nut-basics-sum">🥗 Grundlagen: gut und ausgewogen essen</summary>
@@ -616,7 +617,8 @@ function nutBasicsCard(kcal, kg) {
           Sahne eher selten.</li>
         <li><b>🍬 Nicht zu viel Zucker und Salz:</b> Softdrinks, Säfte, Süßigkeiten und Gebäck sparsam, beim Salzen lieber
           zurückhaltend. Fertiggerichte enthalten oft viel von beidem. Faustregel: je kürzer die Zutatenliste, desto besser.</li>
-        <li><b>💧 Trinken:</b> etwa <b>1 Liter je 20 kg Körpergewicht</b>${water ? `, bei dir also ca. <b>${water} Liter</b>` : ''}
+        <li><b>💧 Trinken:</b> ${unitLb() ? `etwa <b>¾ fl oz je lb Körpergewicht</b>${waterOz ? `, bei dir also ca. <b>${waterOz} fl oz</b>` : ''}`
+          : `etwa <b>1 Liter je 20 kg Körpergewicht</b>${water ? `, bei dir also ca. <b>${water} Liter</b>` : ''}`}
           am Tag, am besten Wasser oder ungesüßter Tee. An Trainingstagen und bei Hitze etwas mehr. Alkohol nicht zu viel.</li>
         <li><b>⚖️ Kein Alles-oder-nichts:</b> Es zählt, was du an den meisten Tagen isst. Wenn rund 80 % passen, ist auch mal
           Kuchen, Pizza oder ein Grillabend völlig in Ordnung.</li>
@@ -769,7 +771,7 @@ function nutProteinNote(n, c) {
     n.bodyFat != null && n.bodyFat < (n.sex === 'm' ? 15 : 23) ? 'du wenig Körperfett hast' : null].filter(Boolean);
   const low = c.protein < c.pLo - 2;
   return `<p class="nut-protein ${low ? 'low' : 'explain'}"><b>Eiweiß-Empfehlung: ${c.pLo}–${c.pHi} g am Tag</b>
-      (${fmtNum(pr.lo)}–${fmtNum(pr.hi)} g pro kg${Math.abs(c.ref - (n.kg || nutWeight())) > 1 ? ` bezogen auf ${fmtNum(Math.round(c.ref))} kg` : ''}).
+      (${perKgDisp(pr.lo)}–${perKgDisp(pr.hi)} g pro kg${Math.abs(c.ref - (n.kg || nutWeight())) > 1 ? ` bezogen auf ${fmtNum(Math.round(c.ref))} kg` : ''}).
       ${low ? 'Dein Eiweiß liegt gerade darunter. ' : ''}Orientiere dich eher am oberen Rand, wenn du relativ wenig Körperfett hast,
       älter bist (ab ca. 50) oder dich vegan ernährst. Pflanzliches Eiweiß verwertet der Körper etwas schlechter.
       ${why.length ? `<b>Bei dir passt eher der obere Rand, weil ${why.join(' und ')}.</b>` : ''}</p>`;
@@ -1313,8 +1315,8 @@ function nutExplain(n, c, kg) {
       ${n.macroPct
         ? `<p><b>Makros:</b> deine eigene Aufteilung: ${n.macroPct.p} % Eiweiß, ${n.macroPct.f} % Fett und ${n.macroPct.c} % Kohlenhydrate
           von ${nutKcal(c.kcal)} kcal (1 g Eiweiß oder Kohlenhydrate = 4 kcal, 1 g Fett = 9 kcal).</p>`
-        : `<p><b>Eiweiß:</b> ${fmtNum(NUT_PROTEIN[n.phase].def)} g pro kg (Mitte der Spanne ${fmtNum(NUT_PROTEIN[n.phase].lo)}–${fmtNum(NUT_PROTEIN[n.phase].hi)} g)${Math.abs(c.ref - kg) > 1 ? `, bezogen auf ${fmtNum(Math.round(c.ref))} kg statt deines vollen Gewichts, weil viel Körperfett kein Eiweiß braucht` : ''}.
-        <b>Fett:</b> ${n.phase === 'minicut' ? '20' : '25'} % der Kalorien, mindestens ${fmtNum(n.phase === 'minicut' ? 0.6 : 0.8)} g pro kg.
+        : `<p><b>Eiweiß:</b> ${perKgDisp(NUT_PROTEIN[n.phase].def)} g pro kg (Mitte der Spanne ${perKgDisp(NUT_PROTEIN[n.phase].lo)}–${perKgDisp(NUT_PROTEIN[n.phase].hi)} g)${Math.abs(c.ref - kg) > 1 ? `, bezogen auf ${fmtNum(Math.round(c.ref))} kg statt deines vollen Gewichts, weil viel Körperfett kein Eiweiß braucht` : ''}.
+        <b>Fett:</b> ${n.phase === 'minicut' ? '20' : '25'} % der Kalorien, mindestens ${perKgDisp(n.phase === 'minicut' ? 0.6 : 0.8)} g pro kg.
         <b>Kohlenhydrate:</b> der Rest.</p>`}
       ${n.phase === 'diet' || n.phase === 'minicut' ? `<p><b>Deload = Erhaltungswoche:</b> In jeder Deload-Woche deines Trainings isst du
         automatisch auf Erhaltung. Das schützt die Muskeln und macht die Diät auf Dauer leichter.${n.phase === 'minicut'
@@ -1334,9 +1336,10 @@ function nutExplain(n, c, kg) {
         Nach jeder Änderung, jedem „Nicht jetzt“ und jeder Unterbrechung zählt sie neu, braucht also wieder ${NUT_CMP_N * 2} Wiegungen.</p>`}
       <p><b>Gemessener Bedarf:</b> Trägst du ein, was du isst (aus Health oder von Hand), vergleicht die App über die letzten
         4 Wochen (ohne die erste Woche eines neuen Ernährungsziels), wie viel du im Schnitt gegessen hast und wie sich dein Gewicht dabei verändert hat. Nimmst du z. B. bei
-        2.300 kcal pro Tag 0,25 kg pro Woche ab, liegt dein Bedarf bei etwa 2.300 + 0,25 × ${deNum(NUT_KCAL_KG)} ÷ 7 ≈ 2.580 kcal.</p>
+        ${unitLb() ? `2.300 kcal pro Tag 0,5 lb pro Woche ab, liegt dein Bedarf bei etwa 2.300 + 0,5 × 3.500 ÷ 7 ≈ 2.550 kcal.`
+          : `2.300 kcal pro Tag 0,25 kg pro Woche ab, liegt dein Bedarf bei etwa 2.300 + 0,25 × ${deNum(NUT_KCAL_KG)} ÷ 7 ≈ 2.580 kcal.`}</p>
       ${nutMeasuredStatus()}
-      <p>1 kg Körpergewicht entspricht grob ${deNum(NUT_KCAL_KG)} kcal. Rechne immer nur mit Schätzwerten (±10 %): Entscheidend ist,
+      <p>${unitLb() ? '1 lb Körpergewicht entspricht grob 3.500 kcal' : `1 kg Körpergewicht entspricht grob ${deNum(NUT_KCAL_KG)} kcal`}. Rechne immer nur mit Schätzwerten (±10 %): Entscheidend ist,
         wie sich dein Gewicht über mehrere Wochen entwickelt.</p>
       ${n.kcalOwn != null || n.adjust ? `<button class="btn" data-action="nut-adjust-reset">${n.kcalOwn != null ? 'Eigenes Tagesziel zurücksetzen' : 'Anpassung aus dem Gewichtsverlauf zurücksetzen'}</button>` : ''}
     </details>`;

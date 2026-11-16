@@ -838,6 +838,11 @@ function renderWizEquip() {
 /* --- Heim-Ausrüstung (Assistent und Plan-Reiter): data.home --- */
 const DB_CHOICES = [1, 2, 2.5, 3, 4, 5, 6, 7, 7.5, 8, 9, 10, 11, 12, 12.5, 14, 15, 16, 17.5, 18, 20, 22, 22.5, 24, 25, 26, 27.5, 28, 30, 32, 32.5, 34, 35, 36, 40];
 const KB_CHOICES = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32];
+// v303: bei lb typische lb-Gewichte (gespeichert in kg, auf 3 Stellen gerundet)
+const DB_CHOICES_LB = [2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80];
+const KB_CHOICES_LB = [10, 15, 18, 20, 25, 26, 30, 35, 40, 44, 45, 50, 53, 62, 70];
+const lbKg = lb => Math.round(lb * LB_KG * 1000) / 1000;
+const heqChoices = k => unitLb() ? (k === 'db' ? DB_CHOICES_LB : KB_CHOICES_LB).map(lbKg) : (k === 'db' ? DB_CHOICES : KB_CHOICES);
 const homeData = () => {
   if (!data.home) data.home = { db: [], kb: [], bands: [], anchor: false, bar: false, bench: 0, dip: false };
   return data.home;
@@ -849,7 +854,7 @@ function homeSummary(h) {
   const srt = l => [...l].sort((a, b) => a - b);
   const parts = [];
   if ((h.db || []).length) parts.push(`Kurzhanteln ${kg(srt(h.db))}`);
-  if ((h.kb || []).length) parts.push(`Kettlebells ${srt(h.kb).map(fmtNum).join(' / ')} kg`);
+  if ((h.kb || []).length) parts.push(`Kettlebells ${srt(h.kb).map(v => `${fmtNum(v)} kg`).join(' / ')}`);
   if ((h.bands || []).length) {
     const b = srt(h.bands);
     parts.push(`Bänder ${b.length > 1 ? `${BAND_LEVELS[b[0]]}–${BAND_LEVELS[b[b.length - 1]]}` : BAND_LEVELS[b[0]]}${h.anchor ? ' mit Türanker' : ''}`);
@@ -865,11 +870,12 @@ const homeExCount = h => Object.keys(HOME_EX).filter(n => homeOk(n, h)).length;
 function homeEqHtml() {
   const h = homeData();
   const chip = (on, act, attrs, label) => `<button class="vchip ${on ? 'on' : ''}" data-action="${act}" ${attrs}>${label}</button>`;
-  const weights = (k, choices, title, hint) => {
+  const weights = (k, choices0, title, hint) => {
+    const choices = heqChoices(k);  // v303: kg oder lb
     const own = (h[k] || []).filter(v => !choices.includes(v));
     return `<div class="heq-block"><p class="lbl">${title}</p><p class="hint">${hint}</p>
       <div class="heq-grid">${[...choices, ...own].sort((a, b) => a - b).map(v =>
-        chip((h[k] || []).includes(v), 'heq-w', `data-k="${k}" data-v="${v}"`, `${fmtNum(v)}`)).join('')}</div>
+        chip((h[k] || []).includes(v), 'heq-w', `data-k="${k}" data-v="${v}"`, `${fmtNum(unitLb() ? Math.round(v / LB_KG * 10) / 10 : v)}`)).join('')}</div>
       <div class="heq-add"><input class="inp kg" type="text" inputmode="decimal" autocomplete="off" data-field="heq-${k}" placeholder="kg">
         <button class="btn" data-action="heq-add" data-k="${k}">+ anderes Gewicht</button>
         ${(h[k] || []).length ? `<button class="btn" data-action="heq-clear" data-k="${k}">Keine</button>` : ''}</div></div>`;
@@ -1823,9 +1829,9 @@ Object.assign(actions, {
   'heq-add': el => {
     const h = homeData(), k = el.dataset.k;
     const inp = document.querySelector(`[data-field="heq-${k}"]`);
-    const v = parseNum(inp && inp.value);
+    const v0 = parseNum(inp && inp.value), v = v0 == null ? null : uK(v0);  // v303: bei lb Eingabe in lb
     if (v == null || v <= 0 || v > 100) { alert('Bitte ein Gewicht zwischen 0,5 und 100 kg eintragen.'); return; }
-    const r = Math.round(v * 4) / 4;
+    const r = unitLb() ? lbKg(Math.round(v0 * 2) / 2) : Math.round(v * 4) / 4;
     if (!h[k].includes(r)) h[k] = [...h[k], r].sort((a, b) => a - b);
     if (wiz) wiz.picks = {};
     saveData(); render();
