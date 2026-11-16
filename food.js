@@ -551,10 +551,21 @@ const BLS_GROUP_TAGS = { B: 'brot', C: 'getreide', D: 'kuchen gebäck', E: 'nude
   H: 'hülsenfrüchte nüsse', K: 'kartoffeln pilze', M: 'milchprodukte', N: 'getränke', P: 'alkohol', Q: 'fett öl',
   R: 'gewürze', S: 'süßigkeiten', T: 'fisch', U: 'fleisch', V: 'fleisch geflügel', W: 'wurst aufschnitt', X: 'gericht', Y: 'gericht' };
 let foodBls = null;
+// v306: bls.js steht nicht mehr in index.html, sondern wird nach dem Start nachgeladen (schnellerer Start).
+// Wird die Liste vorher gebraucht, kommt sie leer zurück; sobald die Datei da ist, wird neu gezeichnet.
+let blsWanted = false;
+function blsEnsure() {
+  if (typeof BLS_DATA === 'string') return Promise.resolve();
+  return loadScript(i18nSrc('bls.js')).then(() => {
+    foodBls = null;
+    if (typeof i18nFoodReg === 'function' && typeof FOOD_EN !== 'undefined') i18nFoodReg();  // englische BLS-Namen
+    if (blsWanted && typeof render === 'function') { blsWanted = false; try { render(); } catch (e) { /* nichts */ } }
+  }).catch(() => { /* offline und nicht im Cache: beim nächsten Bedarf neu versuchen */ });
+}
 function foodBlsList() {
   if (foodBls) return foodBls;
+  if (typeof BLS_DATA !== 'string') { blsWanted = true; blsEnsure(); return { list: [], map: new Map() }; }
   foodBls = { list: [], map: new Map() };
-  if (typeof BLS_DATA !== 'string') return foodBls;
   for (const line of BLS_DATA.split('\n')) {
     const [code, name, kcal, p, c, f, fib, sug] = line.split('|');
     if (!name) continue;

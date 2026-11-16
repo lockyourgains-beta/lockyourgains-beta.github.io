@@ -1088,7 +1088,7 @@ function avgTankText(en) {
   const t = idx.reduce((a, i) => a + rirAt(en.target, i), 0) / idx.length;  // Ziel dieser Sätze (v199: je Satz)
   const verdict = Math.abs(avg - t) <= 0.5 ? '✔ im Ziel' : avg > t ? 'leichter als geplant' : 'schwerer als geplant';
   const goal = en.target.rirSplit && !en.target.deload ? fmtNum(Math.round(t * 10) / 10) : targetRirText(en.target);
-  return `Ø Tank bisher: <b>${fmtNum(avg)}</b> (Ziel ${goal}). ${verdict}`;
+  return `Ø Tank bisher: <b>${fmtNum(avg)}</b> (Ziel ${goal}), ${verdict}`;  // v306: Komma statt Punkt (Rest klein geschrieben)
 }
 
 // Bezug ist immer der letzte erledigte Satz derselben Ausführungsvariante.
@@ -3211,7 +3211,7 @@ function trHeadHtml() {
   const pct = all ? Math.round(done / all * 100) : 0;
   const where = cur < 0 ? 'Alles erledigt ✓' : `Übung ${cur + 1} von ${draft.entries.length}`;
   return `<div class="trh-row">
-      <button class="trh-where" data-action="tr-jump">${where}<span> | ${done} von ${all} Sätzen</span></button>
+      <button class="trh-where" data-action="tr-jump">${where}<span> | ${done}/${all} Sätze</span></button>
       <span class="trh-time">⏱ <b id="tr-timer">${fmtClock(Date.now() - Date.parse(draft.date))}</b></span>
       <button class="trh-menu-btn" data-action="tr-menu" aria-label="Mehr" aria-expanded="${trMenuOpen}">⋯</button>
     </div>
@@ -6652,6 +6652,11 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 306, date: '2026-11-16', items: [
+    ['Die App startet schneller: Englische Texte und die Lebensmittel-Datenbank werden erst geladen, wenn sie gebraucht werden.'],
+    ['Kraftraum und Logbuch sind jetzt auch dunkel leicht in deiner Farbwelt getönt.'],
+    ['Im Training steht oben kürzer „2/17 Sätze“, damit nichts mehr abgeschnitten wird.'],
+  ] },
   { v: 305, date: '2026-11-16', items: [
     ['Ernährungstagebuch: Bei Kalorien und Makros steht jetzt direkt, wie viel bis zum Tagesziel noch fehlt oder wie viel du drüber bist. Bei Vitaminen und Mineralstoffen genauso im Vergleich zum Richtwert.'],
   ] },
@@ -9659,7 +9664,7 @@ function applyTheme() {
   const LOOK_BG = { plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], sheet: ['#f8f9fa', '#1f1f1f'] };
   let [light, dark] = LOOK_BG[currentLook()] || PROFILE_COLORS[profileColor()].bg;  // Schlicht und die neuen Designs (v234): neutral
   // v289: Kraftraum und Logbuch hell in der Farbwelt getönt (außer Blau und Beere), wie im Stylesheet
-  if ((currentLook() === 'kraft' || currentLook() === 'log') && !['blue', 'berry'].includes(profileColor())) light = PROFILE_COLORS[profileColor()].bg[0];
+  if ((currentLook() === 'kraft' || currentLook() === 'log') && !['blue', 'berry'].includes(profileColor())) [light, dark] = PROFILE_COLORS[profileColor()].bg;  // v306: auch dunkel
   document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
     const isDark = /dark/.test(m.getAttribute('media') || '');
     m.setAttribute('content', mode === 'dark' ? dark : mode === 'light' ? light : isDark ? dark : light);
@@ -10427,6 +10432,10 @@ actions['welcome-import'] = () => {
 async function boot() {
   channelInit();
   await storeInit();  // Daten aus IndexedDB (bzw. Umzug dorthin) – erst danach zeichnen
+  // v306: das englische Wörterbuch (700 KB) nur auf Englisch laden – vor dem ersten Übersetzen und Zeichnen
+  if (i18nLang() === 'en' && !i18nEnReady()) {
+    try { await loadScript(i18nSrc('lang-en.js')); } catch (e) { /* ohne Wörterbuch bleibt es deutsch */ }
+  }
   i18nInit();  // v273: Sprache (gespeichert, sonst bisherige Nutzer Deutsch, neue nach Handysprache)
   applyTheme();
   registerCustomExercises();  // Übungsliste und Bibliothek um eigene Übungen ergänzen (library.js ist jetzt geladen)
@@ -10435,6 +10444,7 @@ async function boot() {
   whatsNewInit();  // v204: „Was ist neu“ – neue Nutzer ohne Karte, bisherige ab v197
   render();
   showWelcome();
+  setTimeout(blsEnsure, 300);  // v306: Lebensmittel-Datenbank (470 KB) nach dem Start im Hintergrund laden
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else setTimeout(boot);

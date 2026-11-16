@@ -21,6 +21,9 @@ const PORTION_EN = { Apfel: ['apple', 'apples'], Aubergine: ['aubergine', 'auber
 const RX_LEVEL = { Fan: 'fan', Profi: 'pro', Meister: 'master', Legende: 'legend', Ikone: 'icon' };
 I18N_RX.en.push(
   [/^Neuer Erfolg: (.+)$/, m => `New achievement: ${tr(m[1])}`],
+  // v306: Ø Tank im Training („(Ziel mind. 3), schwerer als geplant“)
+  [/^\(Ziel (mind\. )?(.+?)\), (✔ im Ziel|leichter als geplant|schwerer als geplant)$/, m =>
+    `(target ${m[1] ? 'at least ' : ''}${m[2]}), ${{ '✔ im Ziel': '✔ on target', 'leichter als geplant': 'easier than planned', 'schwerer als geplant': 'harder than planned' }[m[3]]}`],
   [/^Neue Bestleistung bei (.+?) und (\d+) weiteren Übungen?\. Richtig gut\.$/, m => `New personal best in ${tr(m[1])} and ${m[2]} more exercise${m[2] === '1' ? '' : 's'}. Really good.`],
   [/^Neue Bestleistung bei (.+?)\. Richtig gut\.$/, m => `New personal best in ${tr(m[1])}. Really good.`],
   [/^(\d+) Trainings mit (.+)$/, m => `${m[1]} workouts with ${tr(m[2])}`],
@@ -1345,6 +1348,7 @@ Object.assign(I18N.en, {
 "Die App malt aus deinem Training ein Bild für Story oder Status, ohne Körpergewicht und Gesundheitsdaten.": "The app creates an image of your workout for a story or status, without body weight or health data.",
 "Die App rechnet die Werte nur mit. Ob und wie viel du ergänzen solltest, klärst du am besten ärztlich.": "The app only adds up the values. Whether and how much you should supplement is best clarified with a doctor.",
 "Die App senkt die Ziele heute etwas.": "The app lowers the targets a little today.",
+"Die App startet schneller: Englische Texte und die Lebensmittel-Datenbank werden erst geladen, wenn sie gebraucht werden.": "The app starts faster: English texts and the food database are only loaded when they are needed.",
 "Die App steigert hier nicht selbst. Im Training stehen deine Werte vom letzten Mal. Das Prinzip gilt trotzdem: Steigere selbst, z. B. erst die Wiederholungen bis zum oberen Ende deines Bereichs und dann das Gewicht um eine kleine Stufe.": "The app does not progress on its own here. The workout shows your values from last time. The principle still applies: progress yourself, e.g. first the reps up to the top of your range and then the weight by one small step.",
 "Die App wird über <b>GitHub Pages</b> ausgeliefert (GitHub Inc., USA). Beim Laden verarbeitet GitHub technisch notwendige Angaben wie deine IP-Adresse, Zeitpunkt und Browser, um die Seite auszuliefern und vor Angriffen zu schützen. Dabei können Daten in die USA übertragen werden. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren Bereitstellung (Art. {0} Abs. {1} lit. f DSGVO). Mehr dazu: <a href=\"https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement\" target=\"_blank\" rel=\"noopener\">Datenschutzerklärung von GitHub</a>.": "The app is delivered via <b>GitHub Pages</b> (GitHub Inc., USA). When loading, GitHub processes technically necessary information such as your IP address, time and browser in order to deliver the page and protect it against attacks. Data may be transferred to the USA in the process. The legal basis is our legitimate interest in secure provision (Art. {0}({1})(f) GDPR). More on this: <a href=\"https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement\" target=\"_blank\" rel=\"noopener\">GitHub privacy statement</a>.",
 "Die Bereiche der App": "The areas of the app",
@@ -2543,6 +2547,7 @@ Object.assign(I18N.en, {
 "Im Training kannst du zwei Übungen spontan zum Supersatz koppeln: bei der Übung „Anpassen“ → „🔗 Supersatz“. Das gilt nur für dieses Training, dein Plan bleibt unverändert.": "In a workout you can spontaneously pair two exercises as a superset: on the exercise “Adjust” → “🔗 Superset”. This applies to this workout only, your plan stays unchanged.",
 "Im Training kannst du zwei Übungen spontan zum Supersatz koppeln: bei der Übung „Anpassen“ → „🔗 Supersatz“. Du wählst, ob das nur für heute gilt oder dauerhaft im Plan.": "In a workout you can spontaneously pair two exercises as a superset: on the exercise “Adjust” → “🔗 Superset”. You choose whether it applies today only or permanently in the plan.",
 "Im Training steht der Hinweis zur Vorermüdung jetzt unter „Anpassen“ und nicht mehr immer sichtbar bei der Übung.": "In a workout, the pre-fatigue note is now under “Adjust” instead of always being visible on the exercise.",
+"Im Training steht oben kürzer „{0} Sätze“, damit nichts mehr abgeschnitten wird.": "During training the top line now reads “{0} sets”, so nothing gets cut off.",
 "Im gleichen Bogen wieder zusammenführen.": "Bring together again in the same arc.",
 "Im gleichen Bogen zurück über die Brust.": "Back over the chest in the same arc.",
 "Im neuen Zyklus bleibt in jedem Satz {0} Wdh. mehr im Tank.": "In the new cycle, {0} more rep stays in the tank in every set.",
@@ -2891,6 +2896,7 @@ Object.assign(I18N.en, {
 "Kraft und Muskeln": "Strength and muscle",
 "Kraftprotz": "Powerhouse",
 "Kraftraum": "Weight room",
+"Kraftraum und Logbuch sind jetzt auch dunkel leicht in deiner Farbwelt getönt.": "Weight room and Logbook are now lightly tinted in your colour theme in dark mode too.",
 "Kraftraum und Logbuch: Im hellen Modus ist der Hintergrund jetzt wie bei „Standard“ leicht in deiner Farbwelt getönt.": "Weight room and Logbook: in light mode the background is now slightly tinted in your colour theme, like in “Standard”.",
 "Kraftvoll aufstehen.": "Stand up powerfully.",
 "Kraftvoll hochdrücken und den Schwung nutzen, um das Gewicht über den Kopf zu drücken.": "Press up powerfully and use the momentum to push the weight overhead.",
@@ -5420,6 +5426,7 @@ Object.assign(I18N.en, {
 "{0} Schritte an einem Tag": "{0} steps in one day",
 "{0} Schritte insgesamt": "{0} steps in total",
 "{0} Stück": "{0} piece",
+"{0} Sätze": "{0} sets",
 "{0} Tag mit Einträgen": "{0} day with entries",
 "{0} Tag mit Einträgen | Ø <b>{1} kcal</b>": "{0} day with entries | Ø <b>{1} kcal</b>",
 "{0} Tag ohne Eintrag": "{0} day without an entry",
@@ -5619,6 +5626,7 @@ Object.assign(I18N.en, {
 "| Ziel {0} ✓ geschafft": "| Goal {0} ✓ achieved",
 "| Zyklus {0} Tage": "| Cycle {0} days",
 "| aktueller Zyklus": "| current cycle",
+"| {0} Sätze": "| {0} sets",
 "| {0} Trainings": "| {0} workouts",
 "| {0} von {1} Sätzen": "| {0} of {1} sets",
 "© Rechte & Quellen": "© Rights & sources",

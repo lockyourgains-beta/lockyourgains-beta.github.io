@@ -259,19 +259,28 @@ const i18nObs = typeof MutationObserver === 'function' ? new MutationObserver(mu
 }) : null;
 
 // Sprache festlegen: gespeicherte Wahl, sonst bestehende Nutzer Deutsch, neue Nutzer nach Handysprache
-function i18nInit() {
+function i18nLang() {
   const p = (typeof data !== 'undefined' && data && data.profile) || {};
   const has = typeof data !== 'undefined' && data && ((data.sessions || []).length || (data.plans || []).length);
   LANG = LANGS[p.lang] ? p.lang : has ? 'de' : /^de\b/i.test(navigator.language || 'de') ? 'de' : 'en';
+  return LANG;
+}
+function i18nInit() {
+  i18nLang();
   document.documentElement.lang = LANG;
   // v279: englische Lebensmittelnamen (groß) nur laden, wenn Englisch eingestellt ist
   if (LANG === 'en' && !document.querySelector('script[data-food-en]')) {
-    const me = document.querySelector('script[src*="i18n.js"]');  // gleicher Ordner wie i18n.js
-    const sc = document.createElement('script'); sc.src = me ? me.src.replace(/i18n\.js.*$/, 'food-en.js') : 'food-en.js'; sc.dataset.foodEn = '1'; document.head.appendChild(sc);
+    const sc = document.createElement('script'); sc.src = i18nSrc('food-en.js'); sc.dataset.foodEn = '1'; document.head.appendChild(sc);
   }
   i18nApply(document.body);
   if (i18nObs) i18nObs.observe(document.body, { childList: true, subtree: true, characterData: true });
 }
+// Datei im gleichen Ordner wie i18n.js (v306: lang-en.js wird nur noch auf Englisch geladen, siehe boot in app.js)
+function i18nSrc(f) {
+  const me = document.querySelector('script[src*="i18n.js"]');
+  return me ? me.src.replace(/i18n\.js.*$/, f) : f;
+}
+const i18nEnReady = () => Object.keys(I18N.en).length > 0;
 // Sprache wechseln: speichern und neu laden (alle Texte und Formate frisch)
 function i18nSet(l) {
   if (!LANGS[l]) return;

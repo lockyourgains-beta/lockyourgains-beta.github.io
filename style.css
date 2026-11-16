@@ -3269,17 +3269,18 @@ p.cali-tr { margin: -4px 0 8px; font-size: 14px; }
 :is([data-look="kraft"], [data-look="log"], [data-look="bw"], [data-look="sheet"]) :is(.ex-card.tint-0, .ex-card.tint-1, .ex-card.tint-2, .ex-card.tint-3) { background: var(--card); }
 
 /* v289 (User-Wunsch): Kraftraum und Logbuch hell wie „Standard“ leicht in der Farbwelt getönt (Werte der Farbwelt, :root[data-accent]).
-   Neutral bleiben nur Blau und Beere (dort ist auch „Standard“ neutral) sowie Schlicht, Schwarzweiß und Puristen; dunkel bleibt neutral. */
+   Neutral bleiben nur Blau und Beere (dort ist auch „Standard“ neutral) sowie Schlicht, Schwarzweiß und Puristen.
+   v306 (User-Wunsch): auch dunkel getönt wie „Standard“; die neutralen Dunkel-Werte gelten nur noch für Blau und Beere. */
 [data-look="kraft"] body { --shadow: 0 1px 0 var(--line-strong); }
 [data-look="log"] body { --card: var(--bg); --shadow: none; }
 :is([data-accent="blue"], [data-accent="berry"])[data-look="kraft"] body { --bg: #eceef0; --card: #ffffff; --fill: #eef0f2; --input: #f4f5f6; --line-strong: #d6d9dd; --shadow: 0 1px 0 #d6d9dd; --bar: rgba(236, 238, 240, .88); }
 :is([data-accent="blue"], [data-accent="berry"])[data-look="log"] body { --bg: #fbfbfa; --card: #fbfbfa; --fill: #f0f1ee; --input: #f3f4f1; --line-strong: #dcdfdb; --shadow: none; --bar: rgba(251, 251, 250, .9); }
 @media (prefers-color-scheme: dark) {
-  :root[data-look="kraft"]:not([data-theme="light"]) body { --bg: #141517; --card: #1e2023; --fill: #272a2e; --input: #23262a; --line-strong: #33363b; --shadow: 0 1px 0 #2c2f33; --bar: rgba(20, 21, 23, .88); }
-  :root[data-look="log"]:not([data-theme="light"]) body { --bg: #121413; --card: #121413; --fill: #1f2220; --input: #1b1e1c; --line-strong: #2d312e; --bar: rgba(18, 20, 19, .9); }
+  :root:is([data-accent="blue"], [data-accent="berry"])[data-look="kraft"]:not([data-theme="light"]) body { --bg: #141517; --card: #1e2023; --fill: #272a2e; --input: #23262a; --line-strong: #33363b; --shadow: 0 1px 0 #2c2f33; --bar: rgba(20, 21, 23, .88); }
+  :root:is([data-accent="blue"], [data-accent="berry"])[data-look="log"]:not([data-theme="light"]) body { --bg: #121413; --card: #121413; --fill: #1f2220; --input: #1b1e1c; --line-strong: #2d312e; --bar: rgba(18, 20, 19, .9); }
 }
-:root[data-look="kraft"][data-theme="dark"] body { --bg: #141517; --card: #1e2023; --fill: #272a2e; --input: #23262a; --line-strong: #33363b; --shadow: 0 1px 0 #2c2f33; --bar: rgba(20, 21, 23, .88); }
-:root[data-look="log"][data-theme="dark"] body { --bg: #121413; --card: #121413; --fill: #1f2220; --input: #1b1e1c; --line-strong: #2d312e; --bar: rgba(18, 20, 19, .9); }
+:root:is([data-accent="blue"], [data-accent="berry"])[data-look="kraft"][data-theme="dark"] body { --bg: #141517; --card: #1e2023; --fill: #272a2e; --input: #23262a; --line-strong: #33363b; --shadow: 0 1px 0 #2c2f33; --bar: rgba(20, 21, 23, .88); }
+:root:is([data-accent="blue"], [data-accent="berry"])[data-look="log"][data-theme="dark"] body { --bg: #121413; --card: #121413; --fill: #1f2220; --input: #1b1e1c; --line-strong: #2d312e; --bar: rgba(18, 20, 19, .9); }
 
 /* Kraftraum: kantiger, kleine Rundungen, kaum Schatten */
 :root[data-look="kraft"] { --radius: 10px !important; }
