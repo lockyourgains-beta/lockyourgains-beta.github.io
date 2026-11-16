@@ -6652,6 +6652,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 305, date: '2026-11-16', items: [
+    ['Ernährungstagebuch: Bei Kalorien und Makros steht jetzt direkt, wie viel bis zum Tagesziel noch fehlt oder wie viel du drüber bist. Bei Vitaminen und Mineralstoffen genauso im Vergleich zum Richtwert.'],
+  ] },
   { v: 304, date: '2026-11-16', items: [
     ['Stil „Standard“ ruhiger: Knöpfe und Karten in einer klaren Farbe statt Farbverlauf, ohne Leuchtschatten, etwas leichtere Schrift bei großen Zahlen.'],
   ] },

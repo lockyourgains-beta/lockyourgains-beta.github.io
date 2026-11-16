@@ -3803,3 +3803,9 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 :root:not([data-look]) .cc-val b,
 :root:not([data-look]) .trh-rest-t b,
 :root:not([data-look]) .ss-title { font-weight: 700; }
+
+/* v305: Saldo im Ernährungstagebuch (noch … / … drüber) */
+.fe-left { display: block; margin-top: 1px; font-style: normal; font-size: 12.5px; color: var(--muted); }
+.fe-left.over, .mic-left.over { color: var(--warn-text); }
+.fe-kleft { margin: 2px 0 0; text-align: right; font-size: 14px; }
+.fe-kleft .fe-left { display: inline; font-size: 14px; }

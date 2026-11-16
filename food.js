@@ -750,8 +750,15 @@ function foodEatenHtml(date, c) {
   const hints = nutHintsOn();
   const ok = (val, goal, tol, lo) => hints && goal && val != null && (lo != null ? val >= lo : Math.abs(val / goal - 1) <= tol);
   const pct = (a, b) => b ? Math.min(100, Math.round((a || 0) / b * 100)) : 0;
+  // v305 (User-Wunsch): Saldo je Spalte – wie viel bis zum Tagesziel fehlt bzw. wie viel man drüber ist
+  const bal = (val, target, unit, tol, fmt) => {
+    if (!target) return '';
+    const d = Math.round(target - (val || 0));
+    const over = d < 0 && tol != null && -d > target * tol;
+    return `<em class="fe-left${over ? ' over' : ''}">${d > 0 ? `noch ${fmt(d)} ${unit}` : d < 0 ? `${fmt(-d)} ${unit} drüber` : 'genau erreicht'}</em>`;
+  };
   const tile = (k, label, val, goal, tol, lo = null) => `<div class="nut-macro ${k} fe-tile"><span>${label}</span>
-      <b>${val != null ? deNum(Math.round(val)) : '–'} g</b><small>von ${lo != null ? `${deNum(lo)}+` : deNum(goal)} g${ok(val, goal, tol, lo) ? ' ✓' : ''}</small>
+      <b>${val != null ? deNum(Math.round(val)) : '–'} g</b><small>von ${lo != null ? `${deNum(lo)}+` : deNum(goal)} g${ok(val, goal, tol, lo) ? ' ✓' : ''}${bal(val, lo != null ? lo : goal, 'g', lo != null ? null : tol, deNum)}</small>
       <i class="fe-bar" aria-hidden="true"><i style="width:${pct(val, lo != null ? lo : goal)}%"></i></i></div>`;
   const all = feat('nut-macros');
   const tiles = [tile('p', 'Eiweiß', v.p, c.protein, 0, c.pLo)].concat(all ? [tile('f', 'Fett', v.f, c.fat, 0.25), tile('c', 'Kohlenhydrate', v.c, c.carbs, 0.25)] : []);
@@ -767,6 +774,7 @@ function foodEatenHtml(date, c) {
     <div class="nut-kcal-row fe-kcal"><b class="nut-kcal">${nutKcal(v.kcal || 0)} / ${edit
       ? `<button class="fe-goal-num" data-action="fe-goal-toggle" aria-label="Tagesziel ${goal} anpassen">${goal}<small aria-hidden="true">✎</small></button>` : goal}</b></div>
     <div class="fe-kbar" aria-hidden="true"><div style="width:${pct(v.kcal, c.kcal)}%"></div></div>
+    <p class="fe-kleft">${bal(v.kcal, c.kcal, 'kcal', 0.1, nutKcal)}</p>
     <div class="nut-macros${all ? '' : ' one'}">${tiles.join('')}</div>${split}${src}`;
 }
 

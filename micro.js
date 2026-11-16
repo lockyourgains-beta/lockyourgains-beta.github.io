@@ -166,6 +166,20 @@ function microRefText(r, u) {
   if (r.lo != null) return `Richtwert ${microFmt(r.lo)}–${microFmt(r.hi)} ${u}`;
   return `Richtwert ${microFmt(r.v)} ${u}`;
 }
+// v305 (User-Wunsch): Saldo zum Richtwert. Ein Tag: „noch …“ / „… drüber“; 7 Tage: Ø unter / über dem Richtwert
+function microBal(v, r, u) {
+  if (!r) return '';
+  const day = microRange === 'day';
+  const lo = r.v != null ? r.v : r.lo, hi = r.v != null ? r.v : r.max != null ? r.max : r.hi;
+  let t = '';
+  if (lo != null && v < lo) t = day ? `noch ${microFmt(lo - v)} ${u}` : `Ø ${microFmt(lo - v)} ${u} darunter`;
+  else if (hi != null && v > hi) t = day ? `${microFmt(v - hi)} ${u} drüber` : `Ø ${microFmt(v - hi)} ${u} drüber`;
+  else if (r.lo != null) t = 'im Bereich';
+  else if (r.max != null) return '';
+  else t = 'erreicht';
+  const bad = r.max != null && v > r.max;
+  return ` | <span class="mic-left${bad ? ' over' : ''}">${t}</span>`;
+}
 function microRow(k, s, c) {
   const [, label, u] = MICRO_MAP.get(k);
   const n = Math.max(1, s.days);
@@ -180,7 +194,7 @@ function microRow(k, s, c) {
       <summary><span class="mic-name">${label}${gap ? ' <small class="mic-gap">lückenhaft</small>' : ''}</span>
         <b class="mic-val">${microFmt(v)} ${u}</b>
         ${pct != null ? `<span class="mic-bar${r.max != null ? ' max' : ''}"><i style="width:${Math.min(100, Math.round(pct))}%"></i></span>` : ''}
-        <small class="mic-ref">${microRefText(r, u)}${pct != null && r.max == null ? ` | ${Math.round(pct)} %` : ''}</small></summary>
+        <small class="mic-ref">${microRefText(r, u)}${pct != null && r.max == null ? ` | ${Math.round(pct)} %` : ''}${microBal(v, r, u)}</small></summary>
       <div class="mic-info"><p>${MICRO_INFO[k]}</p>
         ${top.length ? `<p class="hint nut-small"><b>Bei dir vor allem aus:</b> ${top.map(([nm, x]) => `${esc(i18nFull(nm) || nm)} (${microFmt(x / n)} ${u})`).join(' | ')}</p>` : ''}
         ${gap ? `<p class="hint nut-small">Für ${Math.round((1 - s.kc[k] / s.kcal) * 100)} % deiner Kalorien kennt die App diesen Wert nicht (z. B. gescannte Produkte), die Zahl ist eher zu niedrig.</p>` : ''}
