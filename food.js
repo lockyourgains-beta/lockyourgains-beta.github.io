@@ -1043,8 +1043,15 @@ function foodResults() {
   } else if (on.status === 'loading') {
     h += '<p class="hint">Suche läuft …</p>';
   } else if (on.status === 'error') {
-    h += `<p class="hint">Open Food Facts ist gerade nicht erreichbar. Prüfe die Internetverbindung oder versuch es gleich noch einmal.</p>
-      <button class="btn outline" data-action="food-online">Nochmal versuchen</button>`;
+    // v325: Meist liegt es nicht am Handy: Die Namenssuche von Open Food Facts ist gestört, die Barcode-Abfrage geht trotzdem
+    h += navigator.onLine === false
+      ? `<p class="hint">Du bist gerade offline. Die Online-Suche braucht Internet.</p>
+        <button class="btn outline" data-action="food-online">Nochmal versuchen</button>`
+      : `<p class="hint">Die Namenssuche von Open Food Facts ist gerade gestört. Das liegt nicht an deinem Internet. Mit dem Barcode
+          findest du das Produkt trotzdem: scannen oder die Nummer unter dem Strichcode eintippen.</p>
+        <div class="row"><button class="btn" data-action="food-scan">📷 Barcode scannen</button>
+          <button class="btn" data-action="scan-type">🔢 Nummer eintippen</button></div>
+        <button class="btn outline" data-action="food-online">Suche nochmal versuchen</button>`;
   } else {
     h += on.hits.length ? on.hits.map(foodHit).join('') : '<p class="hint">Online nichts gefunden. Leg das Lebensmittel einfach selbst an.</p>';
   }
@@ -1112,14 +1119,35 @@ function offFood(p) {
 }
 const offUsable = f => f.name && f.per[0] != null;
 
+// v325: Die alte Suche (cgi/search.pl) antwortet im Nov. 2026 etwa jedes zweite Mal mit 503 (dann aber schnell) – daher
+// bis zu 6 Versuche im Wechsel deutsch/international mit kurzer Pause. Die neue Suche (search.openfoodfacts.org) erlaubt
+// noch keine Abfragen aus dem Browser (kein CORS): einmal je Sitzung probieren, damit es von selbst klappt, sobald sie freigegeben ist.
+let offNewSearchDead = false;
+async function offSearch(q) {
+  if (!offNewSearchDead) {
+    try {
+      const j = await offFetchUrl(`https://search.openfoodfacts.org/search?q=${encodeURIComponent(q + ' countries_tags:"en:germany"')}`
+        + `&langs=de&page_size=25&fields=${OFF_FIELDS}`);
+      if (j && Array.isArray(j.hits)) return j.hits;
+    } catch (e) { offNewSearchDead = true; }
+  }
+  const path = '/cgi/search.pl?search_simple=1&action=process&json=1&page_size=25'
+    + '&sort_by=unique_scans_n&tagtype_0=countries&tag_contains_0=contains&tag_0=en:germany'
+    + `&search_terms=${encodeURIComponent(q)}&fields=${OFF_FIELDS}`;
+  const hosts = ['https://de.openfoodfacts.org', 'https://world.openfoodfacts.org'];
+  let err;
+  for (let i = 0; i < 6; i++) {
+    if (i) await new Promise(r => setTimeout(r, 300 * i));
+    try { return (await offFetchUrl(hosts[i % 2] + path)).products || []; } catch (e) { err = e; }
+  }
+  throw err;
+}
+
 async function foodSearchOnline(q) {
   foodOnline = { q, status: 'loading', hits: [] };
   foodRefresh();
   try {
-    const j = await offFetch('/cgi/search.pl?search_simple=1&action=process&json=1&page_size=25'
-      + '&sort_by=unique_scans_n&tagtype_0=countries&tag_contains_0=contains&tag_0=en:germany'
-      + `&search_terms=${encodeURIComponent(q)}&fields=${OFF_FIELDS}`);
-    const hits = (j.products || []).map(offFood).filter(offUsable);
+    const hits = (await offSearch(q)).map(offFood).filter(offUsable);
     hits.forEach(f => { if (!data.foods[f.key]) foodCache.set(f.key, f); });
     if (foodOnline && foodOnline.q === q) foodOnline = { q, status: 'done', hits: hits.map(f => foodGet(f.key) || f) };
   } catch (e) {
@@ -1129,7 +1157,7 @@ async function foodSearchOnline(q) {
 }
 
 // Barcode: erst bei den gemerkten Lebensmitteln, dann in Open Food Facts nachschlagen
-async function foodByCode(code) {
+async function foodByCode(code, scanned = false) {
   code = String(code).replace(/\D/g, '');
   if (!code) return;
   const p = { date: current.params.date, meal: current.params.meal };
@@ -1150,9 +1178,10 @@ async function foodByCode(code) {
     go('foodamt', { ...p, key: f.key });
     return;
   }
-  alert(f ? `„${f.name || 'Dieses Produkt'}“ ist in Open Food Facts ohne Nährwerte eingetragen.`
+  const num = scanned ? `\n\nGescannte Nummer: ${code}. Stimmt sie nicht mit der Nummer unter dem Strichcode überein, tipp die Nummer lieber ein.` : '';
+  alert((f ? `„${f.name || 'Dieses Produkt'}“ ist in Open Food Facts ohne Nährwerte eingetragen.`
     + '\n\nTrag die Werte einfach von der Verpackung ab (pro 100 g). Beim nächsten Scan kennt die App das Produkt.'
-    : 'Dieses Produkt ist in Open Food Facts noch nicht eingetragen.\n\nTrag die Nährwerte einfach von der Verpackung ab (pro 100 g). Beim nächsten Scan kennt die App das Produkt.');
+    : 'Dieses Produkt ist in Open Food Facts noch nicht eingetragen.\n\nTrag die Nährwerte einfach von der Verpackung ab (pro 100 g). Beim nächsten Scan kennt die App das Produkt.') + num);
   foodForm = foodFormFrom(f ? { ...f, key: null, per: f.per.map(v => v || null) } : { name: '', brand: '', per: [], code });
   go('foodown', p);
 }
@@ -1184,7 +1213,7 @@ function foodScanDone(code) {
   foodScanClose();
   const to = foodScanTarget || foodByCode;
   foodScanTarget = null;
-  to(code);
+  to(code, true);
 }
 
 async function foodCodePrompt() {
@@ -1195,20 +1224,35 @@ async function foodCodePrompt() {
   else if (code) alert('Bitte die ganze Nummer eintippen (meist 13 Ziffern).');
 }
 
+// v325: Autofokus und (bei Handys mit mehreren Kameras) etwas Zoom, damit man nicht zu nah ran muss – nur wo das Handy es kann
+function scanTune(stream) {
+  const track = stream && stream.getVideoTracks && stream.getVideoTracks()[0];
+  if (!track || typeof track.getCapabilities !== 'function') return;
+  let cap = {};
+  try { cap = track.getCapabilities() || {}; } catch (e) { return; }
+  const adv = {};
+  if (Array.isArray(cap.focusMode) && cap.focusMode.includes('continuous')) adv.focusMode = 'continuous';
+  if (cap.zoom && cap.zoom.max >= 2) adv.zoom = Math.max(cap.zoom.min || 1, 2);
+  if (Object.keys(adv).length) track.applyConstraints({ advanced: [adv] }).catch(() => {});
+}
+
 async function foodScanStart() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { foodCodePrompt(); return; }
   document.body.insertAdjacentHTML('beforeend', `<div class="scan" id="scan">
       <video playsinline muted autoplay></video><div class="scan-frame"></div>
-      <p class="scan-msg">Barcode in den Rahmen halten</p>
+      <p class="scan-msg">Barcode in den Rahmen halten, etwa 15 bis 20 cm Abstand</p>
       <div class="scan-btns"><button class="btn" data-action="scan-type">Nummer eintippen</button>
         <button class="btn" data-action="scan-close">Abbrechen</button></div></div>`);
   const video = document.querySelector('#scan video');
   const scan = foodScan = { stop: () => {} };
   const formats = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
+  // v325: höhere Auflösung statt der üblichen 640 × 480 – kleine Barcodes werden sonst unscharf erkannt
+  const cam = (w, h) => ({ video: { facingMode: { ideal: 'environment' }, width: { ideal: w }, height: { ideal: h } } });
   try {
     // Android/Chrome: eingebaute Erkennung; iPhone/Safari: Bibliothek ZXing (wird erst hier geladen)
     if ('BarcodeDetector' in window && (await BarcodeDetector.getSupportedFormats()).includes('ean_13')) {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia(cam(1920, 1080));
+      scanTune(stream);
       let on = true;
       scan.stop = () => { on = false; stream.getTracks().forEach(t => t.stop()); };
       if (foodScan !== scan) { scan.stop(); return; }
@@ -1227,10 +1271,18 @@ async function foodScanStart() {
       const hints = new Map();
       hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,
         [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E]);
-      const reader = new ZXing.BrowserMultiFormatReader(hints, 200);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);  // v325: gründlicher suchen
+      const reader = new ZXing.BrowserMultiFormatReader(hints, 120);
       scan.stop = () => reader.reset();
-      await reader.decodeFromConstraints({ video: { facingMode: 'environment' } }, video, res => { if (res) foodScanDone(res.getText()); });
+      // v325: erst übernehmen, wenn zweimal hintereinander dieselbe Nummer gelesen wurde (ZXing verliest sich bei Unschärfe gelegentlich)
+      let lastCode = null;
+      await reader.decodeFromConstraints(cam(1280, 720), video, res => {
+        if (!res) return;
+        const c = res.getText();
+        if (c === lastCode) foodScanDone(c); else lastCode = c;
+      });
       if (foodScan !== scan) reader.reset();
+      else if (video.srcObject) scanTune(video.srcObject);
     }
   } catch (e) {
     const wasOpen = foodScan === scan;

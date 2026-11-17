@@ -6696,6 +6696,10 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 325, date: '2026-11-17', items: [
+    ['Barcode-Scanner: höhere Kameraauflösung, Autofokus und eine gründlichere Erkennung. Kleine oder leicht unscharfe Barcodes werden so besser gelesen. Findet die App ein gescanntes Produkt nicht, zeigt sie die gelesene Nummer zum Vergleich.'],
+    ['Online-Suche nach Namen: Die Suche von Open Food Facts ist zurzeit oft gestört. Die App versucht es jetzt mehrmals und findet so meist doch etwas. Klappt es gar nicht, sagt sie das klar und bietet direkt „Barcode scannen“ und „Nummer eintippen“ an. Das funktioniert auch dann.'],
+  ] },
   { v: 324, date: '2026-11-17', items: [
     ['Plan-Assistent: Die Stufe „🌱 Neuling“ gibt es jetzt auch im Modus Standard.'],
     ['Neulinge und Einsteiger bekommen die Frage „Niedrige und hohe Wiederholungen abwechseln?“ nicht mehr. Bei ihnen sind beide Bereiche für Grundübungen gleich, alle Tage laufen im selben Bereich.'],
