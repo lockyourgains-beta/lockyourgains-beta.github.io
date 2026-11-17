@@ -1267,6 +1267,8 @@ function nutTrendCard(n, c) {
 
 // Unterbrechung: Formular, laufende oder geplante
 let nutPauseForm = false;
+// v332 (User): Knopf „unterbrechen“ oben beim Ernährungsziel (vorher unter „Mehr“), mit Rückfrage
+const nutPauseOffer = n => !n.pause && !nutPauseForm && (n.phase !== 'minicut' || nutMinicutStage(n) === 'cut');
 function nutPauseCard(n) {
   const fmt = d => fmtDate(d + 'T12:00:00');
   if (nutPauseForm) {
@@ -1448,6 +1450,7 @@ function nutGoalCard2(n, c, ph, weekText) {
       <p class="hint nut-small explain nut-goal-explain">${nutGoalExplain(n, c)}</p>
       <div class="nut-actions nut-goal-btns">
         <button class="btn primary nut-goal-switch" data-action="nut-setup">🧭 Ernährungsziel wechseln</button>
+        ${nutPauseOffer(n) ? '<button class="btn outline nut-pause-btn" data-action="nut-pause-ask">⏸ Ernährungsziel unterbrechen</button>' : ''}
         ${typeof ppPlan === 'function' && !ppPlan(n) ? '<button class="btn outline pp-open" data-action="pp-open">📅 Ziel mit Enddatum planen</button>' : ''}
         <button class="link-btn" data-action="nut-edit">Angaben ändern (Alter, Gewicht, Aktivität, Tempo)</button></div>
     </div>`;
@@ -1502,15 +1505,14 @@ function renderNutrition() {
     h += `${typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanCard() : ''}
       ${typeof ppNoteHtml === 'function' ? ppNoteHtml(n) : ''}
       ${nutGoalCard2(n, c, ph, weekText)}
+      ${nutPauseCard(n)}
       ${typeof ppCardHtml === 'function' ? ppCardHtml(n) : ''}
       ${nutLowCard(n, nutForDay(c))}
-      ${nutPauseCard(n)}
       ${nutPhaseHint(n)}
       ${(bwDone = true) && bwBlock(nutProgressCard(n, c, kg))}
       ${nutTrainCard(n)}
       <div class="card nut-more-list"><h2>Mehr</h2>
         ${typeof nutPlanActive === 'function' && nutPlanActive() ? '' : NP_OPEN_BTN}
-        ${!n.pause && !nutPauseForm && (!stage || stage === 'cut') ? '<button class="btn nav" data-action="nut-pause-open">⏸ Ernährungsziel unterbrechen<small>Zum Beispiel im Urlaub: kein Tagesziel, keine Hinweise, die Werte zählen nicht</small></button>' : ''}
         ${typeof mcAvailable === 'function' && mcAvailable() && !mcOn()
           ? '<button class="btn nav" data-action="mc-onoff" data-v="1">🌸 Zykluskalender einschalten<small>Freiwillig: Periode eintragen, Phasen sehen, Wassertage beim Gewicht herausrechnen</small></button>' : ''}
         ${feat('nut-explain') ? nutExplain(n, c, kg).replace('class="card nut-help"', 'class="nut-help nut-more-row"') : ''}
@@ -1720,6 +1722,13 @@ Object.assign(actions, {
     render();
   },
   'nut-pause-open': () => { nutPauseForm = true; render(); },
+  'nut-pause-ask': () => {
+    if (!askOk('Ernährungsziel unterbrechen?\n\nZum Beispiel im Urlaub. In der Zeit gibt es kein Tagesziel und keine Hinweise, und was du einträgst oder wiegst, zählt nicht für die Kalorienvorschläge. Als Nächstes wählst du, ab wann und bis wann.')) return;
+    nutPauseForm = true;
+    render();
+    const f = $view.querySelector('.nut-pause');
+    if (f) f.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  },
   'nut-pause-cancel': () => { nutPauseForm = false; render(); },
   'nut-pause-save': () => {
     const n = data.nutrition;

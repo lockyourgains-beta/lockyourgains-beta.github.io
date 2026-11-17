@@ -26,22 +26,25 @@ const HX_DIVS = {
 };
 // Stationen in Wettkampf-Reihenfolge: [Schlüssel, Name, Strecke, Übung in der Bibliothek, Gewicht-Schlüssel]
 const HX_STATIONS = [
-  ['ski', 'SkiErg', '1.000 m', 'SkiErg', null],
-  ['push', 'Sled Push', '50 m', 'Schlitten schieben', 'push'],
-  ['pull', 'Sled Pull', '50 m', 'Schlitten ziehen (Sled Pull)', 'pull'],
-  ['bbj', 'Burpee-Weitsprünge', '80 m', 'Burpee-Weitsprünge (Burpee Broad Jumps)', null],
-  ['row', 'Rudern', '1.000 m', 'Rudergerät', null],
-  ['farm', 'Farmers Carry', '200 m', "Farmer's Walk", 'farm'],
-  ['lunge', 'Sandsack-Ausfallschritte', '100 m', 'Sandsack-Ausfallschritte (Sandbag Lunges)', 'bag'],
+  ['ski', 'SkiErg', 1000, 'SkiErg', null],
+  ['push', 'Sled Push', 50, 'Schlitten schieben', 'push'],
+  ['pull', 'Sled Pull', 50, 'Schlitten ziehen (Sled Pull)', 'pull'],
+  ['bbj', 'Burpee-Weitsprünge', 80, 'Burpee-Weitsprünge (Burpee Broad Jumps)', null],
+  ['row', 'Rudern', 1000, 'Rudergerät', null],
+  ['farm', 'Farmers Carry', 200, "Farmer's Walk", 'farm'],
+  ['lunge', 'Sandsack-Ausfallschritte', 100, 'Sandsack-Ausfallschritte (Sandbag Lunges)', 'bag'],
   ['wb', 'Wall Balls', '100 Wdh.', 'Wall Balls', 'ball'],
 ];
 const HX_TYPES = {
-  full: { label: 'Komplett-Durchgang', text: '8 × (1 km Laufen + Station), wie im Wettkampf.' },
+  full: { label: 'Komplett-Durchgang', text: '8 × (1.000 m Laufen + Station), wie im Wettkampf.' },
   half1: { label: 'Erste Hälfte', text: 'Läufe 1–4 mit SkiErg, Sled Push, Sled Pull und Burpee-Weitsprüngen.' },
   half2: { label: 'Zweite Hälfte', text: 'Läufe 5–8 mit Rudern, Farmers Carry, Sandsack-Ausfallschritten und Wall Balls.' },
-  cmp: { label: 'Kompromiss-Lauf', text: 'Je 1 km Laufen und danach eine Station. Du wählst die Stationen.' },
+  cmp: { label: 'Kompromiss-Lauf', text: 'Je 1.000 m Laufen und danach eine Station. Du wählst die Stationen.' },
   st: { label: 'Nur Stationen', text: 'Einzelne Stationen auf Zeit, ohne Laufen. Du wählst die Stationen.' },
 };
+// v331 (User): Strecken überall in Metern (vorher Läufe „1 km“, SkiErg/Rudern „1.000 m“). Zahl = Meter, Text bleibt (z. B. „100 Wdh.“).
+// Ältere gespeicherte Abschnitte haben noch Texte wie „1 km“ – die werden hier mit umgestellt.
+const hxDist = d => typeof d === 'number' ? `${deNum(d)} m` : d === '1 km' || d === '1.000 m' ? `${deNum(1000)} m` : d;
 const HX_ROX_DEFAULT = 360;  // Roxzone gesamt, wenn noch nichts gemessen (6 min)
 
 const hxData = () => { if (!data.hyrox) data.hyrox = { div: (data.profile && data.profile.sex === 'f') ? 'wo' : 'mo', sessions: [] }; return data.hyrox; };
@@ -62,12 +65,12 @@ function hxParse(v) {
 
 // Abschnitte eines Durchgangs: [{ k, label, dist, run, st }]
 function hxSegs(type, picks = []) {
-  const run = i => ({ k: 'run' + (i + 1), label: `Lauf ${i + 1}`, dist: '1 km', run: true });
+  const run = i => ({ k: 'run' + (i + 1), label: `Lauf ${i + 1}`, dist: 1000, run: true });
   const st = i => ({ k: HX_STATIONS[i][0], label: HX_STATIONS[i][1], dist: HX_STATIONS[i][2], st: i });
   const idx = type === 'full' || type === 'race' ? [0, 1, 2, 3, 4, 5, 6, 7] : type === 'half1' ? [0, 1, 2, 3] : type === 'half2' ? [4, 5, 6, 7]
     : HX_STATIONS.map((_, i) => i).filter(i => picks.includes(HX_STATIONS[i][0]));
   if (type === 'st') return idx.map(st);
-  if (type === 'cmp') return idx.flatMap(i => [{ k: 'run', label: 'Lauf', dist: '1 km', run: true }, st(i)]);
+  if (type === 'cmp') return idx.flatMap(i => [{ k: 'run', label: 'Lauf', dist: 1000, run: true }, st(i)]);
   return idx.flatMap(i => [run(i), st(i)]);
 }
 const hxSegWeight = seg => seg.st != null && HX_STATIONS[seg.st][4] ? HX_DIVS[hxDiv()][HX_STATIONS[seg.st][4]] : '';
@@ -134,17 +137,19 @@ function renderHyroxNew() {
   const pick = n.type === 'cmp' || n.type === 'st';
   const segs = hxSegs(n.type, n.picks);
   return `<div class="card"><h2>Was machst du?</h2>
-      ${Object.entries(HX_TYPES).map(([k, t]) => `<button class="split-opt cat hx-type ${n.type === k ? 'on' : ''}" data-action="hx-type" data-k="${k}"><b>${t.label}</b><small>${t.text}</small></button>`).join('')}
+      ${Object.entries(HX_TYPES).map(([k, t]) => `<button class="split-opt cat hx-type ${n.type === k ? 'on' : ''}" data-action="hx-type" data-k="${k}"><b>${t.label}</b><small>${t.text.replace('1.000 m', hxDist(1000))}</small></button>`).join('')}
       ${pick ? `<p class="lbl">Stationen</p><div class="variants hx-picks">${HX_STATIONS.map(([k, name]) => chip('hx-pick', k, name, n.picks.includes(k))).join('')}</div>` : ''}
     </div>
     <div class="card"><h2>Wie erfassen?</h2>
-      <div class="variants">${chip('hx-mode', 'live', '⏱ Mit Uhr', n.mode === 'live')}${chip('hx-mode', 'manual', '✎ Hinterher eintragen', n.mode === 'manual')}</div>
+      <div class="variants hx-modes">${chip('hx-mode', 'live', '⏱ Mit Uhr', n.mode === 'live')}${chip('hx-mode', 'manual', '✎ Hinterher eintragen', n.mode === 'manual')}</div>
       <p class="hint">${n.mode === 'live' ? 'Die Uhr läuft mit, du tippst nach jedem Abschnitt auf „fertig“. Dazwischen zählt die Roxzone (Wechselzone) mit, bis du den nächsten Abschnitt startest.'
         : 'Du trägst die Zeiten nach dem Training ein, z. B. von deiner Sportuhr.'}</p>
       <p class="lbl">Klasse</p><div class="variants hx-divs-sm">${Object.entries(HX_DIVS).map(([k, d]) => chip('hx-div', k, d.label, hxDiv() === k)).join('')}</div>
     </div>
     <div class="card"><h2>Ablauf <small class="hint">${segs.length} Abschnitte</small></h2>
-      <ol class="hx-plan">${segs.map(g => `<li>${esc(g.label)} <small>${g.dist}${hxSegWeight(g) ? ' | ' + hxSegWeight(g) : ''}</small></li>`).join('') || '<li>Bitte mindestens eine Station wählen.</li>'}</ol></div>
+      ${segs.length ? `<div class="hx-plan2">${segs.map((g, i) => `<div class="hx-prow ${g.run ? 'run' : 'st'}"><span class="hx-pno">${i + 1}</span>
+        <span class="hx-pname">${esc(g.label)}</span><span class="hx-pmeta">${hxDist(g.dist)}${hxSegWeight(g) ? `<small>${hxSegWeight(g)}</small>` : ''}</span></div>`).join('')}</div>`
+        : '<p class="hint">Bitte mindestens eine Station wählen.</p>'}</div>
     <button class="btn primary" data-action="hx-go" ${segs.length ? '' : 'disabled'}>${n.mode === 'live' ? '⏱ Los geht’s' : '✎ Zeiten eintragen'}</button>`;
 }
 
@@ -160,17 +165,17 @@ function renderHyroxLive() {
   const next = d.segs[d.idx];
   return `<div class="card hx-live">
       <p class="hx-kicker">Gesamtzeit${d.pausedAt ? ' | pausiert' : ''}</p><p class="hx-clock" data-hxclock="total">${hxTime(total)}</p>
-      ${d.phase === 'rox' ? `<div class="hx-now"><small>Roxzone (Wechsel)</small><b>Als Nächstes: ${esc(next.label)}</b><span>${next.dist}${hxSegWeight(next) ? ' | ' + hxSegWeight(next) : ''}</span></div>
+      ${d.phase === 'rox' ? `<div class="hx-now"><small>Roxzone (Wechsel)</small><b>Als Nächstes: ${esc(next.label)}</b><span>${hxDist(next.dist)}${hxSegWeight(next) ? ' | ' + hxSegWeight(next) : ''}</span></div>
         <p class="hx-seg-clock" data-hxclock="cur">${hxTime(cur)}</p>
         <div class="row"><button class="btn" data-action="hx-pause">${d.pausedAt ? '▶ Weiter' : '⏸ Pause'}</button><button class="btn primary" data-action="hx-next">▶ ${esc(next.label)} starten</button></div>`
-        : `<div class="hx-now"><small>Abschnitt ${d.idx + 1} von ${d.segs.length}</small><b>${esc(seg.label)}</b><span>${seg.dist}${hxSegWeight(seg) ? ' | ' + hxSegWeight(seg) : ''}</span></div>
+        : `<div class="hx-now"><small>Abschnitt ${d.idx + 1} von ${d.segs.length}</small><b>${esc(seg.label)}</b><span>${hxDist(seg.dist)}${hxSegWeight(seg) ? ' | ' + hxSegWeight(seg) : ''}</span></div>
         <p class="hx-seg-clock" data-hxclock="cur">${hxTime(cur)}${b[seg.k] ? `<small>Bestzeit ${hxTime(b[seg.k])}</small>` : ''}</p>
         <div class="row"><button class="btn" data-action="hx-pause">${d.pausedAt ? '▶ Weiter' : '⏸ Pause'}</button><button class="btn primary" data-action="hx-done">${seg.label} fertig ✓</button></div>`}
       <p class="hint">${d.rox === false ? '' : 'Die Uhr läuft auch weiter, wenn du die App kurz verlässt.'}</p>
     </div>
     <div class="card"><h2>Abschnitte</h2><div class="hx-segs">${d.segs.map((g, i) => {
       const t = d.times[i], st = t != null ? 'done' : i === d.idx ? 'now' : '';
-      return `<div class="hx-seg ${st} ${g.run ? 'run' : 'st'}"><span class="hx-sno">${g.run ? '🏃' : (g.st + 1)}</span><span class="hx-sname">${esc(g.label)}<small>${g.dist}</small></span>
+      return `<div class="hx-seg ${st} ${g.run ? 'run' : 'st'}"><span class="hx-sno">${g.run ? '🏃' : (g.st + 1)}</span><span class="hx-sname">${esc(g.label)}<small>${hxDist(g.dist)}</small></span>
         <span class="hx-stime">${t != null ? `${hxTime(t)}${b[g.k] ? `<small class="${t <= b[g.k] ? 'good' : ''}">${hxDiff(t, b[g.k])}</small>` : ''}` : i === d.idx ? 'läuft' : b[g.k] ? `<small>Best ${hxTime(b[g.k])}</small>` : ''}</span></div>`;
     }).join('')}</div></div>
     <button class="btn danger" data-action="hx-abort">Durchgang abbrechen</button>`;
@@ -193,7 +198,7 @@ function renderHyroxManual() {
   const b = hxBests();
   return `<p class="hint explain">Zeiten als Minuten:Sekunden, z. B. 4:35. Leere Felder zählen nicht.</p>
     <div class="card"><h2>${esc(HX_TYPES[m.type].label)}</h2>
-      ${m.segs.map((g, i) => `<label class="row hx-in"><span>${esc(g.label)}<small>${g.dist}${b[g.k] ? ` | Best ${hxTime(b[g.k])}` : ''}</small></span>
+      ${m.segs.map((g, i) => `<label class="row hx-in"><span>${esc(g.label)}<small>${hxDist(g.dist)}${b[g.k] ? ` | Best ${hxTime(b[g.k])}` : ''}</small></span>
         <input class="inp" type="text" inputmode="decimal" placeholder="m:ss" data-field="hx-t" data-i="${i}" value="${m.vals[i] || ''}"></label>`).join('')}
       ${m.type !== 'st' ? `<label class="row hx-in"><span>Roxzone gesamt<small>Wechselzeiten zusammen, freiwillig</small></span>
         <input class="inp" type="text" inputmode="decimal" placeholder="m:ss" data-field="hx-rox" value="${m.rox || ''}"></label>` : ''}
@@ -216,9 +221,9 @@ function renderHyroxSession({ id }) {
 function renderHyroxStations() {
   const d = HX_DIVS[hxDiv()], b = hxBests();
   return `<div class="seg hx-divs">${Object.entries(HX_DIVS).map(([k, v]) => `<button class="${k === hxDiv() ? 'on' : ''}" data-action="hx-div" data-k="${k}">${v.label}</button>`).join('')}</div>
-    <p class="hint explain">Ablauf: 8 × (1 km Laufen + 1 Station). Gewichte für <b>${d.label}</b>, Stand Saison 2025/26. Maßgeblich ist das offizielle Regelwerk.</p>
+    <p class="hint explain">Ablauf: 8 × (${hxDist(1000)} Laufen + 1 Station). Gewichte für <b>${d.label}</b>, Stand Saison 2025/26. Maßgeblich ist das offizielle Regelwerk.</p>
     ${HX_STATIONS.map(([k, name, dist, lib, wk], i) => `<button class="btn nav hx-st" data-action="lib-open" data-name="${esc(lib)}">
-      <span class="hx-stno">${i + 1}</span><span class="hx-sttxt">${name}<small>${dist}${wk ? ' | ' + d[wk] : ''}${b[k] ? ` | Bestzeit ${hxTime(b[k])}` : ''}</small></span></button>`).join('')}
+      <span class="hx-stno">${i + 1}</span><span class="hx-sttxt">${name}<small>${hxDist(dist)}${wk ? ' | ' + d[wk] : ''}${b[k] ? ` | Bestzeit ${hxTime(b[k])}` : ''}</small></span></button>`).join('')}
     <p class="hint">Antippen öffnet die Übung in der Bibliothek, mit Figur, Ausführung und Tipps.</p>`;
 }
 

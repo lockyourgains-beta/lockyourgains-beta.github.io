@@ -3993,3 +3993,19 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .fe-mac span { font-size: 18px; font-weight: 700; color: var(--text); }
 .fe-mac b { font-size: 24px; font-weight: 750; font-variant-numeric: tabular-nums; text-align: right; }
 .fe-mac small { font-size: 15px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* v331: Hyrox – Ablauf als einspaltige Liste, Erfassungsart untereinander, Zeitfelder bündig */
+.hx-plan2 { margin-top: 4px; }
+.hx-prow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
+.hx-prow:last-child { border-bottom: 0; }
+.hx-pno { flex: none; width: 24px; text-align: right; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.hx-pname { flex: 1; min-width: 0; }
+.hx-prow.st .hx-pname { font-weight: 650; }
+.hx-prow.run .hx-pname { color: var(--muted); }
+.hx-pmeta { flex: none; display: flex; flex-direction: column; align-items: flex-end; font-size: 14px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hx-pmeta small { font-size: 13px; }
+.hx-modes .vchip { flex: 1 1 100%; }
+.hx-in > span { flex: 1; min-width: 0; }
+.hx-in .inp { margin-left: auto; }
+.hx-live .row .btn.primary { flex: 2 1 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nut-goal-btns { gap: 8px; } .nut-goal-btns .btn { margin: 0; }

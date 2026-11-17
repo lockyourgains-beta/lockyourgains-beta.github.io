@@ -6697,6 +6697,12 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 332, date: '2026-11-17', items: [
+    ['Ernährung: „⏸ Ernährungsziel unterbrechen“ steht jetzt oben direkt unter „Ernährungsziel wechseln“ und fragt vorher nach.'],
+  ] },
+  { v: 331, date: '2026-11-17', items: [
+    ['Hyrox: Strecken stehen jetzt überall in Metern, auch die Läufe (1.000 m). Der Ablauf beim Durchgang-Start ist eine übersichtliche Liste ohne Umbrüche und Überlappungen, beim Nachtragen stehen die Zeitfelder sauber untereinander.'],
+  ] },
   { v: 330, date: '2026-11-17', items: [
     ['Kalorienvorschläge nennen jetzt auch die Alltagsaktivität: In Diät und Minicut kannst du dich statt weniger zu essen auch mehr bewegen. Im Aufbau ab 3.000 kcal kannst du die Alltagsaktivität etwas herunterfahren, aber nicht unter 6.000 bis 8.000 Schritte am Tag.'],
   ] },
