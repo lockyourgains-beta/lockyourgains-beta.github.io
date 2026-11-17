@@ -6696,6 +6696,13 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 327, date: '2026-11-17', items: [
+    ['Ernährungstagebuch: „🎯 Kalorien und Makros anpassen“ neu gestaltet. Oben steht groß dein Tagesziel, darunter die Makroverteilung als große Kacheln mit Eiweiß, Fett und Kohlenhydrate als Überschrift. Der kleine Stift an der Zielzahl ist weg.'],
+    ['„App-Empfehlung“ bei den Makros fragt jetzt erst nach, bevor deine eigene Aufteilung gelöscht wird.'],
+  ] },
+  { v: 326, date: '2026-11-17', items: [
+    ['Stil „Puristen“: übernimmt jetzt deine Farbwelt wie Kraftraum und Logbuch. Ohne eigene Wahl bleibt er grün. Hintergrund und Gitterlinien bleiben neutral wie in einer Tabelle.'],
+  ] },
   { v: 325, date: '2026-11-17', items: [
     ['Barcode-Scanner: höhere Kameraauflösung, Autofokus und eine gründlichere Erkennung. Kleine oder leicht unscharfe Barcodes werden so besser gelesen. Findet die App ein gescanntes Produkt nicht, zeigt sie die gelesene Nummer zum Vergleich.'],
     ['Online-Suche nach Namen: Die Suche von Open Food Facts ist zurzeit oft gestört. Die App versucht es jetzt mehrmals und findet so meist doch etwas. Klappt es gar nicht, sagt sie das klar und bietet direkt „Barcode scannen“ und „Nummer eintippen“ an. Das funktioniert auch dann.'],
@@ -9727,7 +9734,7 @@ const profileSex = () => (data.profile && data.profile.sex) || null;
 // Farbe: selbst gewählt, sonst passend zum Geschlecht (Frau: Beere, sonst Blau)
 const sexColor = () => profileSex() === 'f' ? 'berry' : 'blue';
 // v234: Designs bringen eine Farbe als Vorschlag mit (Kraftraum: Abendrot, Logbuch: Wald), solange keine Farbwelt selbst gewählt ist
-const LOOK_COLORS = { kraft: 'sunset', log: 'forest' };
+const LOOK_COLORS = { kraft: 'sunset', log: 'forest', sheet: 'forest' };  // v326: Puristen ohne eigene Wahl grün
 const profileColor = () => {
   const p = data.profile || {};
   const dc = LOOK_COLORS[currentLook()];
@@ -9894,7 +9901,7 @@ function appearanceCard() {
         `<button class="vchip ${currentLook() === k ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`).join('')}</div>
       <p class="hint explain">„Kraftraum“: sportlich mit kräftigen, schmalen Überschriften und großen Zahlen. „Logbuch“: wie ein Trainingsbuch,
         Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Puristen“: so einfach wie eine Tabelle in Excel oder Google Sheets, ohne Emojis.
-        Kraftraum und Logbuch übernehmen deine Farbwelt. Ohne eigene Wahl ist Kraftraum orange und Logbuch grün.
+        Kraftraum, Logbuch und Puristen übernehmen deine Farbwelt. Ohne eigene Wahl ist Kraftraum orange, Logbuch und Puristen grün.
         „Standard“ und „Schlicht“ sind die bisherigen Stile.</p>
       <p class="lbl">Farbwelt</p>
       <div class="color-grid">${Object.entries(PROFILE_COLORS).map(([k, c]) => tile(k, c)).join('')}</div>

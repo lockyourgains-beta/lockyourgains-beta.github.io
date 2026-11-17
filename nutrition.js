@@ -909,16 +909,21 @@ function nutGoalToolsHtml() {
   const adj = n.kcalOwn != null ? '' : n.adjust ? ` | inkl. ${nutSigned(n.adjust, 'kcal')} aus deinem Gewichtsverlauf` : '';
   const pct = nutPctOf(c);
   const fatLow = c.fat < 0.6 * kg;
-  const kcalBtns = nutKcalEdit ? nutKcalEditor(n, c, kg)
-    : `<div class="row fe-goal-btns">${feat('nut-own-kcal') ? '<button class="btn nut-kcal-btn" data-action="nut-kcal-edit">✎ Kalorien ändern</button>' : ''}
-        ${n.kcalOwn != null ? '<button class="btn nut-kcal-reset" data-action="nut-adjust-reset">↺ Wert der App</button>' : ''}</div>`;
+  // v327 (User-Wunsch): oben groß das aktuelle Tagesziel (wie im Kalorien-Editor), darunter die Makros als große Kacheln
+  const kcalBox = nutKcalEdit ? nutKcalEditor(n, c, kg) : `<div class="fe-goal-kcal">
+      <span class="fe-goal-kcal-l">Kalorien pro Tag</span><b class="fe-goal-kcal-v">${nutKcal(c.kcal)} kcal</b>
+      <p class="hint nut-small">${n.kcalOwn != null ? `Von dir festgelegt | berechnet wären ca. ${nutKcal(nutKcalBase(n, kg))} kcal`
+        : `Erhaltungsbedarf ca. ${nutKcal(c.tdee)} kcal | ${nutSigned(c.delta, 'kcal')} für „${nutPace(n).label}“${adj}`}</p>
+      <div class="row fe-goal-btns">${feat('nut-own-kcal') ? '<button class="btn nut-kcal-btn" data-action="nut-kcal-edit">✎ Kalorien ändern</button>' : ''}
+        ${n.kcalOwn != null ? '<button class="btn nut-kcal-reset" data-action="nut-adjust-reset">↺ Wert der App</button>' : ''}</div>
+    </div>`;
   let macros;
-  if (nutMacroEdit) macros = nutPctEditor();
-  else if (!feat('nut-macros')) macros = `<p class="hint nut-small">Eiweiß-Ziel: <b>${c.protein} g</b> am Tag.</p>`;
-  else macros = `<p class="lbl fe-goal-lbl">Makros im Tagesziel</p>
-      <div class="nut-goal-row fe-goal-macros">${NUT_MACROS.map(([k, l, f]) => {
+  if (nutMacroEdit) macros = `<h3 class="fe-goal-h">Makroverteilung</h3>${nutPctEditor()}`;
+  else if (!feat('nut-macros')) macros = `<h3 class="fe-goal-h">Eiweiß</h3><div class="fe-macros one"><div class="fe-mac p"><span>Eiweiß</span><b>${c.protein} g</b><small>am Tag</small></div></div>`;
+  else macros = `<h3 class="fe-goal-h">Makroverteilung</h3>
+      <div class="fe-macros">${NUT_MACROS.map(([k, l]) => {
         const g = { p: c.protein, f: c.fat, c: c.carbs }[k];
-        return `<span>${l === 'Kohlenhydrate' ? 'Kohlenh.' : l}<b>${g} g</b><small>${pct[k]} %</small></span>`;
+        return `<div class="fe-mac ${k}"><span>${l}</span><b>${g} g</b><small>${pct[k]} %</small></div>`;
       }).join('')}</div>
       ${fatLow ? `<p class="nut-warn">Sehr wenig Fett: Auf Dauer sollten es mindestens ca. ${Math.round(0.6 * kg / 5) * 5} g am Tag sein (u. a. für die Hormone).</p>` : ''}
       ${feat('nut-macro-pct') ? `<div class="nut-macro-btns">${n.macroPct
@@ -927,9 +932,7 @@ function nutGoalToolsHtml() {
            <button class="btn" data-action="nut-pct-reset">App-Empfehlung</button>`
         : '<button class="btn" data-action="nut-pct-edit">Makros selbst festlegen (in %)</button>'}</div>` : ''}`;
   return `<div class="fe-goal open">${head}
-      <p class="hint nut-small">${n.kcalOwn != null ? `Von dir festgelegt | berechnet wären ca. ${nutKcal(nutKcalBase(n, kg))} kcal`
-        : `Erhaltungsbedarf ca. ${nutKcal(c.tdee)} kcal | ${nutSigned(c.delta, 'kcal')} für „${nutPace(n).label}“${adj}`}</p>
-      ${kcalBtns}
+      ${kcalBox}
       ${nutCardioLine(n, c)}
       ${c.note === 'floor' ? `<p class="nut-warn">Weniger als ${deNum(nutFloor(n))} kcal empfiehlt die App nicht, sonst fehlen schnell Nährstoffe.</p>` : ''}
       ${macros}
@@ -1749,6 +1752,9 @@ Object.assign(actions, {
     render();
   },
   'nut-pct-reset': () => {
+    // v327 (User): erst nachfragen, statt sofort zurückzusetzen
+    const m = data.nutrition.macroPct;
+    if (m && !askOk(`Makros auf die Empfehlung der App zurücksetzen?\n\nDeine eigene Aufteilung (${m.p} / ${m.f} / ${m.c} %) wird dabei gelöscht.`)) return;
     data.nutrition.macroPct = null;
     saveData();
     toast('Wieder die Empfehlung der App');

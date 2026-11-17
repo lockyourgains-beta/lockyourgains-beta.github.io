@@ -3425,27 +3425,27 @@ div.btn.week-ses { cursor: default; }
 
 /* ---------- v248: Stil „Puristen“ (User 2026-11-14): so einfach wie eine Tabelle in Excel / Google Sheets ----------
    Gitterlinien statt Karten, eckige Zellen, grau hinterlegte Kopfzeilen, Tabellen-Grün, blauer Rahmen ums aktive Feld,
-   untere Leiste wie Tabellenblatt-Reiter, keine Emojis (wie Schlicht, siehe emojiOff). Schrift Arimo (wie Arial, OFL). */
+   untere Leiste wie Tabellenblatt-Reiter, keine Emojis (wie Schlicht, siehe emojiOff). Schrift Arimo (wie Arial, OFL).
+   v326 (User): Akzent kommt aus der Farbwelt (ohne eigene Wahl Wald = Grün, LOOK_COLORS), Hintergrund bleibt neutral. */
 @font-face { font-family: "LYG Arimo"; src: url(fonts/arimo.woff2) format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "LYG Arimo"; src: url(fonts/arimo.woff2) format("woff2"); font-weight: 700; font-display: swap; }
 :root[data-look="sheet"] { --f-body: "LYG Arimo", Arial, Helvetica, sans-serif; --f-head: var(--f-body); --f-num: var(--f-body); --radius: 0px !important; --head: var(--text); }
 [data-look="sheet"] body {
   --bg: #f8f9fa; --card: #ffffff; --fill: #f3f3f3; --input: #ffffff; --line: #e2e2e2; --line-strong: #c7c7c7; --bar: rgba(248, 249, 250, .96);
   --text: #202124; --muted: #5f6368;
-  --accent: #188038; --accent-2: #188038; --accent-soft: #e6f4ea; --accent-text: #137333;
   --success: #188038; --success-soft: #e6f4ea; --warn: #f9ab00; --warn-soft: #fef7e0; --warn-text: #b06000;
   --danger: #d93025; --danger-soft: #fce8e6; --shadow: none; --shadow-accent: none; --sel: #1a73e8;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-look="sheet"]:not([data-theme="light"]) body {
     --bg: #1f1f1f; --card: #262626; --fill: #303030; --input: #262626; --line: #3a3a3a; --line-strong: #4d4d4d; --bar: rgba(31, 31, 31, .96);
-    --text: #e8eaed; --muted: #9aa0a6; --accent: #2e7d32; --accent-2: #2e7d32; --accent-soft: rgba(129, 201, 149, .14); --accent-text: #81c995;
+    --text: #e8eaed; --muted: #9aa0a6;
     --success: #81c995; --success-soft: rgba(129, 201, 149, .14); --warn-soft: rgba(249, 171, 0, .14); --warn-text: #fdd663; --danger-soft: rgba(242, 139, 130, .14); --sel: #8ab4f8;
   }
 }
 :root[data-look="sheet"][data-theme="dark"] body {
   --bg: #1f1f1f; --card: #262626; --fill: #303030; --input: #262626; --line: #3a3a3a; --line-strong: #4d4d4d; --bar: rgba(31, 31, 31, .96);
-  --text: #e8eaed; --muted: #9aa0a6; --accent: #2e7d32; --accent-2: #2e7d32; --accent-soft: rgba(129, 201, 149, .14); --accent-text: #81c995;
+  --text: #e8eaed; --muted: #9aa0a6;
   --success: #81c995; --success-soft: rgba(129, 201, 149, .14); --warn-soft: rgba(249, 171, 0, .14); --warn-text: #fdd663; --danger-soft: rgba(242, 139, 130, .14); --sel: #8ab4f8;
 }
 [data-look="sheet"] * { border-radius: 0 !important; }
@@ -3977,3 +3977,19 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 
 /* v322: Tagesziel anpassen als großer Knopf */
 .fe-goal-open { width: 100%; min-height: 48px; margin: 12px 0 2px; font-size: 16px; }
+
+/* v327: Tagesziel anpassen – großes Tagesziel oben, Makros als große Kacheln */
+.fe-goal-kcal { margin: 4px 0 4px; padding: 14px; border-radius: 16px; background: var(--fill); }
+.fe-goal-kcal-l { display: block; font-size: 15px; font-weight: 600; color: var(--muted); }
+.fe-goal-kcal-v { display: block; margin: 2px 0 6px; font-size: 34px; font-weight: 780; letter-spacing: -.02em; line-height: 1.1; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.fe-goal-kcal .fe-goal-btns { margin: 10px 0 0; }
+.fe-goal-kcal .fe-goal-btns .btn:not(.primary) { background: var(--card); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.fe-goal-h { margin: 18px 0 8px; font-size: 19px; }
+.fe-macros { display: grid; gap: 8px; }
+.fe-mac { display: grid; grid-template-columns: 1fr auto 56px; align-items: baseline; gap: 10px; padding: 12px 14px; border-radius: 14px;
+  background: var(--fill); box-shadow: inset 4px 0 0 var(--accent); }
+.fe-mac.f { box-shadow: inset 4px 0 0 var(--warn); }
+.fe-mac.c { box-shadow: inset 4px 0 0 var(--success); }
+.fe-mac span { font-size: 18px; font-weight: 700; color: var(--text); }
+.fe-mac b { font-size: 24px; font-weight: 750; font-variant-numeric: tabular-nums; text-align: right; }
+.fe-mac small { font-size: 15px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
