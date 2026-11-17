@@ -41,7 +41,7 @@ const NUT_PHASES = {
       ['Kalorien', 'Je nach Tempo ca. 300, 500 oder 700 kcal unter deinem Erhaltungsbedarf.'],
       ['Tempo', 'Wer mehr Fett hat, kann zügiger abnehmen; je schlanker du bist, desto langsamer sollte es gehen. Langsamer = mehr Muskelerhalt und weniger Hunger.'],
       ['Dauer', 'Meist 8–16 Wochen. Danach ein paar Wochen auf Erhaltung essen (Diätpause), bevor es weitergeht oder in den Aufbau geht.'],
-      ['Training', 'Gewichte so gut es geht halten. Gegen Ende kann die Kraft etwas sinken. Das ist normal. Mehr Sätze bringen jetzt nichts.'],
+      ['Training', 'Gewichte so gut es geht halten. Gegen Ende kann die Kraft etwas sinken. Das ist normal. Mehr Sätze bringen jetzt nichts. Versuche dich trotzdem so lange wie möglich noch zu steigern oder deine Leistung zu halten.'],
       ['Fortschritt erkennst du an', 'gleichmäßig sinkendem Gewicht, schmalerer Taille und weitgehend gleicher Kraft.'],
     ],
   },
@@ -53,7 +53,7 @@ const NUT_PHASES = {
       ['Kalorien', 'Ca. 800 kcal unter deinem Erhaltungsbedarf, bei mehr Körperfett ca. 1.000 kcal.'],
       ['Tempo', 'In den ersten Tagen fällt das Gewicht schnell (vor allem Wasser), danach geht es zügig, aber gleichmäßig weiter.'],
       ['Dauer', 'Höchstens 4 Wochen am Stück. Danach 1 Woche auf Erhaltungskalorien essen, am besten kombiniert mit einer Deload-Woche im Training. Bist du dann noch nicht zufrieden, höchstens noch einen weiteren Durchgang mit diesem Defizit, danach in den Aufbau oder auf Erhaltung.'],
-      ['Training', 'Gewichte halten, eher ein paar Sätze weniger. Mit wenig Energie erholst du dich schlechter. Kein guter Zeitpunkt für Rekordversuche.'],
+      ['Training', 'Gewichte halten, eher ein paar Sätze weniger. Mit wenig Energie erholst du dich schlechter. Kein guter Zeitpunkt für Rekordversuche. Versuche dich trotzdem so lange wie möglich noch zu steigern oder deine Leistung zu halten.'],
       ['Fortschritt erkennst du an', 'deutlich sinkendem Gewicht und Bauchumfang bei gehaltener Kraft.'],
     ],
   },
@@ -84,6 +84,8 @@ const NUT_PACES = {
   ],
 };
 const NUT_MINICUT_MAX = 4;  // Minicut: höchstens 4 Wochen am Stück, danach 1 Erhaltungswoche (+ Deload), höchstens 2 Durchgänge
+// v309 (User-Wunsch): direkt bei der Auswahl sagen, dass der Minicut begrenzt ist und der Deload sich danach richtet
+const NUT_MINICUT_SHORT = `Ein Minicut läuft nie länger als ${NUT_MINICUT_MAX} Wochen am Stück. Danach folgt automatisch eine Woche auf Erhaltungskalorien und im Training gleichzeitig die Deload-Woche. Dein Trainingszyklus wird dafür entsprechend verkürzt.`;
 
 // Aktivität = Alltag + Training zusammen (Faktor auf den Grundumsatz)
 const NUT_ACT = {
@@ -662,9 +664,10 @@ function renderNutBody() {
   const cut = d.flow === 'nutphase' && (d.phase === 'diet' || d.phase === 'minicut');
   const cutNote = !cut ? '' : `<p class="deload-note">🏋️ <b>Gut zu wissen:</b> Im Kaloriendefizit erholst du dich schlechter.
       Kraft und Wiederholungen können eine Zeit lang stagnieren oder leicht sinken, und ein Satz geht öfter mal knapp
-      daneben. Das ist normal und kein Rückschritt. ${feat('nut-train-q')
+      daneben. Das ist normal und kein Rückschritt. Versuche dich trotzdem so lange wie möglich noch zu steigern oder deine Leistung zu halten. ${feat('nut-train-q')
         ? 'Im letzten Schritt kannst du festlegen, ob die App dein Training daran anpasst.'
-        : 'Die App passt dein Training deshalb automatisch an (weniger zusätzliche Sätze, Gewichte halten).'}</p>`;
+        : 'Die App passt dein Training deshalb automatisch an (weniger zusätzliche Sätze, Gewichte halten).'}
+      ${d.phase === 'minicut' ? `<br>⚡ ${NUT_MINICUT_SHORT}` : ''}</p>`;
   return `${cutNote}<div class="card wiz-q">
       ${d.flow === 'nutphase' ? nutStep(2, 3) : ''}
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">📏</span><h2>Deine Angaben</h2></div>

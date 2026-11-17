@@ -5450,13 +5450,12 @@ function planSwapHtml(day, ex, i) {
     if (ex.name.trim() && exRename === ex.name) return renameFormHtml(ex.name);
     const ssBtn = ex.name.trim() && ssOn() && !dayPairs(day.exercises).has(i) && ssCandidates(day, i).length
       && !(ssPick && ssPick.day === day.id && ssPick.i === i);
-    // v282 (User-Wunsch): Entfernen oben in der Zeile mit „Als Supersatz koppeln“ statt unten in der Karte
-    const del = `<button class="btn danger plan-swap-btn plan-del-btn" data-action="ex-del" data-i="${i}">✕ Entfernen</button>`;
+    // v308 (User-Wunsch): Knöpfe in einer kompakten Zeile, Entfernen als ✕ oben neben dem Namen (planDelBtn)
     return ex.name.trim() ? `<div class="row plan-ex-btns">
         <button class="btn outline plan-swap-btn" data-action="plan-swap-open" data-i="${i}">⇄ Ersetzen</button>
-        <button class="btn outline plan-swap-btn" data-action="ex-rename-open" data-name="${esc(ex.name)}">✎ Umbenennen</button></div>
-        <div class="row plan-ex-btns plan-del-row">${ssBtn ? `<button class="btn outline plan-swap-btn" data-action="ss-pick-open" data-i="${i}">🔗 Als Supersatz koppeln</button>` : ''}${del}</div>`
-      : `<div class="row plan-ex-btns plan-del-row"><button class="btn outline plan-swap-btn" data-action="plan-swap-open" data-i="${i}">⇄ Übung ersetzen</button>${del}</div>`;
+        <button class="btn outline plan-swap-btn" data-action="ex-rename-open" data-name="${esc(ex.name)}">✎ Umbenennen</button>
+        ${ssBtn ? `<button class="btn outline plan-swap-btn" data-action="ss-pick-open" data-i="${i}">🔗 Supersatz</button>` : ''}</div>`
+      : `<div class="row plan-ex-btns"><button class="btn outline plan-swap-btn" data-action="plan-swap-open" data-i="${i}">⇄ Übung ersetzen</button></div>`;
   }
   // die zuletzt ersetzte Übung immer als Erstes (zum schnellen Zurücktauschen)
   const prev = ex.replacedFrom && nameKey(ex.replacedFrom) !== nameKey(ex.name)
@@ -5616,15 +5615,21 @@ function planReplaceExercise(day, i, name) {
   return true;
 }
 
+// AMRAP (v252) gibt es nur für übernommene Pläne (User 2026-11-17): Schalter nur bei Übungen, die schon AMRAP sind,
+// damit man es dort abschalten kann. Neu einschalten lässt es sich nicht mehr.
+const planDelBtn = i => `<button class="plan-del-x" data-action="ex-del" data-i="${i}" aria-label="Übung entfernen" title="Übung entfernen">✕</button>`;
+const amrapRowHtml = (ex, i) => ex.amrap ? `<div class="variants plan amrap-row"><span>AMRAP: so viele Wdh. wie möglich (Tank 0)</span>
+  <button class="vchip" data-action="plan-amrap" data-i="${i}">AMRAP ausschalten</button></div>` : '';
+
 // Übung im Trainingstag eines eigenen Plans: nur Sätze × Wdh., Startgewicht und Ausführung
 function ownExerciseCard(ex, i) {
-  return `<div class="card">
+  return `<div class="card pex">
     <div class="ex-name-row">
       <input class="inp" type="text" data-field="ex-name" data-i="${i}" data-orig="${esc(ex.name)}"
         autocomplete="off" autocorrect="off" spellcheck="false"
         value="${esc(exDisp(ex.name))}" placeholder="Übung eintippen, z. B. Bank…">
       <button class="info-btn" data-action="lib-open" data-i="${i}" aria-label="Ausführung ansehen"
-        ${libEntry(ex.name) ? '' : 'hidden'}>i</button>
+        ${libEntry(ex.name) ? '' : 'hidden'}>i</button>${planDelBtn(i)}
     </div>
     <div class="suggest" hidden></div>
     ${planSwapHtml(findDay(current.params.id), ex, i)}
@@ -5637,7 +5642,7 @@ function ownExerciseCard(ex, i) {
     <div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
       `<button class="vchip ${variantChipOn(ex.variant || '', v) ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
     </div>
-    <div class="variants plan amrap-row"><span>AMRAP</span><button class="vchip ${ex.amrap ? 'on' : ''}" data-action="plan-amrap" data-i="${i}">${ex.amrap ? 'An: so viele Wdh. wie möglich (Tank 0)' : 'Aus'}</button></div>
+    ${amrapRowHtml(ex, i)}
   </div>`;
 }
 
@@ -5711,13 +5716,13 @@ function renderDay({ id }) {
     const isAuto = autoDeload.has(ex.id);
     const pr = pairs.get(i);
     if (pr && pr.role === 'A') h += `<div class="ss-wrap plan">${ssPlanHead(day, pr)}`;
-    h += `<div class="card${pr ? ' ss-card' : ''}">
-      <div class="ex-name-row">${pr ? `<span class="ss-badge">${pr.role}</span>` : ''}
+    h += `<div class="card pex${pr ? ' ss-card' : ''}">
+      <div class="ex-name-row">${pr ?`<span class="ss-badge">${pr.role}</span>` : ''}
         ${feat('plan-add-ex') || !ex.name.trim() ? `<input class="inp" type="text" data-field="ex-name" data-i="${i}" data-orig="${esc(ex.name)}"
           autocomplete="off" autocorrect="off" spellcheck="false"
           value="${esc(exDisp(ex.name))}" placeholder="Übung eintippen, z. B. Bank…">` : `<h3 class="plan-ex-name">${esc(ex.name)}</h3>`}
         <button class="info-btn" data-action="lib-open" data-i="${i}" aria-label="Ausführung ansehen"
-          ${libEntry(ex.name) ? '' : 'hidden'}>i</button>
+          ${libEntry(ex.name) ? '' : 'hidden'}>i</button>${planDelBtn(i)}
       </div>
       <div class="suggest" hidden></div>
       ${planSwapHtml(day, ex, i)}
@@ -5747,7 +5752,7 @@ function renderDay({ id }) {
         `<button class="vchip ${variantChipOn(ex.variant || '', v) ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
       </div>`}${ex.name.trim() ? techPlanHtml(ex, i) : ''}` : ''}
       ${feat('tr-topset') && ex.name.trim() && !isBodyweight(ex) ? schemeRowHtml(ex, i) : ''}
-      ${feat('tr-rir-input') || ex.amrap ? `<div class="variants plan amrap-row"><span>AMRAP</span><button class="vchip ${ex.amrap ? 'on' : ''}" data-action="plan-amrap" data-i="${i}">${ex.amrap ? 'An: so viele Wdh. wie möglich (Tank 0)' : 'Aus'}</button></div>` : ''}
+      ${amrapRowHtml(ex, i)}
       ${bodyweightRow(ex, i)}
       ${isBodyweight(ex) || !feat('tr-max') ? '' : `<label class="row">
         <span>Max. kg bei 10 Wdh.<br><small class="hint">frisch, ohne Vorermüdung</small></span>
@@ -6652,6 +6657,17 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 309, date: '2026-11-17', items: [
+    ['Diät und Minicut: Die Erklärung zum Training sagt jetzt auch, dass du dich trotzdem so lange wie möglich steigern oder deine Leistung halten solltest.'],
+    ['Minicut: Gleich nach der Auswahl steht jetzt der Hinweis, dass er höchstens 4 Wochen am Stück läuft und der Deload im Training sich danach richtet.'],
+  ] },
+  { v: 308, date: '2026-11-17', items: [
+    ['Plan → Trainingstag: Die Übungen sind jetzt deutlich kompakter. Knöpfe, Auswahlen und Texte sind kleiner, eine Übung passt wieder bequem auf den Bildschirm.'],
+    ['AMRAP lässt sich im Plan nicht mehr einschalten. Es bleibt nur bei Übungen aus übernommenen Plänen, die schon AMRAP sind, und lässt sich dort ausschalten.'],
+  ] },
+  { v: 307, date: '2026-11-16', items: [
+    ['Auf Englisch fehlten noch ein paar Übersetzungen (Farbwelt-Hinweis, erstes Training, Planvorschau). Die sind jetzt da.'],
+  ] },
   { v: 306, date: '2026-11-16', items: [
     ['Die App startet schneller: Englische Texte und die Lebensmittel-Datenbank werden erst geladen, wenn sie gebraucht werden.'],
     ['Kraftraum und Logbuch sind jetzt auch dunkel leicht in deiner Farbwelt getönt.'],
@@ -9815,8 +9831,8 @@ function colorHintCard() {
   if (!data.profile || !data.profile.name || data.profile.colorHint) return '';
   return `<div class="card color-hint">
       <h2>🎨 Mach die App zu deiner</h2>
-      <p>Im Reiter <b>„Optionen“</b> kannst du die Farbwelt der App wählen. Viele davon färben auch den Hintergrund ein
-        und zwischen hell und dunkel wechseln.</p>
+      <p>Unter „Optionen“ kannst du Farbwelt und Stil der App wählen und zwischen hell und dunkel wechseln.
+        Viele Farbwelten tönen auch den Hintergrund leicht ein.</p>
       <div class="row"><button class="btn primary" data-action="color-hint" data-go="1">Farben ansehen</button>
         <button class="btn" data-action="color-hint">Später</button></div>
     </div>`;
@@ -9926,7 +9942,7 @@ function welcomeHtml() {
   const opt = (p, icon, label, text) => `<button class="split-opt cat ${welc.phase === p ? 'on' : ''}" data-action="welcome-phase" data-p="${p}">
         <span class="cat-icon">${icon}</span><b>${label}</b><small>${text}</small></button>`;
   const train = welc.phase === 'diet' || welc.phase === 'minicut'
-    ? nutTrainQuestion(welc, 'welcome-train')
+    ? `${welc.phase === 'minicut' ? `<p class="deload-note nut-small">⚡ ${NUT_MINICUT_SHORT}</p>` : ''}${nutTrainQuestion(welc, 'welcome-train')}`
     : welc.phase === 'bulk' || welc.phase === 'recomp'
       ? `<p class="hint welcome-note">Im ${welc.phase === 'bulk' ? 'Aufbau' : 'Body Recomposition'} läuft dein Trainingsplan ganz normal.
           Eine Anpassung ist nur in Diät und Minicut vorgesehen.</p>` : '';

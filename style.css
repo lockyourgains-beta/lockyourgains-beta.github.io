@@ -3810,3 +3810,35 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .fe-left.over, .mic-left.over { color: var(--warn-text); }
 .fe-kleft { margin: 2px 0 0; text-align: right; font-size: 14px; }
 .fe-kleft .fe-left { display: inline; font-size: 14px; }
+
+/* v308 (User-Wunsch): Übungskarten im Trainingstag (Plan) kompakt, eine Übung soll nicht mehr größer als der Bildschirm sein */
+.card.pex { padding: 12px 14px; margin-bottom: 10px; }
+.pex .ex-name-row .inp { min-height: 44px; padding: 8px 12px; font-size: 17px; font-weight: 650; }
+.pex .ex-name-row .info-btn { width: 34px; height: 34px; }
+.pex .plan-ex-name { font-size: 17px; line-height: 1.25; }
+.pex .plan-ex-btns { flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pex .btn.plan-swap-btn { flex: 1 1 auto; width: auto; min-height: 34px; margin: 0; padding: 5px 8px; border-radius: 11px; font-size: 13.5px; line-height: 1.2; white-space: nowrap; }
+.plan-del-x { flex: none; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 999px; background: var(--danger-soft); color: var(--danger); font: inherit; font-size: 14px; font-weight: 700; }
+.plan-del-x:active { transform: scale(.92); }
+.pex .auto-info { margin: 8px 0 0; padding: 7px 10px; border-radius: 10px; font-size: 13.5px; line-height: 1.4; }
+.pex .compare { margin: 8px 0 0; padding: 7px 10px; font-size: 13.5px; line-height: 1.4; }
+.pex .hint, .pex .kind-hint { font-size: 13px; line-height: 1.4; }
+.pex .kind-hint { margin-top: 6px; }
+.pex .variants.plan { gap: 5px; margin: 10px 0 0; }
+.pex .variants.plan span { margin-bottom: -1px; font-size: 13px; font-weight: 650; color: var(--muted); }
+.pex .variants.plan span small { font-size: 12px; }
+.pex .vchip { flex: 1 1 auto; min-height: 32px; padding: 0 10px; font-size: 14px; white-space: nowrap; }
+.pex .variants.plan .vchip[data-action="set-step"] { font-size: 13px; }
+.pex .row { gap: 8px; margin-top: 10px; }
+.pex .row > span { font-size: 15px; line-height: 1.25; }
+.pex .row > span .hint, .pex .row > span small { font-size: 12px; }
+.pex .inp.kg { width: 92px; min-height: 40px; padding: 6px 8px; font-size: 17px; }
+.pex select.inp { min-height: 38px; padding: 6px 30px 6px 10px; font-size: 15px; }
+.pex .row > select.inp { width: auto; margin-left: auto; }
+.pex .stepper { gap: 8px; }
+.pex .stepper b { min-width: 28px; font-size: 19px; }
+.pex .stepper button { min-width: 40px; height: 40px; padding: 0 8px; border-radius: 12px; font-size: 21px; }
+.pex .tech-info { margin: 6px 0 0; padding: 6px 10px; border-radius: 10px; font-size: 13px; }
+.pex .complaint-note, .pex .tech-warn { font-size: 13px; }
+[data-look="plain"] .pex .vchip { padding: 0 6px; font-size: 12px; letter-spacing: .03em; }
+[data-look="plain"] .pex .variants.plan .vchip[data-action="set-step"] { padding: 0 2px; font-size: 11px; letter-spacing: 0; }
