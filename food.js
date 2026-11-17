@@ -772,7 +772,8 @@ function foodEatenHtml(date, c) {
       <b>${val != null ? deNum(Math.round(val)) : '–'} g</b><small>von ${lo != null ? `${deNum(lo)}+` : deNum(goal)} g${ok(val, goal, tol, lo) ? ' ✓' : ''}${bal(val, lo != null ? lo : goal, 'g', lo != null ? null : tol, deNum)}</small>
       <i class="fe-bar" aria-hidden="true"><i style="width:${pct(val, lo != null ? lo : goal)}%"></i></i></div>`;
   const all = feat('nut-macros');
-  const tiles = [tile('p', 'Eiweiß', v.p, c.protein, 0, c.pLo)].concat(all ? [tile('f', 'Fett', v.f, c.fat, 0.25), tile('c', 'Kohlenhydrate', v.c, c.carbs, 0.25)] : []);
+  // v328 (User): Eiweiß-Ziel = aktuelles Ziel (auch eigene Aufteilung), nicht die Untergrenze der Empfehlung; mehr ist weiter ok
+  const tiles = [tile('p', 'Eiweiß', v.p, c.protein, 0, c.protein)].concat(all ? [tile('f', 'Fett', v.f, c.fat, 0.25), tile('c', 'Kohlenhydrate', v.c, c.carbs, 0.25)] : []);
   const mk = (v.p || 0) * 4 + (v.f || 0) * 9 + (v.c || 0) * 4;
   const split = all && mk > 0 ? `<div class="nut-bar" aria-hidden="true">${[['p', (v.p || 0) * 4], ['f', (v.f || 0) * 9], ['c', (v.c || 0) * 4]]
     .map(([k, x]) => `<div class="${k}" style="flex:${x}"></div>`).join('')}</div>

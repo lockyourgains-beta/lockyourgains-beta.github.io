@@ -580,8 +580,9 @@ function toast(msg) {
   $toast.textContent = msg;
   $toast.hidden = false;
   clearTimeout(toast.timer);
-  // lange Mitteilungen bleiben länger stehen (v219)
-  toast.timer = setTimeout(() => { $toast.hidden = true; }, Math.min(6000, 2200 + Math.max(0, String(msg).length - 50) * 35));
+  // lange Mitteilungen bleiben länger stehen (v219); v328 (User): beim Hinzufügen 50 % länger
+  const add = /hinzugefügt|übernommen|wieder geöffnet/.test(String(msg));
+  toast.timer = setTimeout(() => { $toast.hidden = true; }, Math.min(6000, 2200 + Math.max(0, String(msg).length - 50) * 35) * (add ? 1.5 : 1));
 }
 
 /* ---------- Eigene Fenster statt System-Pop-ups (v219, User 2026-11-12) ----------
@@ -6696,6 +6697,10 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 328, date: '2026-11-17', items: [
+    ['Ernährungstagebuch: Die Eiweiß-Kachel zeigt jetzt dein aktuelles Eiweiß-Ziel. Bisher stand dort die untere Grenze der Empfehlung, deshalb änderte sie sich nach dem Anpassen der Makros nicht.'],
+    ['Die Meldung nach dem Hinzufügen, z. B. „Haferflocken hinzugefügt ✔“, bleibt jetzt etwas länger stehen.'],
+  ] },
   { v: 327, date: '2026-11-17', items: [
     ['Ernährungstagebuch: „🎯 Kalorien und Makros anpassen“ neu gestaltet. Oben steht groß dein Tagesziel, darunter die Makroverteilung als große Kacheln mit Eiweiß, Fett und Kohlenhydrate als Überschrift. Der kleine Stift an der Zielzahl ist weg.'],
     ['„App-Empfehlung“ bei den Makros fragt jetzt erst nach, bevor deine eigene Aufteilung gelöscht wird.'],
