@@ -3813,9 +3813,11 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 
 /* v308 (User-Wunsch): Übungskarten im Trainingstag (Plan) kompakt, eine Übung soll nicht mehr größer als der Bildschirm sein */
 .card.pex { padding: 12px 14px; margin-bottom: 10px; }
-.pex .ex-name-row .inp { min-height: 44px; padding: 8px 12px; font-size: 17px; font-weight: 650; }
 .pex .ex-name-row .info-btn { width: 34px; height: 34px; }
-.pex .plan-ex-name { font-size: 17px; line-height: 1.25; }
+/* v313 (User-Wunsch): Übungsname deutlich als Überschrift der Karte (Feld nur noch bei neuer, leerer Übung) */
+.pex .ex-name-row { align-items: flex-start; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.pex .plan-ex-name { flex: 1; min-width: 0; margin: 2px 0 0; font-size: 22px; font-weight: 750; line-height: 1.2; letter-spacing: -.01em; color: var(--text); overflow-wrap: anywhere; }
+.pex .ex-name-row .inp { min-height: 44px; padding: 8px 12px; font-size: 17px; }
 .pex .plan-ex-btns { flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .pex .btn.plan-swap-btn { flex: 1 1 auto; width: auto; min-height: 34px; margin: 0; padding: 5px 8px; border-radius: 11px; font-size: 13.5px; line-height: 1.2; white-space: nowrap; }
 .plan-del-x { flex: none; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 999px; background: var(--danger-soft); color: var(--danger); font: inherit; font-size: 14px; font-weight: 700; }
@@ -3840,5 +3842,23 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .pex .stepper button { min-width: 40px; height: 40px; padding: 0 8px; border-radius: 12px; font-size: 21px; }
 .pex .tech-info { margin: 6px 0 0; padding: 6px 10px; border-radius: 10px; font-size: 13px; }
 .pex .complaint-note, .pex .tech-warn { font-size: 13px; }
+/* v310 (User-Wunsch): Ernährung → „Dein Verlauf“ steht mit in der Karte „Körpergewicht“ */
+.nut-bw > .row:first-of-type { margin-top: 8px; }
+.nut-bw .bw-hist-link { margin: 12px 0 0; text-align: center; width: 100%; }
+.nut-bw .nut-prog { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.nut-bw .nut-prog > .nut-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+/* v312: Art der Übung in der Bibliothek */
+.lib-kind .variants.plan { margin: 0; }
+.lib-kind .variants.plan span { margin-bottom: 2px; }
+.lib-kind .vchip { flex: 1 1 auto; min-height: 38px; padding: 0 12px; font-size: 15px; white-space: nowrap; }
+.lib-kind .vchip small { font-size: 12px; font-weight: 500; opacity: .8; }
+.lib-kind .hint { margin: 10px 0 0; }
+/* v311: Tagesziel nachtragen, manuell oder automatisch; fehlende Tage im Ernährungskalender */
+.nut-gap-pick { display: grid; gap: 8px; margin-top: 8px; }
+.nut-gap-pick .split-opt { margin: 0; }
+.nut-gap-pick .link-btn { justify-self: center; }
+.fcal-day.gap { background: var(--warn-soft); box-shadow: inset 0 0 0 1.5px var(--warn); }
+.fcal-day.gap b { color: var(--warn-text); }
+.fcal-gap-note { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--warn-soft); color: var(--warn-text); font-size: 14px; line-height: 1.4; }
 [data-look="plain"] .pex .vchip { padding: 0 6px; font-size: 12px; letter-spacing: .03em; }
 [data-look="plain"] .pex .variants.plan .vchip[data-action="set-step"] { padding: 0 2px; font-size: 11px; letter-spacing: 0; }

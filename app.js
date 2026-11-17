@@ -219,6 +219,7 @@ function upgradeData(d) {
     d.unitV = 1;
   }
   if (!Array.isArray(d.customExercises)) d.customExercises = [];  // eigene Übungen: [{ name, kind, group, like, note }]
+  if (!d.exKinds || typeof d.exKinds !== 'object') d.exKinds = {};  // v312: Art je Übung aus der Bibliothek { nameKey: 'compound'|'normal'|'assist' }
   if (!Array.isArray(d.dayTemplates)) d.dayTemplates = [];  // selbst erstellte Trainingstage: [{ id, name, intensity, groups }]
   // Periodisierung: buildWeeks Aufbauwochen, danach 1 Deload-Woche – jede Woche ist ein Durchlauf (siehe cycleInfo)
   if (!d.cycle) d.cycle = { buildWeeks: 4, start: new Date().toLocaleDateString('sv-SE'), week: 1, no: 1 };
@@ -1454,11 +1455,18 @@ function currentBodyweight() {
 }
 
 // Übungsart: selbst gewählt > Übungsliste > Vermutung anhand des Namens
+// v312 (User-Wunsch): Art nur noch in der Übungsbibliothek änderbar, gilt dann für die Übung in allen Plänen (data.exKinds).
+// ex.kind bleibt für ältere Einstellungen aus dem Plan und für umbenannte Plätze (exSlotRename).
 function kindOf(ex) {
+  const own = typeof data !== 'undefined' && data && data.exKinds && data.exKinds[nameKey(ex.name || '')];
+  if (own) return own;
   if (ex.kind) return ex.kind;
-  const listed = EXERCISE_KINDS.get(nameKey(ex.name || ''));
+  return baseKindOf(ex.name);
+}
+function baseKindOf(name) {
+  const listed = EXERCISE_KINDS.get(nameKey(name || ''));
   if (listed) return listed;
-  const n = norm(ex.name || '');
+  const n = norm(name || '');
   return COMPOUND.test(n) ? 'compound' : ASSIST.test(n) ? 'assist' : 'normal';
 }
 
@@ -3328,8 +3336,8 @@ function ssCandidates(day, i) {
 const ssSaveText = (a, b, rest) => { const v = ssSaves(a, b, rest); return v ? `spart ca. ${fmtNum(v)} min je Runde` : 'spart keine Zeit'; };
 function ssPlanHead(day, p) {
   const a = day.exercises[p.i], b = day.exercises[p.j];
-  return `<div class="ss-head"><span class="ss-title">🔗 Supersatz<small>${ssAntag(a, b) ? 'Gegenspieler' : 'Unabhängige Muskelgruppen'}
-      | Pause je ${ssRestText(p.rest)} | ${ssSaveText(a, b, p.rest)}</small></span>
+  // v313 (User-Wunsch): ohne Erklärzeile (Gegenspieler, Pause, Zeitersparnis)
+  return `<div class="ss-head"><span class="ss-title">🔗 Supersatz</span>
     <button class="btn small outline" data-action="ss-unpair" data-i="${p.i}">Lösen</button></div>`;
 }
 function ssPickHtml(day, i) {
@@ -5625,9 +5633,9 @@ const amrapRowHtml = (ex, i) => ex.amrap ? `<div class="variants plan amrap-row"
 function ownExerciseCard(ex, i) {
   return `<div class="card pex">
     <div class="ex-name-row">
-      <input class="inp" type="text" data-field="ex-name" data-i="${i}" data-orig="${esc(ex.name)}"
+      ${ex.name.trim() ? `<h3 class="plan-ex-name">${esc(exDisp(ex.name))}</h3>` : `<input class="inp" type="text" data-field="ex-name" data-i="${i}" data-orig="${esc(ex.name)}"
         autocomplete="off" autocorrect="off" spellcheck="false"
-        value="${esc(exDisp(ex.name))}" placeholder="Übung eintippen, z. B. Bank…">
+        value="${esc(exDisp(ex.name))}" placeholder="Übung eintippen, z. B. Bank…">`}
       <button class="info-btn" data-action="lib-open" data-i="${i}" aria-label="Ausführung ansehen"
         ${libEntry(ex.name) ? '' : 'hidden'}>i</button>${planDelBtn(i)}
     </div>
@@ -5718,9 +5726,9 @@ function renderDay({ id }) {
     if (pr && pr.role === 'A') h += `<div class="ss-wrap plan">${ssPlanHead(day, pr)}`;
     h += `<div class="card pex${pr ? ' ss-card' : ''}">
       <div class="ex-name-row">${pr ?`<span class="ss-badge">${pr.role}</span>` : ''}
-        ${feat('plan-add-ex') || !ex.name.trim() ? `<input class="inp" type="text" data-field="ex-name" data-i="${i}" data-orig="${esc(ex.name)}"
+        ${!ex.name.trim() ? `<input class="inp" type="text" data-field="ex-name" data-i="${i}" data-orig="${esc(ex.name)}"
           autocomplete="off" autocorrect="off" spellcheck="false"
-          value="${esc(exDisp(ex.name))}" placeholder="Übung eintippen, z. B. Bank…">` : `<h3 class="plan-ex-name">${esc(ex.name)}</h3>`}
+          value="${esc(exDisp(ex.name))}" placeholder="Übung eintippen, z. B. Bank…">` : `<h3 class="plan-ex-name">${esc(exDisp(ex.name))}</h3>`}
         <button class="info-btn" data-action="lib-open" data-i="${i}" aria-label="Ausführung ansehen"
           ${libEntry(ex.name) ? '' : 'hidden'}>i</button>${planDelBtn(i)}
       </div>
@@ -5744,9 +5752,6 @@ function renderDay({ id }) {
            ${dayIntensity(day)
              ? `<p class="auto-info">Wdh.: ${repRangeText(day, ex)} (Start bei ${repsFor(day, ex)}) | Muskelgruppe ohne Volumen-Vorgabe, Sätze von Hand</p>`
              : stepperRow('Wdh. pro Satz', 'reps', i, ex.reps)}`}
-      ${feat('ex-kind-group') ? `<div class="variants plan"><span>Art${ex.kind == null ? ' <small class="hint">(auto)</small>' : ''}</span>${Object.entries(KINDS).map(([k, label]) =>
-        `<button class="vchip ${kindOf(ex) === k ? 'on' : ''}" data-action="plan-kind" data-i="${i}" data-k="${k}">${label}</button>`).join('')}
-      </div>` : ''}
       ${feat('tr-tank-target') ? `<p class="hint kind-hint">Ziel im Tank diese Woche: <b>${weekRirText(kindOf(ex), groupOf(ex))}</b></p>` : ''}
       ${feat('tr-variants') ? `${`<div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
         `<button class="vchip ${variantChipOn(ex.variant || '', v) ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
@@ -5769,7 +5774,7 @@ function renderDay({ id }) {
   h += `${ssAutoBtnHtml(day)}${feat('plan-add-ex') ? '<button class="btn center" data-action="add-ex">+ Übung hinzufügen</button>' : ''}
     <button class="btn primary" data-action="day-done">✔ Fertig</button>
     <p class="hint explain">${feat('tr-max') ? `Änderungen werden automatisch gespeichert. „Max. kg bei 10 Wdh.“ wird nach jedem Training automatisch angepasst. ${MAX_FRESH_NOTE} Steigerung: Kurzhantel-Übungen 2 kg, alle anderen 2,5 kg. Pro Übung änderbar auf 1,25 / 2 / 2,5 / 5 / 10 kg. ${STEP_HINT}`
-      : 'Übung tauschen: Namen antippen und eine andere eintippen. Änderungen werden automatisch gespeichert.'}</p>
+      : 'Übung tauschen: „⇄ Ersetzen“ antippen. Änderungen werden automatisch gespeichert.'}</p>
     <div class="spacer"></div>
     <button class="btn danger" data-action="del-day">Trainingstag löschen</button>`;
   return h;
@@ -5949,12 +5954,20 @@ function renderLibEx({ name }) {
   if (c) return renderCustomEx(c, e);
   if (!e) return `<p class="hint">Für „${esc(name)}“ gibt es noch keine Erklärung in der Bibliothek.</p>`;
   const t = typeof shortFor === 'function' ? shortFor(e.name, e.pattern) : FIG_TEXT[e.pattern] || {};
-  const kind = KINDS[kindOf(planExercise(name) || { name })];
+  const kindK = kindOf(planExercise(name) || { name }), kind = KINDS[kindK];
   const group = MUSCLES[groupOf(planExercise(name) || { name })] || '';
   const trained = data.sessions.some(s => s.entries.some(en => nameKey(en.name) === nameKey(name)));
+  // v312: Art hier einstellen (statt im Trainingstag), gilt für die Übung in allen Plänen
+  const base = baseKindOf(name);
+  const kindPick = feat('ex-kind-group') ? `<div class="card lib-kind">
+      <div class="variants plan"><span>Art der Übung</span>${Object.entries(KINDS).map(([k, label]) =>
+        `<button class="vchip ${kindK === k ? 'on' : ''}" data-action="lib-kind" data-name="${esc(name)}" data-k="${k}">${label}${k === base ? ' <small>(Standard)</small>' : ''}</button>`).join('')}</div>
+      <p class="hint nut-small">Gilt für diese Übung in allen Plänen. Davon hängen Wiederholungsbereich, Verteilung der Sätze, Pausen und Tank ab.</p>
+    </div>` : '';
   return `<div class="card lib-fig">${libFigure(name, true)}</div>
     <div class="lib-chips"><span class="lib-chip">${kind}</span>${group ? `<span class="lib-chip">${group}</span>` : ''}</div>
     ${e.note ? `<p class="lib-note">${esc(e.note)}</p>` : ''}
+    ${kindPick}
     <div class="card">
       <h2>Ausführung</h2>
       <ol class="lib-steps">${(t.steps || []).map(s => `<li>${esc(s)}</li>`).join('')}</ol>
@@ -6657,6 +6670,19 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 313, date: '2026-11-17', items: [
+    ['Plan → Trainingstag: Der Name jeder Übung steht jetzt groß und fett als Überschrift der Karte. Tauschen geht über „⇄ Ersetzen“.'],
+    ['Supersätze im Plan zeigen nur noch „🔗 Supersatz“ und „Lösen“, ohne die Zeile mit Gegenspieler, Pause und Zeitersparnis.'],
+  ] },
+  { v: 312, date: '2026-11-17', items: [
+    ['Plan → Trainingstag: Die Auswahl der Übungsart (Grund-, normale oder Assistenzübung) ist weg. Du stellst sie jetzt in der Übungsbibliothek ein (Experte), sie gilt dann für die Übung in allen Plänen.'],
+  ] },
+  { v: 311, date: '2026-11-17', items: [
+    ['Ernährung, fehlende Tage: Der Knopf heißt jetzt „Tagesziel nachtragen“ und bietet zwei Wege. Manuell führt dich in den Ernährungskalender, wo die fehlenden Tage gelb markiert sind. Automatisch trägt deine Tagesziele für diese Tage als erfüllt ein.'],
+  ] },
+  { v: 310, date: '2026-11-17', items: [
+    ['Ernährung: „Dein Verlauf“ ist keine eigene Karte mehr. Fehlende Tage, Zielgewicht und Hinweise stehen jetzt direkt unter dem Körpergewicht.'],
+  ] },
   { v: 309, date: '2026-11-17', items: [
     ['Diät und Minicut: Die Erklärung zum Training sagt jetzt auch, dass du dich trotzdem so lange wie möglich steigern oder deine Leistung halten solltest.'],
     ['Minicut: Gleich nach der Auswahl steht jetzt der Hinweis, dass er höchstens 4 Wochen am Stück läuft und der Deload im Training sich danach richtet.'],
@@ -8915,8 +8941,13 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
     saveData(); go('plan', { volOpen: true });
     toast('Standardwerte wiederhergestellt');
   },
-  'plan-kind': el => {
-    findDay(current.params.id).exercises[el.dataset.i].kind = el.dataset.k;
+  // v312: Art der Übung nur noch in der Bibliothek, gilt in allen Plänen; Standard-Art = Eintrag löschen.
+  // Alte Einstellungen einzelner Plan-Übungen mit diesem Namen fallen dabei weg.
+  'lib-kind': el => {
+    const k = nameKey(el.dataset.name), v = el.dataset.k;
+    data.exKinds = data.exKinds || {};
+    if (v === baseKindOf(el.dataset.name)) delete data.exKinds[k]; else data.exKinds[k] = v;
+    for (const p of data.plans) for (const d of p.days) for (const ex of d.exercises) if (nameKey(ex.name) === k) ex.kind = null;
     saveData(); render();
   },
   'cycle-weeks': el => applyCycleLen(data.cycle.defWeeks + Number(el.dataset.delta)),

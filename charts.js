@@ -914,14 +914,14 @@ function applyHealthText(text) {
 }
 
 // Körpergewicht eintragen (Ernährungs-Reiter)
-function bwCard() {
-  return `<div class="card">
-      <label class="row"><span>Körpergewicht</span>
+// inner = nur die Felder, ohne eigene Karte (Ernährungs-Reiter: steht in der Karte „Körpergewicht“, v310)
+function bwCard(inner = false) {
+  const f = `<label class="row"><span>Körpergewicht</span>
         <input class="inp kg" id="bw-kg" type="text" inputmode="decimal" autocomplete="off" placeholder="kg"></label>
       <label class="row"><span>Datum</span>
         <input class="inp date" id="bw-date" type="date" value="${todayISO()}" max="${todayISO()}"></label>
-      <div class="row"><button class="btn primary" data-action="bw-save">Speichern</button></div>
-    </div>`;
+      <div class="row"><button class="btn primary" data-action="bw-save">Speichern</button></div>`;
+  return inner ? f : `<div class="card">${f}</div>`;
 }
 
 /* ---------- Körpermaße (v204, User-Wunsch 2026-11-11) ---------- */

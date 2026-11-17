@@ -1027,17 +1027,23 @@ function nutEntriesHtml() {
   return rows ? `<details class="card nut-more nut-entries"><summary>Einträge der letzten 14 Tage ansehen und bearbeiten</summary><ul class="list">${rows}</ul></details>` : '';
 }
 // v299: Tage ohne Eintrag als eine schmale Zeile (in „Dein Verlauf“), Erklärung aufklappbar
+// v311 (User-Wunsch): „Tagesziel nachtragen“ klappt zwei Wege auf: manuell (Kalender, fehlende Tage markiert) oder automatisch
+var nutGapPick = false;
 function nutGapsLine(c) {
   const gaps = nutGapDays();
   if (!gaps.length || !nutHintsOn() || !c) return '';
   const span = gaps.length === 1 ? fmtDate(gaps[0] + 'T12:00:00') : `${fmtDate(gaps[0] + 'T12:00:00')} bis ${fmtDate(gaps[gaps.length - 1] + 'T12:00:00')}`;
   return `<div class="nut-sec nut-gapline">
       <p class="nut-gap-txt">📝 ${gaps.length} Tag${gaps.length === 1 ? '' : 'e'} ohne Eintrag (${span})</p>
-      <button class="btn nut-gap-btn" data-action="nut-gaps-fill">Mit Tagesziel nachtragen</button>
+      ${nutGapPick ? `<div class="nut-gap-pick">
+          <button class="split-opt" data-action="nut-gaps-manual"><b>✍️ Manuell nachtragen</b><small>Im Ernährungskalender, die fehlenden Tage sind dort markiert</small></button>
+          <button class="split-opt" data-action="nut-gaps-fill"><b>⚡ Automatisch nachtragen</b><small>Deine Tagesziele werden für die fehlenden Tage als erfüllt eingetragen</small></button>
+          <button class="link-btn" data-action="nut-gaps-pick">Abbrechen</button></div>`
+        : '<button class="btn nut-gap-btn" data-action="nut-gaps-pick">Tagesziel nachtragen</button>'}
       <details class="nut-more"><summary>ⓘ Warum?</summary><p class="hint nut-small">Der gemessene Bedarf vergleicht, was du im Schnitt isst,
         mit deinem Gewichtsverlauf. Je mehr Tage fehlen, desto ungenauer wird er. Hast du an diesen Tagen ungefähr nach Plan gegessen, trägt die App
         dort dein Tagesziel ein (${nutKcal(c.kcal)} kcal, ${c.protein} g Eiweiß). Tage, an denen du deutlich mehr oder weniger gegessen hast, trag
-        lieber selbst ein (Ernährungstagebuch → Woche & Monat → Einträge).</p></details>
+        lieber selbst ein (Manuell nachtragen).</p></details>
     </div>`;
 }
 // Die letzten 14 Tage als Balken (Linie = Tagesziel) + Ø der letzten 7 Tage
@@ -1184,10 +1190,11 @@ const NUT_LATER_BTN = '<button class="btn" data-action="nut-suggest-later">Nicht
 
 // Keine laufenden Kommentare (User-Regel 2026-11-06): Die Karte erscheint nur mit einem Kalorienvorschlag und kurzer Begründung
 // v251 (User 2026-11-14): Zielgewicht, Hinweis mit Anpassungsvorschlag und gemessener Bedarf in einer Karte „Dein Verlauf“
+// v310 (User 2026-11-17): keine eigene Karte mehr, steht unten in der Karte „Körpergewicht“ (bwBlock)
 function nutProgressCard(n, c, kg) {
   const sec = h => h ? h.replace('class="card ', 'class="nut-sec ') : '';
   const parts = [sec(nutBfCard(n)), sec(nutGoalCard(n, c, kg)), sec(nutTrendCard(n, c)), sec(nutMeasuredCard(n, c)), nutGapsLine(nutForDay(c))].filter(Boolean);
-  return parts.length ? `<div class="card nut-progress"><h2>📈 Dein Verlauf</h2>${parts.join('')}</div>` : '';
+  return parts.length ? `<div class="nut-prog">${parts.join('')}</div>` : '';
 }
 function nutTrendCard(n, c) {
   if (!nutHintsOn() || n.phase === 'minicut' || nutBreakNow(n)) return '';
@@ -1425,8 +1432,9 @@ function renderNutrition() {
   const intakeShown = !paused && (planOn || (n && nutReady(n) && kg != null));
   // v261 (User 2026-11-14): hier nur noch Gewicht eintragen; Verlauf, Veränderung und Einträge im Reiter Verlauf (Statistik → Gewicht),
   // „Aus Health“ samt Anleitung im Ernährungstagebuch
-  const bwBlock = `<h2>Körpergewicht</h2>${intakeShown ? '<p class="hint nut-small">Wiege dich 3–4× pro Woche, am besten morgens nach dem Aufstehen. Die App braucht das für ihre Kalorienvorschläge.</p>' : ''}${bwCard()}
-    ${data.bodyweight.length ? '<button class="link-btn bw-hist-link" data-action="bw-hist">Verlauf, Veränderung und alle Einträge ansehen ›</button>' : ''}`;
+  // v310: eine Karte – Überschrift, Eingabe, Link und darunter der frühere „Dein Verlauf“ (extra)
+  const bwBlock = (extra = '') => `<div class="card nut-progress nut-bw"><h2>Körpergewicht</h2>${intakeShown ? '<p class="hint nut-small">Wiege dich 3–4× pro Woche, am besten morgens nach dem Aufstehen. Die App braucht das für ihre Kalorienvorschläge.</p>' : ''}${bwCard(true)}
+    ${data.bodyweight.length ? '<button class="link-btn bw-hist-link" data-action="bw-hist">Verlauf, Veränderung und alle Einträge ansehen ›</button>' : ''}${extra}</div>`;
   let bwDone = false;
   if (n && nutPaused(n)) {
     h += nutLowCard(n, null) + nutPauseCard(n);
@@ -1460,8 +1468,7 @@ function renderNutrition() {
       ${nutLowCard(n, nutForDay(c))}
       ${nutPauseCard(n)}
       ${nutPhaseHint(n)}
-      ${(bwDone = true) && bwBlock}
-      ${nutProgressCard(n, c, kg)}
+      ${(bwDone = true) && bwBlock(nutProgressCard(n, c, kg))}
       ${nutTrainCard(n)}
       <div class="card nut-more-list"><h2>Mehr</h2>
         ${typeof nutPlanActive === 'function' && nutPlanActive() ? '' : NP_OPEN_BTN}
@@ -1478,7 +1485,7 @@ function renderNutrition() {
     h += NP_OPEN_BTN;  // v238: das Ernährungstagebuch steht nur noch oben (foodTopCard)
   }
   // Nur ein Health-Knopf: steht in „Heute gegessen“; ohne diese Karte (Ernährung nicht eingerichtet) hier beim Gewicht
-  if (!bwDone) h += bwBlock;
+  if (!bwDone) h += bwBlock();
   if (typeof photoBtnHtml === 'function') h += photoBtnHtml();  // Fortschrittsfotos (v213, media.js)
   if (typeof measBtnHtml === 'function') h += measBtnHtml();  // Körpermaße nur beiläufig (v207, User-Wunsch)
   h += nutBasicsCard(dayKcal, kg != null ? kg : currentBodyweight());
@@ -1539,12 +1546,20 @@ Object.assign(actions, {
     render();
   },
   // Tage ohne Eintrag mit dem Tagesziel füllen (src 'auto')
+  'nut-gaps-pick': () => { nutGapPick = !nutGapPick; render(); },
+  // manuell: Ernährungskalender im Monat des ersten fehlenden Tages, fehlende Tage markiert (renderFoodCal)
+  'nut-gaps-manual': () => {
+    const gaps = nutGapDays();
+    nutGapPick = false;
+    go('foodcal', { month: (gaps[0] || todayISO()).slice(0, 7), from: 'nutrition', date: gaps[0] || todayISO() });
+  },
   'nut-gaps-fill': () => {
     const gaps = nutGapDays();
     const c = nutCalc(data.nutrition, nutWeight());
     if (!gaps.length || !askOk(`${gaps.length} Tag${gaps.length === 1 ? '' : 'e'} ohne Eintrag mit deinem Tagesziel nachtragen?\n\n`
       + `${nutKcal(c.kcal)} kcal | Eiweiß ${c.protein} g | Kohlenhydrate ${c.carbs} g | Fett ${c.fat} g pro Tag`)) return;
     for (const d of gaps) saveIntake(d, { kcal: c.kcal, p: c.protein, c: c.carbs, f: c.fat }, 'auto');
+    nutGapPick = false;
     saveData();
     toast(`${gaps.length} Tag${gaps.length === 1 ? '' : 'e'} nachgetragen ✔`);
     render();

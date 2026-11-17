@@ -1552,10 +1552,13 @@ function renderFoodCal(p) {
   let cells = '';
   for (let i = 0; i < lead; i++) cells += '<span></span>';
   let n = 0, sum = 0;
+  // v311: Tage ohne Eintrag, die der Ernährungs-Reiter zum Nachtragen meldet (nutGapDays), gelb markieren
+  const gapSet = new Set(typeof nutGapDays === 'function' && typeof nutHintsOn === 'function' && nutHintsOn() ? nutGapDays() : []);
+  const gapN = [...gapSet].filter(x => x.startsWith(month)).length;
   for (let d = 1; d <= days; d++) {
     const iso = `${month}-${String(d).padStart(2, '0')}`, v = foodDayVals(iso), fut = iso > T;
     if (v) { n++; sum += v.kcal; }
-    const cls = ['fcal-day', v ? 'has' : '', foodClosed(iso) ? 'closed' : '', iso === T ? 'today' : '', fut ? 'future' : ''].filter(Boolean).join(' ');
+    const cls = ['fcal-day', v ? 'has' : '', !v && gapSet.has(iso) ? 'gap' : '', foodClosed(iso) ? 'closed' : '', iso === T ? 'today' : '', fut ? 'future' : ''].filter(Boolean).join(' ');
     cells += `<button class="${cls}" data-action="food-cal-day" data-d="${iso}" ${fut ? 'disabled' : ''}><b>${d}</b><small>${v ? (v.kcal >= 1000 ? fmtNum(Math.round(v.kcal / 100) / 10) + 'k' : Math.round(v.kcal)) : ''}</small></button>`;
   }
   const title = first.toLocaleDateString(LOCALE(), { month: 'long', year: 'numeric' });
@@ -1566,6 +1569,7 @@ function renderFoodCal(p) {
       <div class="fcal-grid fcal-wd">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(x => `<span>${x}</span>`).join('')}</div>
       <div class="fcal-grid">${cells}</div>
       <p class="hint nut-small">Zahl = Kalorien des Tages (k = Tausend), Rahmen = Tag abgeschlossen. Tag antippen öffnet ihn im Tagebuch.</p>
+      ${gapN ? `<p class="fcal-gap-note">📝 ${gapN} Tag${gapN === 1 ? ' ohne Eintrag ist' : 'e ohne Eintrag sind'} gelb markiert. Tippe einen Tag an und trag ein, was du gegessen hast.</p>` : ''}
     </div>
     <div class="card"><label class="row"><span>Zu Datum springen</span>
       <input class="inp date" type="date" data-field="food-cal-date" value="${T}" max="${T}"></label></div>
