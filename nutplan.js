@@ -306,9 +306,9 @@ Mittagessen
 150 g Hähnchenbrust
 200 g Reis
 …"></textarea>
-        <p class="hint nut-small"><b>Plan als Foto oder Screenshot?</b> Den Text kopiert dein Handy für dich: iPhone: Foto öffnen, auf den Text
-          tippen und halten, „Alle auswählen“ → „Kopieren“. Android: Foto mit Google Lens öffnen → „Text“ → „Alles kopieren“. Dann hier einfügen.
-          Lebensmittel mit Menge in g oder ml, Tage und Mahlzeiten als eigene Zeile. Excel- oder Sheets-Zellen kannst du genauso einfügen.</p>
+        <p class="hint nut-small"><b>Plan als Foto oder Screenshot?</b> Den Text kopiert dein Handy für dich, dann hier einfügen.</p>
+        <p class="hint nut-small">${ocrStepsText()}</p>
+        <p class="hint nut-small">Lebensmittel mit Menge in g oder ml, Tage und Mahlzeiten als eigene Zeile. Excel- oder Sheets-Zellen kannst du genauso einfügen.</p>
         <button class="btn primary" data-action="np-paste-go">Übernehmen</button>` : ''}
       <p class="hint nut-small explain"><b>Google Sheets:</b> Datei → Herunterladen → Microsoft Excel (.xlsx) bzw. am Handy „Teilen und exportieren →
         Kopie senden“ oder einfach die Zellen kopieren und oben einfügen. Die Datei wird nur auf deinem Handy gelesen, nichts wird hochgeladen.</p>

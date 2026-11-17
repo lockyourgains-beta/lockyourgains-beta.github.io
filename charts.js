@@ -1086,7 +1086,7 @@ function renderCharts() {
   if (s.mode === 'bw') return h + bwCmpHtml();  // v261: Körpergewicht und Kalorien
 
   if (s.mode === 'steps') {
-    h += (feat('nut-health') ? `<p class="hint explain">❤️ Schritte aus Apple Health holst du im <b>Ernährungstagebuch</b> mit „Aus Health“,
+    h += (healthOn() ? `<p class="hint explain">❤️ Schritte aus Apple Health holst du im <b>Ernährungstagebuch</b> mit „Aus Health“,
       zusammen mit Gewicht und Kalorien.</p>` : '') + `<div class="card">
       <label class="row"><span>Schritte</span>
         <input class="inp kg" id="steps-n" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="8500"></label>

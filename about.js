@@ -118,8 +118,8 @@ async function feedbackMail(beta = false) {
 
 function renderAbout() {
   return `<div class="card about-head"><h2>LockYourGains</h2>
-      <p class="hint">Deine App fürs Krafttraining: Sie schlägt dir für jeden Satz Gewicht und Wiederholungen vor, lernt aus jedem Training
-        und plant Zyklen mit Erholungswochen. Ohne Konto, ohne Werbung. Deine Daten bleiben auf deinem Gerät.</p>
+      <p class="hint">Deine App für Training und Ernährung: Sie schlägt dir für jeden Satz Gewicht und Wiederholungen vor, lernt aus jedem Training
+        und plant Zyklen mit Erholungswochen. Dazu kommen dein Kalorienziel, das Ernährungstagebuch und auf Wunsch ein Phasenplan.</p>
       <p class="hint app-version" id="app-version"></p></div>
     ${aboutFeedback()}
     <details class="card about-sec" open><summary><b>⚕️ Gesundheitshinweis</b></summary>${healthListHtml()}</details>

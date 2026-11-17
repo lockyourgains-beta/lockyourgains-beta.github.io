@@ -406,14 +406,21 @@ function renderVideos({ name }) {
   mediaUrlsFree();
   if (!vidReady(name)) { vidLoad(name); return '<p class="hint">Videos werden geladen …</p>'; }
   const list = vidCache.list;
-  let h = `<p class="sub">${esc(name)}</p>
+  // v320: gerade in der App aufgenommenes Video ganz oben mit „In Fotos speichern“ (ohne Scrollen), bis es gespeichert ist
+  const fresh = list[0] && list[0].src === 'camera' && !vidSafe(list[0]) ? list[0] : null;
+  let h = `<p class="sub">${esc(name)}</p>${fresh ? `<div class="card highlight vid-new">
+      <div class="vid-new-row"><button class="vid-thumb" data-action="vid-open" data-id="${fresh.id}" aria-label="Video ansehen">
+        <video src="${mUrl(fresh.blob)}#t=0.1" preload="metadata" muted playsinline></video><span aria-hidden="true">▶</span></button>
+        <div class="vid-meta"><b>Neues Video aufgenommen</b><small class="warn">⚠ nur in der App gespeichert</small></div></div>
+      <button class="btn primary" data-action="vid-save" data-id="${fresh.id}">📥 In Fotos speichern</button>
+    </div>` : ''}
     <div class="card vid-add"><h2>🎥 Technik checken</h2>
       <p>Film einen Satz und schau ihn dir in Zeitlupe an oder vergleiche ihn mit deinem letzten Video.</p>
       <p class="hint"><b>Am sichersten:</b> mit der normalen Kamera-App filmen und hier auswählen. Dann liegt das Video schon in deinen Fotos
         und geht nicht verloren.</p>
       <button class="btn primary" data-action="vid-pick" data-cam="0">🎞 Video aus deinen Fotos wählen</button>
       <button class="btn" data-action="vid-pick" data-cam="1">🎥 In der App aufnehmen</button>
-      <button class="btn nav" data-action="vid-help">📖 So gehen deine Videos nicht verloren<small>Speichern auf iPhone und Android, Tipps zum Filmen</small></button>
+      <button class="btn nav" data-action="vid-help">📖 So gehen deine Videos nicht verloren<small>${isIOS() || isAndroid() ? 'Speichern in deinen Fotos' : 'Speichern auf iPhone und Android'}, Tipps zum Filmen</small></button>
     </div>`;
   if (!list.length) return h + '<p class="hint">Noch keine Videos zu dieser Übung.</p>';
   h += `<h2>Deine Videos</h2>${list.map(v => `<div class="card vid-item">
@@ -525,7 +532,8 @@ async function vidAdd(name, file, cam) {
     size: file.size, saved: !cam, src: cam ? 'camera' : 'pick', lines: [] });
   vidCache = null;
   render();
-  toast(cam ? 'Video gespeichert. Denk an „In Fotos speichern“' : 'Video übernommen ✔');
+  window.scrollTo(0, 0);  // v320: der Knopf zum Speichern steht oben
+  toast(cam ? 'Video aufgenommen. Tipp oben auf „In Fotos speichern“' : 'Video übernommen ✔');
 }
 actions['vid-open-list'] = el => go('videos', { name: el.dataset.name, from: current.view === 'training' ? 'training' : 'exercise' });
 actions['vid-pick'] = el => { const name = current.params.name, cam = el.dataset.cam === '1'; mediaPick('video/*', cam, f => vidAdd(name, f, cam)); };
@@ -588,22 +596,23 @@ function renderVideoHelp() {
 
     <h2>Der einfachste Weg (empfohlen)</h2>
     <ol><li>Film den Satz mit der <b>normalen Kamera-App</b> deines Handys.</li>
-      <li>Das Video liegt damit automatisch in deinen Fotos (iPhone: App „Fotos“, Android: „Galerie“ oder „Google Fotos“).</li>
+      <li>${isIOS() ? 'Das Video liegt damit automatisch in der App „Fotos“.' : isAndroid() ? 'Das Video liegt damit automatisch in deiner „Galerie“ bzw. in „Google Fotos“.'
+        : 'Das Video liegt damit automatisch in deinen Fotos (iPhone: App „Fotos“, Android: „Galerie“ oder „Google Fotos“).'}</li>
       <li>In der App bei der Übung „🎥 Video“ → <b>„Video aus deinen Fotos wählen“</b>.</li></ol>
     <p>So musst du an nichts weiter denken. Die App arbeitet mit einer Kopie, das Original bleibt in deiner Galerie.</p>
 
     <h2>Direkt in der App aufgenommen?</h2>
     <p>Dann liegt das Video zunächst nur in der App (Hinweis „⚠ nur in der App gespeichert“). So kommt es in deine Fotos:</p>
-    <h3>iPhone</h3>
+    ${osIs('ios') ? `${osIs('android') ? '<h3>iPhone</h3>' : ''}
     <ol><li>„📥 In Fotos speichern“ antippen, das Teilen-Menü öffnet sich.</li>
       <li>Nach unten wischen und <b>„Video sichern“</b> wählen. Das Video landet in der App „Fotos“.</li>
       <li>Alternativ „In Dateien sichern“, z. B. in iCloud Drive.</li></ol>
-    <p class="hint">Beim ersten Mal fragt das iPhone, ob die App Fotos hinzufügen darf. Mit „Erlauben“ bestätigen.</p>
-    <h3>Android</h3>
+    <p class="hint">Beim ersten Mal fragt das iPhone, ob die App Fotos hinzufügen darf. Mit „Erlauben“ bestätigen.</p>` : ''}
+    ${osIs('android') ? `${osIs('ios') ? '<h3>Android</h3>' : ''}
     <ol><li>„📥 In Fotos speichern“ antippen. Je nach Handy öffnet sich das Teilen-Menü.</li>
       <li>Dort deine Galerie-App, „Google Fotos“ oder „Dateien“/„In Downloads speichern“ wählen. Die Einträge heißen je nach Hersteller etwas anders.</li>
       <li>Öffnet sich kein Menü, speichert das Handy das Video direkt im Ordner <b>„Downloads“</b>. In der Galerie findest du es dann
-        unter „Alben“ → „Download“.</li></ol>
+        unter „Alben“ → „Download“.</li></ol>` : ''}
     <p class="hint">Ist es gespeichert, steht beim Video „✔ auch in deinen Fotos“. Die App kann nicht prüfen, ob das Speichern im Menü
       wirklich geklappt hat. Schau im Zweifel kurz in deiner Galerie nach.</p>
 

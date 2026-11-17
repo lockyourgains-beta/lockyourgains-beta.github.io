@@ -902,7 +902,8 @@ function nutGoalToolsHtml() {
   if (!nutGoalEditable()) return '';
   const c = nutCalc(n, kg);
   const open = foodGoalOpen || !!nutKcalEdit || !!nutMacroEdit;
-  if (!open) return '';
+  // v322 (User-Wunsch): großer, beschrifteter Knopf statt nur des kleinen ✎ an der Zielzahl
+  if (!open) return `<button class="btn fe-goal-open" data-action="fe-goal-toggle" aria-expanded="false">🎯 ${feat('nut-macros') ? 'Kalorien und Makros anpassen' : 'Tagesziel anpassen'}</button>`;
   const head = `<button class="fe-goal-btn" data-action="fe-goal-toggle" aria-expanded="true"><span>🎯 Tagesziel anpassen</span>
       <small>zuklappen ▴</small></button>`;
   const adj = n.kcalOwn != null ? '' : n.adjust ? ` | inkl. ${nutSigned(n.adjust, 'kcal')} aus deinem Gewichtsverlauf` : '';

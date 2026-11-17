@@ -834,9 +834,9 @@ function renderFood(p) {
     <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) : foodSumHtml(t)}
       ${date === todayISO() && typeof nutGoalToolsHtml === 'function' ? nutGoalToolsHtml() : ''}
       ${typeof microBtnHtml === 'function' ? microBtnHtml() : ''}${list.some(e => e.key !== FOOD_FILL) ? foodFsHtml(t, foodGoal(date)) : ''}
-      ${nutIntakeForm ? nutIntakeFormHtml() : `<div class="row fe-src-btns">${feat('nut-health') ? '<button class="btn" data-action="health-paste">❤️ Aus Health</button>' : ''}
+      ${nutIntakeForm ? nutIntakeFormHtml() : `<div class="row fe-src-btns">${healthOn() ? '<button class="btn" data-action="health-paste">❤️ Aus Health</button>' : ''}
         <button class="btn" data-action="nut-intake-open" data-date="${date}">✏️ Von Hand</button></div>
-      ${feat('nut-health') ? healthPasteBox() + healthGuide() : ''}`}</div>
+      ${healthOn() ? healthPasteBox() + healthGuide() : ''}`}</div>
     ${date === todayISO() ? foodOpenCard() : ''}`;
   const planDay = typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanDay(date) : null;
   const planMeals = (planDay && planDay.meals) || {};
@@ -857,7 +857,7 @@ function renderFood(p) {
           ${!items.length && planMeals[k] ? `<button class="btn primary" data-action="food-plan-meal" data-meal="${k}">✔ Wie geplant</button>` : ''}
           <button class="btn" data-action="food-add" data-meal="${k}">＋ Hinzufügen</button>
           ${!items.length && prev.length ? `<button class="btn" data-action="food-copy" data-meal="${k}">↺ Wie gestern</button>` : ''}
-          ${items.length ? `<button class="btn" data-action="food-meal-save" data-meal="${k}">💾 Speichern</button>` : ''}
+          ${items.length ? `<button class="btn food-save-btn" data-action="food-meal-save" data-meal="${k}">💾 Mahlzeit speichern</button>` : ''}
         </div>
       </div>`;
   }
@@ -868,10 +868,64 @@ function renderFood(p) {
         <div class="food-meal-head"><b>➕ Aufgefüllt bis zum Tagesziel</b><span class="hint">${nutKcal(kc)} kcal</span></div>
         <p class="hint nut-small">Nicht erfasst, geschätzt: Eiweiß ${pr} g | Kohlenhydrate ${ca} g | Fett ${fa} g</p></div>`;
   }
+  h += waterHtml(date);
   h += foodCloseHtml(date, list);
   if (mealOn()) h += `<button class="link-btn meal-cfg-link" data-action="meal-cfg-open">⚙ Mahlzeiten anpassen</button>`;
   return h + `<p class="hint explain nut-small">Die Tagessumme zählt automatisch für deinen Tagesvergleich, die letzten 14 Tage und den gemessenen
     Bedarf. Werte der Grundliste sind Durchschnittswerte. Bei Markenprodukten ist der Barcode genauer.</p>`;
+}
+
+/* ----- Wasser (v316): data.water = { Datum: ml }, data.waterGoal = ml oder null (dann 35 ml je kg Körpergewicht) ----- */
+const WATER_OZ = 29.5735;
+function waterGoal() {
+  if (data.waterGoal) return data.waterGoal;
+  const bw = data.bodyweight.filter(b => b.kg != null).sort((a, b) => a.date.localeCompare(b.date)).pop();
+  if (!bw) return 2000;
+  return Math.min(4000, Math.max(1500, Math.round(bw.kg * 35 / 250) * 250));
+}
+const waterTxt = ml => unitLb() ? `${Math.round(ml / WATER_OZ)} oz` : `${fmtNum(Math.round(ml / 10) / 100)} l`;
+const waterSteps = () => unitLb() ? [Math.round(8 * WATER_OZ), Math.round(16 * WATER_OZ)] : [250, 500];
+// v317: Getränke aus dem Tagebuch zählen mit (g ≈ ml): BLS-Gruppe Getränke (ohne Pulver u. Ä.), Milch und Milchgetränke,
+// Getränke der Grundliste (Portion in ml/l). Alkohol zählt nicht.
+const WATER_NO = /pulver|granulat|konzentrat|sirup|extrakt|bohne|blätter/i;
+function foodDrinkMl(e) {
+  if (!e || e.supp || e.key === FOOD_FILL || !(e.g > 0)) return 0;
+  const k = e.key || '', n = e.name || '';
+  if (k.startsWith('bls:N')) return WATER_NO.test(n) && !/getränk/i.test(n) ? 0 : e.g;
+  if (k.startsWith('bls:M')) return /^(h-)?(voll|roh)?milch|^buttermilch|kefir|milchgetränk|drink/i.test(n) && !/pulver|kondens|käse|joghurt/i.test(n) ? e.g : 0;
+  if (k.startsWith('b:')) {
+    const f = FOOD_BASE_MAP.get(k);
+    return f && f.portion && /ml\)|\d l\)/.test(f.portion.label) && !/^(bier \(pils\)|weizenbier|wein)/i.test(n) ? e.g : 0;
+  }
+  return 0;
+}
+function waterDay(date) {
+  const own = data.water[date] || 0, drinks = Math.round(foodOn(date).reduce((a, e) => a + foodDrinkMl(e), 0));
+  return { own, drinks, total: own + drinks };
+}
+function waterHtml(date) {
+  const { own, drinks, total: ml } = waterDay(date), goal = waterGoal(), pct = Math.min(100, Math.round(ml / goal * 100));
+  const [s1, s2] = waterSteps();
+  return `<div class="card food-meal water-card">
+      <div class="food-meal-head"><b>💧 Wasser</b><span class="hint">${ml >= goal ? '✔ ' : ''}${waterTxt(ml)} von ${waterTxt(goal)}</span></div>
+      <div class="water-bar${ml >= goal ? ' done' : ''}"><span style="width:${pct}%"></span></div>
+      ${drinks ? `<p class="hint nut-small water-drinks">Davon ${waterTxt(drinks)} aus Getränken im Tagebuch</p>` : ''}
+      <div class="row water-btns">
+        <button class="btn" data-action="water-add" data-ml="${s1}">＋ ${waterTxt(s1)}</button>
+        <button class="btn" data-action="water-add" data-ml="${s2}">＋ ${waterTxt(s2)}</button>
+        <button class="btn" data-action="water-more">＋ Menge</button>
+        <button class="icon-btn" data-action="water-add" data-ml="${-s1}" ${own ? '' : 'disabled'} aria-label="Ein Glas weniger">−</button>
+      </div>
+      <button class="link-btn water-goal-btn" data-action="water-goal">Tagesziel ${waterTxt(goal)}${data.waterGoal ? '' : ' (aus deinem Gewicht)'}, ändern</button>
+    </div>`;
+}
+function waterSet(date, ml) {
+  const before = waterDay(date).total, goal = waterGoal();
+  ml = Math.max(0, Math.min(15000, Math.round(ml)));
+  if (ml) data.water[date] = ml; else delete data.water[date];
+  saveData();
+  if (before < goal && waterDay(date).total >= goal) toast('💧 Wasserziel geschafft ✔');
+  render();
 }
 
 /* ----- Hinzufügen: Suche ----- */
@@ -964,7 +1018,9 @@ function foodMealRow(m) {
 function foodResults() {
   const q = foodQuery.trim();
   const meals = data.foodMeals.filter(m => !q || norm(m.name).includes(norm(q)));
-  const mealsHtml = meals.length ? `<p class="food-sec">🍽️ Gespeicherte Mahlzeiten</p>${meals.map(foodMealRow).join('')}` : '';
+  const mealsHtml = meals.length ? `<p class="food-sec">🍽️ Gespeicherte Mahlzeiten</p>${meals.map(foodMealRow).join('')}`
+    : !q && !data.foodMeals.length ? `<p class="hint nut-small food-meal-tip">🍽️ Isst du etwas öfter? Trag die Mahlzeit einmal ein und tipp im Tagebuch
+        auf „💾 Mahlzeit speichern“. Du gibst ihr einen eigenen Namen, danach steht sie hier ganz oben und ist mit einem Tipp eingetragen.</p>` : '';
   if (!q) {
     const known = Object.keys(data.foods).map(foodGet).filter(f => f && (f.last || f.fav));
     const favs = known.filter(f => f.fav).sort((a, b) => a.name.localeCompare(b.name, 'de'));
@@ -1382,6 +1438,30 @@ Object.assign(actions, {
     saveData();
     render();
   },
+  // Wasser (v316)
+  'water-add': el => { const date = current.params.date || todayISO(); waterSet(date, (data.water[date] || 0) + Number(el.dataset.ml)); },
+  'water-more': async () => {
+    const date = current.params.date || todayISO();
+    const v = await uiPrompt(unitLb() ? 'Wie viel hast du getrunken? (in oz)' : 'Wie viel hast du getrunken? (in ml)', '', 'number');
+    const n = parseNum(v);
+    if (!(n > 0)) return;
+    waterSet(date, (data.water[date] || 0) + (unitLb() ? n * WATER_OZ : n));
+  },
+  'water-goal': async () => {
+    const lb = unitLb(), cur = data.waterGoal ? (lb ? String(Math.round(data.waterGoal / WATER_OZ)) : fmtNum(data.waterGoal / 1000)) : '';
+    const v = await uiPrompt((lb ? 'Wasserziel pro Tag in oz' : 'Wasserziel pro Tag in Litern')
+      + '\n\nLeer lassen: Die App rechnet es aus deinem Körpergewicht (35 ml je kg).', cur);
+    if (v == null) return;
+    if (!String(v).trim()) data.waterGoal = null;
+    else {
+      const n = parseNum(v);
+      if (!(n > 0)) return;
+      const ml = lb ? n * WATER_OZ : n < 20 ? n * 1000 : n;  // „2,5“ = Liter, „2500“ = ml
+      data.waterGoal = Math.min(8000, Math.max(500, Math.round(ml / 10) * 10));
+    }
+    saveData();
+    render();
+  },
   // Mahlzeit speichern / aus der Schnellauswahl hinzufügen
   'food-meal-save': async el => {
     const date = current.params.date || todayISO();
@@ -1583,6 +1663,7 @@ function renderFoodCal(p) {
       ${planLegend}
       ${gapN ? `<p class="fcal-gap-note">📝 ${gapN} Tag${gapN === 1 ? ' ohne Eintrag ist' : 'e ohne Eintrag sind'} gelb markiert. Tippe einen Tag an und trag ein, was du gegessen hast.</p>` : ''}
     </div>
+    ${waterStatsHtml(Array.from({ length: days }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`), 'cal:' + month)}
     <div class="card"><label class="row"><span>Zu Datum springen</span>
       <input class="inp date" type="date" data-field="food-cal-date" value="${T}" max="${T}"></label></div>
     ${n ? `<div class="card fcal-sum"><p>${n} Tag${n === 1 ? '' : 'e'} mit Einträgen | Ø <b>${nutKcal(sum / n)} kcal</b></p>
@@ -1602,8 +1683,9 @@ function foodNiceStep(max) {
   return [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= rough) || mag * 10;
 }
 function foodBarChart(days, metric, rangeKey) {
-  const T = todayISO();
-  const vals = days.map(d => { if (d > T) return null; const v = foodDayVals(d); return v && v[metric] != null && v[metric] > 0 ? v[metric] : null; });
+  const T = todayISO(), water = metric === 'w';
+  const vals = days.map(d => { if (d > T) return null; if (water) return waterDay(d).total || null;
+    const v = foodDayVals(d); return v && v[metric] != null && v[metric] > 0 ? v[metric] : null; });
   const have = vals.filter(v => v != null);
   if (!have.length) return '';
   const avg = have.reduce((a, b) => a + b, 0) / have.length;
@@ -1612,10 +1694,10 @@ function foodBarChart(days, metric, rangeKey) {
   const bw = Math.max(3, slot * (n > 10 ? 0.62 : 0.56)), rad = Math.min(4, bw / 2);
   const y = v => TOP + ph - v / top * ph;
   const sel = foodBarSel && foodBarSel.key === rangeKey && vals[foodBarSel.i] != null ? foodBarSel.i : null;
-  const M = FOOD_BAR_METRICS[metric];
+  const M = water ? { label: 'Wasser' } : FOOD_BAR_METRICS[metric];
   let svg = '';
   for (let t = step; t <= top + 1e-9; t += step) {
-    svg += `<line class="fb-grid" x1="${L}" x2="${L + pw}" y1="${y(t)}" y2="${y(t)}"/><text class="fb-tick" x="${W - 2}" y="${y(t) + 4}" text-anchor="end">${metric === 'kcal' ? deNum(t) : Math.round(t)}</text>`;
+    svg += `<line class="fb-grid" x1="${L}" x2="${L + pw}" y1="${y(t)}" y2="${y(t)}"/><text class="fb-tick" x="${W - 2}" y="${y(t) + 4}" text-anchor="end">${water ? (unitLb() ? Math.round(t / WATER_OZ) : fmtNum(round1(t / 1000))) : metric === 'kcal' ? deNum(t) : Math.round(t)}</text>`;
   }
   svg += `<line class="fb-base" x1="${L}" x2="${L + pw}" y1="${y(0)}" y2="${y(0)}"/>`;
   days.forEach((d, i) => {
@@ -1629,6 +1711,13 @@ function foodBarChart(days, metric, rangeKey) {
     if (v != null) svg += `<rect class="fb-hit" x="${L + slot * i}" y="${TOP}" width="${slot}" height="${ph + B}" data-action="food-bar" data-i="${i}" data-k="${rangeKey}"/>`;
   });
   svg += `<line class="fb-avg" x1="${L}" x2="${L + pw}" y1="${y(avg)}" y2="${y(avg)}"/>`;
+  if (water) {  // Wasser: ohne Kennzahl-Auswahl, eingebettet in die aufklappbare Karte
+    const head2 = sel != null
+      ? `<small>${new Date(days[sel] + 'T12:00:00').toLocaleDateString(LOCALE(), { weekday: 'long', day: 'numeric', month: 'long' })}</small><b>${waterTxt(vals[sel])}</b>`
+      : `<small>Ø pro Tag | ${have.length} von ${days.filter(d => d <= T).length} Tagen erfasst</small><b>${waterTxt(avg)}</b>`;
+    return `<div class="fb-head">${head2}</div>
+      <svg class="fb-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Wasser je Tag, Durchschnitt ${waterTxt(avg)}">${svg}</svg>`;
+  }
   const head = sel != null
     ? `<small>${new Date(days[sel] + 'T12:00:00').toLocaleDateString(LOCALE(), { weekday: 'long', day: 'numeric', month: 'long' })}</small><b>${foodBarFmt(metric, vals[sel])}</b>`
     : `<small>Ø pro Tag | ${have.length} von ${days.filter(d => d <= T).length} Tagen erfasst</small><b>${foodBarFmt(metric, avg)}</b>`;
@@ -1638,6 +1727,22 @@ function foodBarChart(days, metric, rangeKey) {
     <svg class="fb-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${M.label} je Tag, Durchschnitt ${foodBarFmt(metric, avg)}">${svg}</svg>
     <p class="hint nut-small"><span class="fb-key"></span> Durchschnitt der erfassten Tage. Säule antippen zeigt den Wert des Tages.</p></div>`;
 }
+
+// v317: Wasser in Kalender und Woche & Monat, zum Aufklappen (Zustand gilt für beide Ansichten)
+let waterStatsOpen = false;
+function waterStatsHtml(days, rangeKey) {
+  const T = todayISO(), past = days.filter(d => d <= T), tot = past.map(d => waterDay(d).total), have = tot.filter(Boolean);
+  if (!have.length) return '';
+  const goal = waterGoal(), hit = have.filter(v => v >= goal).length;
+  return `<div class="card fwater">
+      <button class="fwater-head" data-action="water-stats-toggle" aria-expanded="${waterStatsOpen}">
+        <span><b>💧 Wasser</b><small>Ø ${waterTxt(have.reduce((a, b) => a + b, 0) / have.length)} | Ziel an ${hit} von ${have.length} Tagen erreicht</small></span>
+        <span class="chev" aria-hidden="true">▾</span></button>
+      ${waterStatsOpen ? `<div class="fbar fwater-body">${foodBarChart(days, 'w', 'w:' + rangeKey)}
+        <p class="hint nut-small"><span class="fb-key"></span> Durchschnitt der erfassten Tage. Tagesziel ${waterTxt(goal)}, Getränke aus dem Tagebuch zählen mit.</p></div>` : ''}
+    </div>`;
+}
+actions['water-stats-toggle'] = () => { waterStatsOpen = !waterStatsOpen; render(); };
 
 const foodWeekStart = d => { const x = new Date(d + 'T12:00:00'); return addDaysISO(d, -((x.getDay() + 6) % 7)); };
 function foodRangeDays(range, end) {
@@ -1662,7 +1767,7 @@ function renderFoodStats(p) {
       <button class="${range === 'month' ? 'on' : ''}" data-action="food-stats-range" data-r="month">Monat</button></div>
     <div class="mc-head fstat-nav"><button class="icon-btn" data-action="food-stats-shift" data-d="-1" aria-label="Zurück">‹</button>
       <b>${title}</b><button class="icon-btn" data-action="food-stats-shift" data-d="1" ${next > T ? 'disabled' : ''} aria-label="Weiter">›</button></div>`;
-  if (!got.length) return h + '<p class="hint">In diesem Zeitraum ist nichts eingetragen.</p>';
+  if (!got.length) return h + '<p class="hint">In diesem Zeitraum ist nichts eingetragen.</p>' + waterStatsHtml(days, `${range}:${days[0]}`);
   const kcalDiff = goal && A.kcal != null ? Math.round((A.kcal - goal.kcal) / 10) * 10 : null;
   const mk = A.p * 4 + A.c * 4 + A.f * 9;
   const pct = x => mk > 0 ? Math.round(x / mk * 100) : 0;
@@ -1672,6 +1777,7 @@ function renderFoodStats(p) {
       <p class="hint nut-small">${got.length} von ${past.length} Tag${past.length === 1 ? '' : 'en'} erfasst${goal ? ` | Tagesziel (aktuell) ${nutKcal(goal.kcal)} kcal, Eiweiß ${Math.round(goal.protein)} g${kcalDiff != null ? ` | im Schnitt ${kcalDiff > 0 ? '+' : ''}${deNum(kcalDiff)} kcal` : ''}` : ''}
         | Anteile: Eiweiß ${pct(A.p * 4)} %, Kohlenhydrate ${pct(A.c * 4)} %, Fett ${pct(A.f * 9)} %</p></div>`;
   h += foodBarChart(days, FOOD_BAR_METRICS[p.metric] ? p.metric : 'kcal', `${range}:${days[0]}`);
+  h += waterStatsHtml(days, `${range}:${days[0]}`);
   if (range === 'month') {
     const weeks = {};
     for (const r of got) { const w = foodWeekStart(r.d); (weeks[w] = weeks[w] || []).push(r.v); }

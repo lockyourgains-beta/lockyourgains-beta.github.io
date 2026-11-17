@@ -163,9 +163,9 @@ Dips 3x AMRAP
 
 Tag 2 Pull
 …"></textarea>
-        <p class="hint nut-small"><b>Plan als Foto oder Screenshot?</b> Den Text kopiert dein Handy für dich: iPhone: Foto öffnen, auf den Text
-          tippen und halten, „Alle auswählen“ → „Kopieren“. Android: Foto mit Google Lens öffnen → „Text“ → „Alles kopieren“. Dann hier einfügen.
-          Je Zeile eine Übung mit Sätzen × Wdh. (z. B. 3x12), Zeilen ohne Zahlen werden zu Trainingstagen. AMRAP heißt: so viele Wdh. wie möglich.
+        <p class="hint nut-small"><b>Plan als Foto oder Screenshot?</b> Den Text kopiert dein Handy für dich, dann hier einfügen.</p>
+        <p class="hint nut-small">${ocrStepsText()}</p>
+        <p class="hint nut-small">Je Zeile eine Übung mit Sätzen × Wdh. (z. B. 3x12), Zeilen ohne Zahlen werden zu Trainingstagen. AMRAP heißt: so viele Wdh. wie möglich.
           Excel- oder Sheets-Zellen kannst du genauso einfügen.</p>
         <button class="btn primary" data-action="tp-paste-go">Übernehmen</button>` : ''}
       <p class="hint nut-small explain"><b>Google Sheets:</b> Datei → Herunterladen → Microsoft Excel (.xlsx) bzw. am Handy „Teilen und exportieren →

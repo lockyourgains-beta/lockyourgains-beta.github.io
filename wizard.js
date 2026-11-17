@@ -582,7 +582,10 @@ function wizAltIntensities() {
 }
 // Abwechseln geht nur, wenn mindestens eine Muskelgruppe an mehreren Tagen dran ist
 const wizAltPossible = () => { const a = wizAltIntensities(); return a.includes('heavy') && a.includes('light'); };
-const wizIntMode = () => wiz.intMode && (wiz.intMode !== 'alt' || wizAltPossible()) ? wiz.intMode : wizAltPossible() ? 'alt' : 'heavy';
+// v324 (User): Neulinge und Einsteiger bekommen die Frage nicht – ihre Bereiche sind für Grundübungen in beiden Fällen 10–12 Wdh.,
+// Abwechseln brächte kaum etwas. Alle Tage gleich im niedrigen Bereich (Anfänger: 10–12).
+const wizIntAsk = () => !needsCoach();
+const wizIntMode = () => !wizIntAsk() ? 'heavy' : wiz.intMode && (wiz.intMode !== 'alt' || wizAltPossible()) ? wiz.intMode : wizAltPossible() ? 'alt' : 'heavy';
 const wizDayIntensities = () => wizIntMode() === 'alt' ? wizAltIntensities() : wiz.days.map(() => wizIntMode());
 
 // Tagesnamen passend dazu: Wdh.-Bereich im Namen anpassen bzw. anhängen; alle gleich -> weglassen, doppelte Namen A, B …
@@ -708,6 +711,7 @@ function wizSteps() {
   const labels = own ? ['Tage', 'Übungen', 'Name'] : ['Tage', 'Name', 'Fokus', 'Volumen', 'RIR', 'Übungen', 'Ende'];
   const cur = (own ? OWN_PILL : STEP_PILL)[wiz.step];
   return `<div class="pills wiz-steps">${labels.map((l, i) => l === 'RIR' && !feat('wiz-rir') ? ''
+    : !own && !feat('wiz-full') && (l === 'Name' || l === 'Volumen') ? ''
     : `<span class="pill ${i === cur ? 'now' : i < cur ? 'past' : ''}">${l}</span>`).join('')}</div>`;
 }
 
@@ -724,8 +728,9 @@ function wizFlow() {
   const steps = ['mode', 'progchoice', ...eq, 'level', 'sessions', 'time', 'split'];  // time: Höchstdauer (alle Modi, gleich nach „wie oft“)
   const noProg = wiz.ownProg === 'own';  // v270: ohne Steigerung – keine Fragen zu Intensitätsverlauf, Variante und Tank
   // v247 (User 2026-11-14): erst der Intensitätsverlauf, dann die Volumen-Variante
-  if (feat('tr-rir-input') && !noProg) steps.push('course');  // v230: Intensitätsverlauf im Zyklus (ab Standard; Einfach endet nach der Aufteilung)
-  if (feat('wiz-style') && !noProg) steps.push('style');  // style: Volumen-Variante
+  const full = feat('wiz-full');  // v317: Experte fragt alles, Standard nur das Nötige (Rest mit Standardwerten)
+  if (feat('tr-rir-input') && !noProg && full) steps.push('course');  // v230: Intensitätsverlauf im Zyklus (ab Standard; Einfach endet nach der Aufteilung)
+  if (feat('wiz-style') && !noProg && full) steps.push('style');  // style: Volumen-Variante
   if (custom) steps.push('days', 'freq');
   else {
     if (tpl && tpl.pairs && feat('wiz-freq')) steps.push('freq');
@@ -734,9 +739,9 @@ function wizFlow() {
   // Einstiegswoche wird erst beim ersten Training gefragt (plan.askEntry); nach dem Fokus kommt die Frage
   // „automatisch erstellen?“, danach Volumen und RIR (erst nur zum Ansehen, mit „Bearbeiten“); Deload und Steigerung
   // werden erst ganz am Ende gefragt (Schritte deloadq/progq nach der Vorschau)
-  if (feat('wiz-name')) steps.push('basics');
-  if (feat('wiz-focus')) steps.push('prio', 'low');
-  if (feat('wiz-volume')) steps.push('auto', 'volume');
+  if (feat('wiz-name') && full) steps.push('basics');
+  if (feat('wiz-focus')) steps.push(...(full ? ['prio', 'low'] : ['prio']));
+  if (feat('wiz-volume') && full) steps.push('auto', 'volume');
   if (feat('wiz-rir') && !noProg) steps.push('rir');
   return steps;
 }
@@ -808,8 +813,8 @@ const needsCoach = () => wiz.level === 'neuling' || wiz.level === 'einsteiger';
 
 // Schritt „Erfahrung“: bestimmt empfohlene Tage, Vorlagen, Startvolumen und Tank-Ziel
 function renderWizLevel() {
-  // Erfahrung je Modus: Einfach („ideal für Neulinge“) Neuling/Einsteiger, Standard ohne Neuling, Experte alle
-  const allowed = { e: ['neuling', 'einsteiger'], s: ['einsteiger', 'fortgeschritten', 'hase'], x: ['fortgeschritten', 'hase'] }[appMode()];
+  // Erfahrung je Modus: Einfach („ideal für Neulinge“) Neuling/Einsteiger, Standard alle (v324, User: auch Neuling), Experte ab Fortgeschritten
+  const allowed = { e: ['neuling', 'einsteiger'], s: ['neuling', 'einsteiger', 'fortgeschritten', 'hase'], x: ['fortgeschritten', 'hase'] }[appMode()];
   const opts = Object.entries(LEVELS).filter(([k]) => !allowed || allowed.includes(k)).map(([k, l]) => `<button class="split-opt cat ${wiz.level === k ? 'on' : ''}" data-action="wiz-level" data-k="${k}">
       <span class="cat-icon">${l.icon}</span><b>${l.label}</b><small>${l.desc}</small></button>`).join('');
   return `<div class="card wiz-q">
@@ -934,7 +939,7 @@ function renderWizMode() {
 // v270 (User 2026-11-14): direkt nach der Auswahl – Steigerungslogik der App (vorausgewählt) oder immer derselbe Plan ohne Vorgaben
 function renderWizProgChoice() {
   const prog = wiz.ownProg || 'app';
-  const src = wiz.mode === 'import' ? 'deine Tabelle' : wiz.mode === 'own' ? 'deinen eingetragenen Plan' : 'den Plan, den die App mit dir erstellt';
+  const src = wiz.mode === 'import' ? 'deine Tabelle' : wiz.mode === 'own' ? 'deinen eingetragenen Plan' : 'den Plan, den die App mit dir erstellt,';
   const opt = (k, icon, title, text) => `<button class="split-opt cat ${prog === k ? 'on' : ''}" data-action="wiz-prog-pick" data-k="${k}">
       <span class="cat-icon">${icon}</span><b>${title}</b><small>${text}</small></button>`;
   return `<div class="card wiz-q">
@@ -1154,9 +1159,9 @@ function renderWizTime() {
   return wizCard('⏱️', 'Wie lange darf ein Training höchstens dauern?',
     `Gemeint ist die längste Woche am Ende des Zyklus, ohne Aufwärmen. Am Anfang des Zyklus sind die Trainings kürzer, weil
       von Woche zu Woche Sätze dazukommen. Die App plant höchstens so viele Sätze pro Training, dass es in diese Zeit passt.`,
-    opt(90, `bis etwa ${TIME_CAPS[90]} Sätze, das volle Programm (empfohlen)`) +
+    opt(90, `bis etwa ${TIME_CAPS[90]} Sätze, das volle Programm${needsCoach() ? '' : ' (empfohlen)'}`) +
     opt(75, `bis etwa ${TIME_CAPS[75]} Sätze`) +
-    opt(60, `bis etwa ${TIME_CAPS[60]} Sätze`) +
+    opt(60, `bis etwa ${TIME_CAPS[60]} Sätze${needsCoach() ? ', gut für den Anfang (empfohlen)' : ''}`) +
     opt(45, `bis etwa ${TIME_CAPS[45]} Sätze, für sehr wenig Zeit, dafür kommen im Zyklus kaum Sätze dazu`) +
     `<button class="split-opt freq-opt ${wiz.timeMax === 0 ? 'on' : ''}" data-action="wiz-time" data-m="0">
       <b>Die Zeit spielt keine Rolle</b><small>Jede Muskelgruppe bekommt ihre vorgesehenen Sätze. Am Ende des Zyklus kann ein Training dann deutlich über 90 Minuten dauern, höchstens aber etwa ${TIME_NO_LIMIT / 60} Stunden.</small></button>`,
@@ -1387,7 +1392,7 @@ function renderWizDeload() {
         soll. Für Erfahrene, die ihren Körper gut einschätzen können.`)}
       <p class="hint">Beides lässt sich später im Plan-Reiter ändern.</p>
     </div>
-    <div class="row"><button class="btn" data-action="wiz-step" data-to="intq">Zurück</button>
+    <div class="row"><button class="btn" data-action="wiz-step" data-to="${wizIntAsk() ? 'intq' : 'preview'}">Zurück</button>
       <button class="btn primary" data-action="wiz-commit">Plan speichern</button></div>
     <p class="hint">Der Plan wird zusätzlich zu deinen bisherigen Plänen gespeichert und aktiv gesetzt. Er steigert sich wie üblich
       über Sätze, Gewicht und Wiederholungen. Das lässt sich später im Plan ändern.</p>`;
@@ -1420,19 +1425,21 @@ function renderWizProg() {
 function renderWizFocus(kind) {
   const prio = kind === 'prio';
   const sel = prio ? wiz.prio : wiz.low;
+  const short = prio && !feat('wiz-full');  // v317 Standard: nach der Priorität direkt zur Vorschau (Übungen automatisch)
+  const fwd = short ? 'data-action="wiz-short-go"' : `data-action="wiz-step" data-to="${prio ? 'low' : 'auto'}"`;
   const other = prio ? wiz.low : wiz.prio;
   return `<div class="card check">
     <div class="check-emoji" aria-hidden="true">${prio ? '⭐' : '😌'}</div>
-    <h2 class="question">${prio ? 'Welche Muskelgruppen möchtest du priorisieren?' : 'Welche Muskelgruppen können gerade etwas low machen?'}</h2>
+    <h2 class="question">${prio ? 'Welche Muskelgruppen möchtest du priorisieren?' : 'Welche Muskelgruppen dürfen gerade kürzer treten?'}</h2>
     <p class="hint">Höchstens ${MAX_FOCUS} auswählen | ${prio ? `+${FOCUS_SETS}` : `−${FOCUS_SETS}`} Sätze pro Woche${prio ? ' | ihre Übungen kommen an den Anfang des Trainings' : ''}${sel.length ? ` | gewählt: ${sel.length}` : ''}</p>
     <div class="area-grid">${wizGroups().map(g => `<button class="vchip ${sel.includes(g) ? 'on' : ''}"
       data-action="wiz-focus" data-kind="${kind}" data-g="${g}" ${other.includes(g) ? 'disabled' : ''}>${MUSCLES[g]}</button>`).join('')}</div>
     <div class="row">
-      <button class="btn" data-action="wiz-focus-none" data-kind="${kind}" data-to="${prio ? 'low' : 'auto'}">Keine</button>
-      <button class="btn primary" data-action="wiz-step" data-to="${prio ? 'low' : 'auto'}">Weiter</button>
+      <button class="btn" data-action="wiz-focus-none" data-kind="${kind}" data-to="${short ? 'short' : prio ? 'low' : 'auto'}">Keine</button>
+      <button class="btn primary" ${fwd}>Weiter</button>
     </div>
   </div>
-  <div class="row"><button class="btn" data-action="wiz-step" data-to="${prio ? 'basics' : 'prio'}">Zurück</button></div>`;
+  <div class="row"><button class="btn" data-action="wiz-step" data-to="${prio ? wizPrev() : 'prio'}">Zurück</button></div>`;
 }
 
 function renderWizard() {
@@ -1527,7 +1534,7 @@ function renderWizard() {
         <button class="btn primary" data-action="wiz-auto" data-yes="1">Ja</button>
         <button class="btn primary" data-action="wiz-auto">Nein</button>
       </div>
-      <p class="hint">Ja: Die App wählt die Übungen (bevorzugt aus deinem aktiven Plan, wenig Volumen = komplexe Übungen zuerst).
+      <p class="hint">Ja: Die App wählt die Übungen (${activePlan() ? 'bevorzugt aus deinem aktiven Plan, ' : ''}wenig Volumen = komplexe Übungen zuerst).
         Nein: Du wählst die Übungen pro Muskelgruppe selbst aus. Als Nächstes siehst du in beiden Fällen dein Volumen und
         deine RIR-Ziele.</p>
     </div>` + navRow('low', null);
@@ -1616,10 +1623,13 @@ function renderWizard() {
       `${MUSCLES[g]} (${Math.max(...wiz.volume[g])} Sätze → mind. ${Math.ceil(Math.max(...wiz.volume[g]) / MAX_SETS_PER_EX)} Übungen)`).join(', ')}. Überzählige Sätze fallen weg.</p>`;
   }
   return h + `<div class="row">${pdi > 0 ? `<button class="btn" data-action="wiz-pday" data-i="${pdi - 1}">‹ Voriger Tag</button>`
-      : '<button class="btn" data-action="wiz-step" data-to="rir">Zurück</button>'}
-    ${lastDay ? '<button class="btn primary" data-action="wiz-step" data-to="intq">Weiter</button>'
-      : `<button class="btn primary" data-action="wiz-pday" data-i="${pdi + 1}">Nächster Tag ›</button>`}</div>
-    ${lastDay ? `<p class="hint">${wiz.ownProg === 'own' ? 'Zum Schluss noch eine kurze Frage zum Wiederholungsbereich.' : 'Zum Schluss noch zwei kurze Fragen: Wiederholungsbereich und Zykluslänge mit Deload.'}</p>` : ''}
+      : `<button class="btn" data-action="wiz-step" data-to="${(feat('wiz-full') ? 'rir' : wizFlow().slice(-1)[0])}">Zurück</button>`}
+    ${!lastDay ? `<button class="btn primary" data-action="wiz-pday" data-i="${pdi + 1}">Nächster Tag ›</button>`
+      : wizIntAsk() ? '<button class="btn primary" data-action="wiz-step" data-to="intq">Weiter</button>'
+      : wiz.ownProg === 'own' ? '<button class="btn primary" data-action="wiz-commit">Plan speichern</button>'
+      : '<button class="btn primary" data-action="wiz-step" data-to="deloadq">Weiter</button>'}</div>
+    ${!lastDay ? '' : wizIntAsk() ? `<p class="hint">${wiz.ownProg === 'own' ? 'Zum Schluss noch eine kurze Frage zum Wiederholungsbereich.' : 'Zum Schluss noch zwei kurze Fragen: Wiederholungsbereich und Zykluslänge mit Deload.'}</p>`
+      : wiz.ownProg === 'own' ? '' : '<p class="hint">Zum Schluss noch eine kurze Frage zur Zykluslänge mit Deload.</p>'}
     ${needsCoach() ? coachNote() : ''}<button class="btn outline" data-action="wiz-adjust">Übungen anpassen</button>`;
 }
 
@@ -1749,14 +1759,14 @@ function wizBack() {
     wiz.oi = e >= 0 ? e : wiz.own.length - 1;
   } else if (wiz.step === 'manual') {
     if (wiz.gi > 0) wiz.gi--;
-    else { wiz.step = wiz.fromPreview ? 'preview' : 'rir'; wiz.fromPreview = false; }
+    else { wiz.step = wiz.fromPreview ? 'preview' : (feat('wiz-full') ? 'rir' : wizFlow().slice(-1)[0]); wiz.fromPreview = false; }
   } else if (wiz.step === 'preview') {
-    if (wiz.pdi > 0) wiz.pdi--; else wiz.step = 'rir';  // Tag für Tag zurück
+    if (wiz.pdi > 0) wiz.pdi--; else wiz.step = (feat('wiz-full') ? 'rir' : wizFlow().slice(-1)[0]);  // Tag für Tag zurück
   } else if (wiz.step === 'intq') {
     wiz.step = 'preview';
     wiz.pdi = 1e9;  // letzter Tag
   } else if (wiz.step === 'deloadq') {
-    wiz.step = 'intq';
+    if (wizIntAsk()) wiz.step = 'intq'; else { wiz.step = 'preview'; wiz.pdi = 1e9; }
   } else {
     const to = wizPrev();
     if (to === 'cancel') return ['plan', {}];
@@ -1804,6 +1814,7 @@ Object.assign(actions, {
   'wiz-level': el => {
     if (wiz.level !== el.dataset.k) {
       wiz.level = el.dataset.k;
+      if (!wiz.timeSet) wiz.timeMax = needsCoach() ? 60 : 90;  // v317: Neulinge und Einsteiger starten mit 60 Minuten
       wiz.sessions = null; wiz.cat = null; wiz.split = null; wiz.days = [];
       wizResetPlan();
     }
@@ -1888,6 +1899,7 @@ Object.assign(actions, {
   },
   'wiz-time': el => {
     const m = Number(el.dataset.m);
+    wiz.timeSet = true;
     if (wiz.timeMax !== m) { wiz.timeMax = m; wiz.volKey = {}; }
     render();
   },
@@ -2016,11 +2028,12 @@ Object.assign(actions, {
   },
   'wiz-focus-none': el => {
     if (el.dataset.kind === 'prio') wiz.prio = []; else wiz.low = [];
+    if (el.dataset.to === 'short') { actions['wiz-short-go'](); return; }
     actions['wiz-step'](el);
   },
   'wiz-step': el => {
     const to = el.dataset.to;
-    if (to === 'preview' && wiz.step !== 'preview') wiz.pdi = wiz.step === 'intq' ? 1e9 : 0;
+    if (to === 'preview' && wiz.step !== 'preview') wiz.pdi = wiz.step === 'intq' || wiz.step === 'deloadq' ? 1e9 : 0;
     const leavingDays = wiz.step === 'days' && wizFlow().indexOf(to) > wizFlow().indexOf('days');
     if (leavingDays) {
       if (!wiz.days.length) { alert('Bitte mindestens einen Trainingstag hinzufügen.'); return; }
@@ -2044,6 +2057,14 @@ Object.assign(actions, {
   },
   // Volumen/RIR: zwischen Ansehen und Bearbeiten umschalten (data-k = volEdit | rirEdit)
   'wiz-edit': el => { wiz[el.dataset.k] = !wiz[el.dataset.k]; render(); },
+  // v317 Standard: nach der Priorität Volumen berechnen, Übungen automatisch wählen, Name aus der Vorlage
+  'wiz-short-go': () => {
+    const tpl = SPLITS.find(x => x.id === wiz.split);
+    if (tpl && /^Plan \d+$/.test(wiz.name)) wiz.name = tpl.label;
+    syncGroups();
+    wiz.autoYes = true;
+    actions['wiz-after-rir']();
+  },
   'wiz-after-rir': () => {
     wiz.fromPreview = false;
     wiz.volEdit = wiz.rirEdit = false;
@@ -2061,7 +2082,7 @@ Object.assign(actions, {
   'wiz-adjust': () => { wiz.gi = 0; wiz.step = 'manual'; wiz.fromPreview = true; go('wizard'); },
   'wiz-gprev': () => {
     if (wiz.gi > 0) wiz.gi--;
-    else { wiz.step = wiz.fromPreview ? 'preview' : 'rir'; wiz.fromPreview = false; }
+    else { wiz.step = wiz.fromPreview ? 'preview' : (feat('wiz-full') ? 'rir' : wizFlow().slice(-1)[0]); wiz.fromPreview = false; }
     go('wizard');
   },
   'wiz-gnext': () => {
@@ -2109,7 +2130,7 @@ Object.assign(actions, {
     saveData();
     wiz = null;
     toast(`„${plan.name}“ erstellt und aktiv ✔`);
-    go('plan');
+    go('start');  // v317: Startseite mit großem „Erstes Training starten“
   },
 });
 

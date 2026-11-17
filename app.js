@@ -183,6 +183,8 @@ function upgradeData(d) {
   if (!Array.isArray(d.foodLog)) d.foodLog = [];       // Ernährungstagebuch (food.js)
   if (!d.foods || typeof d.foods !== 'object' || Array.isArray(d.foods)) d.foods = {};  // gemerkte Lebensmittel
   if (!Array.isArray(d.foodMeals)) d.foodMeals = [];
+  if (!d.water || typeof d.water !== 'object' || Array.isArray(d.water)) d.water = {};  // Wasser je Tag in ml (v316)
+  if (d.waterGoal === undefined) d.waterGoal = null;  // eigenes Wasserziel in ml, sonst aus dem Gewicht
   if (!Array.isArray(d.cardio)) d.cardio = [];  // Cardio-Einheiten (cardio.js)  // gespeicherte Mahlzeiten (Schnellauswahl)
   if (!d.foodClosed || typeof d.foodClosed !== 'object') {
     // abgeschlossene Tagebuch-Tage; beim Einführen gelten alle bisherigen Tage vor heute als abgeschlossen
@@ -474,7 +476,7 @@ const APP_MODES = {
 const FEATURE_MODE = {
   // Plan-Assistent
   'wiz-custom': 's', 'wiz-style': 's', 'wiz-freq': 's', 'wiz-days': 's', 'wiz-name': 's', 'wiz-focus': 's', 'wiz-volume': 's',
-  'wiz-volume-edit': 'x', 'wiz-rir': 'x', 'wiz-preview': 's', 'wiz-int': 's', 'wiz-deload': 's', 'wiz-prog': 's', 'entry-week': 's',
+  'wiz-volume-edit': 'x', 'wiz-rir': 'x', 'wiz-full': 'x', 'wiz-preview': 's', 'wiz-int': 's', 'wiz-deload': 's', 'wiz-prog': 's', 'entry-week': 's',
   // Vor dem Training
   'check-detail': 's', 'first-max': 's', 'cycle-choice': 's',
   // Training
@@ -3188,13 +3190,14 @@ function restCard() {
       ${seg('off', !c.off, 'An', 'Aus')}
       <p class="hint explain">Nach jedem erledigten Satz läuft oben im Training die Pause: Grundübungen 4, normale Übungen 3, Isolationsübungen
         2 Minuten${ssOn() ? ', im Supersatz 2 Minuten bzw. 90 Sekunden bei zwei Isolationsübungen' : ''}. Mit −30 s und +30 s passt du sie an, „Weiter“ beendet sie. Die Gesamtzeit läuft immer mit.</p>
-      ${c.off ? '' : `<p class="lbl">Vibration am Ende</p>${seg('vib', c.vib, 'An', 'Aus')}
+      ${c.off ? '' : `${osIs('android') ? `<p class="lbl">Vibration am Ende</p>${seg('vib', c.vib, 'An', 'Aus')}` : ''}
       <p class="lbl">Ton am Ende</p>${seg('sound', c.sound, 'An', 'Aus')}
       ${c.sound ? `<div class="variants rest-tones">${Object.entries(REST_TONES).map(([k, l]) =>
         `<button class="vchip ${c.tone === k ? 'on' : ''}" data-action="rest-tone" data-k="${k}">${l}</button>`).join('')}</div>
-        <p class="hint">Antippen spielt den Ton zur Probe. Lautstärke wie bei anderen Tönen am Handy. Im Lautlos-Modus bleibt das iPhone stumm.</p>` : ''}
-      <p class="hint explain">Vibration gibt es nur auf Android, das iPhone erlaubt sie Web-Apps nicht. Ton und Vibration kommen, solange die App
-        geöffnet und der Bildschirm an ist.</p>`}
+        <p class="hint">Antippen spielt den Ton zur Probe. Lautstärke wie bei anderen Tönen am Handy.${osIs('ios') ? ' Im Lautlos-Modus bleibt das iPhone stumm.' : ''}</p>` : ''}
+      <p class="hint explain">${isIOS() ? 'Der Ton kommt, solange die App geöffnet und der Bildschirm an ist. Vibration erlaubt das iPhone Web-Apps nicht.'
+        : isAndroid() ? 'Ton und Vibration kommen, solange die App geöffnet und der Bildschirm an ist.'
+        : 'Vibration gibt es nur auf Android, das iPhone erlaubt sie Web-Apps nicht. Ton und Vibration kommen, solange die App geöffnet und der Bildschirm an ist.'}</p>`}
     </div>`;
 }
 
@@ -4344,6 +4347,13 @@ function backupCard() {
 const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isAndroid = () => /Android/.test(navigator.userAgent);
+// v321: Erklärungen nur fürs eigene System. osIs('ios'|'android') ist auch wahr, wenn das System unbekannt ist (Computer) – dann bleibt alles sichtbar
+const osIs = k => { const i = isIOS(), a = isAndroid(); return !(i || a) || (k === 'ios' ? i : a); };
+const healthOn = () => feat('nut-health') && osIs('ios');  // Apple Health gibt es nur auf dem iPhone
+// Text aus einem Foto kopieren (Plan-Übernahme): Anleitung je System
+const ocrStepsText = () => isIOS() ? 'Foto öffnen, auf den Text tippen und halten, „Alle auswählen“ → „Kopieren“.'
+  : isAndroid() ? 'Foto mit Google Lens öffnen → „Text“ → „Alles kopieren“.'
+  : 'iPhone: Foto öffnen, auf den Text tippen und halten, „Alle auswählen“ → „Kopieren“. Android: Foto mit Google Lens öffnen → „Text“ → „Alles kopieren“.';
 const hasOwnData = () => data.sessions.length > 0 || data.plans.length > 0;
 let installEvt = null;  // Android/Chrome: gemerktes „beforeinstallprompt“ -> eigener Knopf „Jetzt installieren“
 window.addEventListener('beforeinstallprompt', e => {
@@ -4408,7 +4418,7 @@ function iosMoveCard() {
 function backupAfterTrainingCard() {
   if (data.sessions.length < 2 || !backupDue() || daysSinceISO(data.backupSnooze) < BACKUP_SNOOZE) return '';  // v251: „Später“ gilt auch hier
   return `<div class="card hints backup-after"><p><b>💾 Gleich mitsichern?</b></p>
-      <p class="hint">${backupAgoText()} Ein Tipp genügt. Auf dem iPhone dann „In Dateien sichern“ wählen.</p>
+      <p class="hint">${backupAgoText()} Ein Tipp genügt.${osIs('ios') ? ' Auf dem iPhone dann „In Dateien sichern“ wählen.' : ''}</p>
       <button class="btn primary" data-action="export">Jetzt sichern</button></div>`;
 }
 
@@ -4625,6 +4635,13 @@ function renderStart() {
   };
   // v240 (User 2026-11-14): 1. Zyklus ganz oben, 2. Hinweise, 3. alle Trainingstage untereinander in Plan-Reihenfolge
   // (der nächste bleibt hervorgehoben), Zeitlimit direkt darunter
+  // v317: Vor dem ersten Training mit diesem Plan oben ein großer Startknopf; Tage auslassen und Plan beenden erst danach
+  const planNew = !lastOwn;
+  if (planNew && nextDay) h += `<div class="card highlight first-go">
+      <h2>🎉 Dein Plan ist fertig</h2>
+      <p class="hint">Als Erstes steht ${esc(nextDay.name)} an. Die App führt dich Satz für Satz durch das Training.</p>
+      <button class="btn primary first-go-btn" data-action="start-day" data-id="${nextDay.id}">▶ Erstes Training starten</button>
+    </div>`;
   h += cycleCard(ci) + caliUp + (typeof hxTaperCard === 'function' ? hxTaperCard(ci) : '') + hint
     + (typeof reviewStartCard === 'function' ? reviewStartCard() : '') + hintsCard();
   h += `<h2 class="start-days-h">Trainingstage <small class="hint">| ${esc(activePlan().name)}</small></h2>`
@@ -4639,13 +4656,13 @@ function renderStart() {
   h += nutStartLine();  // Ernährungsphase kurz anzeigen (nutrition.js)
   // 5. kleine Knöpfe „Wenig Zeit?“ und „Tage auslassen“ nebeneinander (aufgeklappte Auswahl darunter in voller Breite)
   if (!draft) {
-    const tb = tlShown || tlAttached ? '' : timeLimitHtml(), sk = skipHtml(ci);
+    const tb = tlShown || tlAttached ? '' : timeLimitHtml(), sk = planNew ? '' : skipHtml(ci);
     if (skipPick) h += (tb ? `<div class="start-mini">${tb}</div>` : '') + sk;
     else if (tb || sk) h += `<div class="start-mini">${tb}${sk}</div>`;
   }
   if (typeof cardioStartHtml === 'function') h += `<h2>Cardio</h2>${cardioStartHtml()}`;
   // v240: Plan beenden steht hier statt im Plan-Reiter
-  h += `<button class="btn outline center plan-end-btn" data-action="plan-end">⏹ Aktuell laufenden Plan beenden</button>`;
+  if (!planNew) h += `<button class="btn outline center plan-end-btn" data-action="plan-end">⏹ Aktuell laufenden Plan beenden</button>`;
   return h;
 }
 
@@ -4781,6 +4798,14 @@ function renderTraining() {
   const cur = swipe ? trCur() : -1;
   if (swipe) h += swipeNavHtml(cur);
 
+  // v317: Max. unbekannt bzw. Kennenlernen – die lange Erklärung steht einmal oben, bei den Übungen nur noch kurz
+  const maxNew = draft.entries.filter(en => en.target && !en.target.own && !en.target.bodyweight && en.target.max10 == null).length;
+  if (maxNew && !draft.own) {
+    h += feat('tr-max')
+      ? `<div class="first-max-hint first-max-top"><div>🆕 Bei ${maxNew === 1 ? '1 Übung' : `${maxNew} Übungen`} kennt die App dein Max. noch nicht.</div><div>${MAX_UNKNOWN_HINT}</div></div>`
+      : `<p class="first-max-hint first-max-top">🆕 Kennenlernen: Nimm bei neuen Übungen ein Gewicht, mit dem du die Wiederholungen sicher schaffst, und sag nach jedem
+        Satz, wie er sich angefühlt hat. Die App passt das Gewicht danach an.</p>`;
+  }
   const stalls = stagnationHints();
   // Supersätze (v210): Paar in einem Rahmen, Kopf mit Runde und „Heute einzeln“; beim Wischen beide auf einem Bildschirm
   const pairs = draftPairs(), raw = entryPairs(draft.entries, true);
@@ -4881,11 +4906,10 @@ function renderTraining() {
           ${feat('tr-variants') ? `<button class="step-chip" data-action="ex-variant-open" data-ei="${ei}" aria-expanded="${!!en.variantOpen}">Ausführung:
             <b>${vAll != null ? VARIANTS[vAll] : 'gemischt'}</b> <span aria-hidden="true">✎</span></button>` : ''}</div>
       </div>`;
-    if (withMax && t.max10 == null) h += `<p class="first-max-hint">${last ? '' : '🆕 Erstes Mal: '}${MAX_UNKNOWN_HINT}</p>`;
+    if (withMax && t.max10 == null) h += `<p class="first-max-hint mini">${last ? '🆕 Max. noch unbekannt' : '🆕 Erstes Mal'}: Feld leer lassen und herantasten, wie oben erklärt.</p>`;
     // Einfach-Modus: „Kennenlern-Woche“ statt Max.-Abfrage – die App errechnet das Max. aus dem Geschafften
     if (!feat('tr-max') && t && !t.own && !body && t.max10 == null) {
-      h += `<p class="first-max-hint">🆕 Kennenlernen: Nimm ein Gewicht, mit dem du die Wiederholungen sicher schaffst, und sag nach jedem
-        Satz, wie er sich angefühlt hat. Die App passt das Gewicht danach an.</p>`;
+      h += `<p class="first-max-hint mini">🆕 Erstes Mal: Gewicht vorsichtig wählen, wie oben erklärt.</p>`;
     }
     if (withMax && en.stepOpen && det) h += stepPick(en, ei);
     if (en.variantOpen && det) {
@@ -6495,15 +6519,15 @@ function renderFirstMax({ id, exIds }) {
       <p class="hint wiz-q-explain"><b>Max. bei 10 Wdh.</b> (auch „10 RM“) ist das Gewicht, mit dem du eine Übung gerade so
         <b>10-mal sauber</b> schaffst. Eine 11. Wiederholung ginge nicht mehr. Daraus berechnet die App deine Gewichte für jedes Training.</p>
       <p class="hint wiz-q-explain">${MAX_FRESH_NOTE}</p>
+      <div class="first-max-note"><span aria-hidden="true">💡</span><p><b>Du weißt es nicht genau?</b> Dann lass das Feld einfach leer
+        und trag im Training ganz normal ein, was du im Satz geschafft hast: Gewicht, Wiederholungen und wie viele noch im Tank
+        gewesen wären. Die App berechnet das Max. bei 10 Wdh. danach selbst. Bei Übungen ohne Gewicht (z. B. Klimmzüge) ebenfalls leer lassen.</p></div>
       ${list.map(ex => `<div class="fm-row">
         <span class="fm-name">${esc(ex.name)}${libInfoBtn(ex.name)}</span>
         <input class="inp kg" type="text" inputmode="decimal" autocomplete="off" data-field="first-max" data-id="${ex.id}"
           placeholder="kg" value="${ex.max10 == null ? '' : fmtNum(ex.max10)}">
       </div>`).join('')}
     </div>
-    <div class="first-max-note"><span aria-hidden="true">💡</span><p><b>Du weißt es nicht genau?</b> Dann lass das Feld einfach leer
-      und trag im Training ganz normal ein, was du im Satz geschafft hast: Gewicht, Wiederholungen und wie viele noch im Tank
-      gewesen wären. Die App berechnet das Max. bei 10 Wdh. danach selbst. Bei Übungen ohne Gewicht (z. B. Klimmzüge) ebenfalls leer lassen.</p></div>
     <div class="row"><button class="btn" data-action="cancel">Abbrechen</button>
       <button class="btn primary" data-action="first-max-done">Weiter</button></div>`;
 }
@@ -6672,6 +6696,38 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 324, date: '2026-11-17', items: [
+    ['Plan-Assistent: Die Stufe „🌱 Neuling“ gibt es jetzt auch im Modus Standard.'],
+    ['Neulinge und Einsteiger bekommen die Frage „Niedrige und hohe Wiederholungen abwechseln?“ nicht mehr. Bei ihnen sind beide Bereiche für Grundübungen gleich, alle Tage laufen im selben Bereich.'],
+    ['Das zweite Vorschau-Bild der Begrüßung zeigt jetzt Trainingsplan und Phasenplan der Ernährung.'],
+  ] },
+  { v: 323, date: '2026-11-17', items: [
+    ['Begrüßung kürzer: Sie wiederholt nicht mehr, was die Vorschau-Seiten schon zeigen. „Über die App“ beschreibt jetzt auch die Ernährung.'],
+  ] },
+  { v: 322, date: '2026-11-17', items: [
+    ['Ernährungstagebuch: Unter deinem Tagesziel gibt es jetzt den großen Knopf „🎯 Kalorien und Makros anpassen“. Die Zielzahl lässt sich weiterhin antippen.'],
+  ] },
+  { v: 321, date: '2026-11-17', items: [
+    ['Die App zeigt Anleitungen jetzt nur noch für dein Handy: auf dem iPhone die iPhone-Schritte, auf Android die Android-Schritte. Das betrifft das Speichern von Videos, die Sicherung, den Pausen-Timer und die Plan-Übernahme aus einem Foto.'],
+    ['Android: „❤️ Aus Health“ und die Anleitung für den Kurzbefehl sind ausgeblendet, weil es Apple Health nur auf dem iPhone gibt. Auf dem iPhone fehlt dafür der Schalter für die Vibration, die das iPhone Web-Apps nicht erlaubt.'],
+  ] },
+  { v: 320, date: '2026-11-17', items: [
+    ['Technik-Videos: Nach einer Aufnahme in der App steht das neue Video ganz oben mit „📥 In Fotos speichern“, ohne Scrollen.'],
+  ] },
+  { v: 319, date: '2026-11-17', items: [
+    ['Begrüßung: Die Vorschau-Seiten zeigen jetzt, dass du Training und Ernährung in einer App erfasst und die App dir aus wenigen Angaben Trainingsplan und Ernährungsplan erstellt, die du danach frei anpassen kannst.'],
+  ] },
+  { v: 317, date: '2026-11-17', items: [
+    ['Wasser: Getränke aus dem Tagebuch wie Saft, Kaffee, Milch oder Wasser zählen jetzt automatisch mit, Alkohol nicht. Im Kalender und unter „Woche & Monat“ gibt es eine Karte „💧 Wasser“ zum Aufklappen, mit Durchschnitt und Säulen je Tag.'],
+    ['Plan-Assistent im Modus Standard kürzer: Intensitätsverlauf, Volumen-Variante, „kürzer treten“, Volumentabelle und Planname stellt die App selbst ein. Im Modus Experte fragt sie weiter alles.'],
+    ['Nach dem Speichern eines Plans geht es zur Startseite mit „▶ Erstes Training starten“. „Tage auslassen“ und „Plan beenden“ erscheinen erst nach dem ersten Training.'],
+    ['Neulinge und Einsteiger: Als Trainingsdauer sind jetzt 60 Minuten vorgeschlagen.'],
+    ['Training: Die Erklärung zum noch unbekannten Max. steht einmal oben, bei jeder neuen Übung nur noch ein kurzer Hinweis „🆕 Erstes Mal“.'],
+  ] },
+  { v: 316, date: '2026-11-17', items: [
+    ['Ernährungstagebuch: Neue Karte „💧 Wasser“. Mit einem Tipp trägst du ein Glas oder eine Flasche ein, dazu jede andere Menge. Das Tagesziel rechnet die App aus deinem Gewicht (35 ml je kg), du kannst es ändern.'],
+    ['Eigene Mahlzeiten sind jetzt leichter zu finden: Der Knopf heißt „💾 Mahlzeit speichern“, die Einführung erklärt es, und beim Hinzufügen steht ein Hinweis, solange du noch keine Mahlzeit gespeichert hast.'],
+  ] },
   { v: 315, date: '2026-11-17', items: [
     ['Neu in der Ernährung: „Ziel mit Enddatum planen“. Du trägst Zielgewicht und Enddatum ein, die App plant die passenden Phasen nach ihren Regeln, auch kombiniert, z. B. erst einen Minicut und danach eine Diät.'],
     ['Ist das Ziel zu schnell gewählt, sagt die App das und schlägt ein späteres Enddatum oder ein erreichbares Zielgewicht vor.'],
@@ -8053,7 +8109,7 @@ function importData(file) {
       days: d.days, volume: d.volume, rirPlan: d.rirPlan,  // ältere Sicherungen mit nur einem Plan
       sessions: d.sessions, bodyweight: d.bodyweight, cycle: d.cycle, steps: d.steps,
       complaints: d.complaints, hintsDismissed: d.hintsDismissed, dayTemplates: d.dayTemplates,
-      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, mcal: d.mcal, cardio: d.cardio, nutPlan: d.nutPlan,
+      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, nutPlan: d.nutPlan,
       customExercises: d.customExercises, profile: d.profile, prefatV: d.prefatV, rirV: d.rirV,
       measures: Array.isArray(d.measures) ? d.measures : [],
       painLog: Array.isArray(d.painLog) ? d.painLog : [],
@@ -9282,7 +9338,7 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
   'reset-trainings': () => {
     if (!askOk(`Alle ${data.sessions.length} Trainings, Körpergewicht, Schritte und Ernährungseinträge löschen?\n\nDie Trainingstage mit ihren Übungen bleiben erhalten.`)) return;
     if (!askOk('Wirklich löschen? Das lässt sich nicht rückgängig machen.')) return;
-    Object.assign(data, { sessions: [], bodyweight: [], steps: [], measures: [], intake: [], foodLog: [], foodClosed: {}, cardio: [], complaints: [], painLog: [], hintsDismissed: {}, cycleShift: {}, roundSkips: {} });
+    Object.assign(data, { sessions: [], bodyweight: [], steps: [], measures: [], intake: [], foodLog: [], foodClosed: {}, water: {}, cardio: [], complaints: [], painLog: [], hintsDismissed: {}, cycleShift: {}, roundSkips: {} });
     // Max.-Werte stammen aus den gelöschten Trainings -> neu eintragen lassen
     data.plans.forEach(p => p.days.forEach(d => d.exercises.forEach(e => { e.max10 = null; })));
     setRound(todayISO(), 1, 1);
@@ -9909,12 +9965,13 @@ function showWelcome() {
 
 // Startseiten für neue Nutzer (v213, „Startseite A“): drei Bilder mit je einem Satz, was die App besonders macht
 const INTRO = [
-  { img: 'intro-1.jpg', h: 'Weniger rätseln, mehr trainieren',
-    p: 'Für jeden Satz sagt dir die App, welches <b>Gewicht</b> und wie viele <b>Wiederholungen</b>, passend zu deiner Kraft. Nach jedem Training lernt sie dazu.' },
-  { img: 'intro-2.jpg', h: 'Ein Plan, der mitwächst',
-    p: 'Woche für Woche ein bisschen mehr, dann eine leichtere Woche zur Erholung. Deinen Plan erstellt der Assistent in wenigen Minuten, fürs Studio oder zu Hause.' },
+  // v318 (User 2026-11-17): Training und Ernährung, Pläne aus wenigen Angaben, komplett anpassbar
+  { img: 'intro-1.jpg', h: 'Training und Ernährung in einer App',
+    p: 'Trag dein Training und deine Ernährung an einem Ort ein. Für jeden Satz sagt dir die App, welches Gewicht und wie viele Wiederholungen passen, und lernt nach jedem Training dazu.' },
+  { img: 'intro-2.jpg', h: 'Deine Pläne aus wenigen Angaben',
+    p: 'Ein paar Fragen reichen: Die App erstellt dir einen kompletten Trainingsplan und deinen Ernährungsplan mit Kalorien und Makros für jeden Tag. Beides kannst du danach bis ins Detail an dich anpassen.' },
   { img: 'intro-3.jpg', h: 'Fortschritt, den du siehst',
-    p: 'Bestleistungen, Kraftverlauf und ein Rückblick nach jedem Zyklus zeigen dir, dass es wirkt. <b>Ohne Konto, ohne Werbung</b>: Alles bleibt auf deinem Handy.' },
+    p: 'Bestleistungen, Kraftverlauf, Körpergewicht und ein Rückblick nach jedem Zyklus zeigen dir, dass es wirkt.' },
 ];
 function introHtml() {
   const i = welc.slide || 0, s = INTRO[i], last = i === INTRO.length - 1;
@@ -9949,13 +10006,10 @@ function welcomeHtml() {
   if (welc.step === 1) {
     return `${icon}${dots}
       ${welc.fresh ? `<h2 id="welcome-title">Willkommen bei ${APP_NAME}</h2>
+      <p>Schön, dass du da bist. Noch ein paar kurze Fragen, dann geht's los.</p>
       <ul class="welcome-why">
-        <li>Für jeden Satz sagt dir die App <b>Gewicht und Wiederholungen</b>, passend zu deiner Kraft.</li>
-        <li>Sie <b>lernt aus jedem Training</b> und steigert dich Schritt für Schritt, mit Erholungswochen zur richtigen Zeit.</li>
-        <li>Dein <b>Plan in wenigen Minuten</b>, fürs Studio, an Maschinen oder zu Hause. Oder du übernimmst deinen eigenen.</li>
-        <li>Auf Wunsch auch <b>Ernährung</b>: Kalorienziel, Tagebuch und Barcode-Scanner.</li>
-        <li><b>Ohne Konto, ohne Werbung</b>: Deine Daten bleiben auf deinem Handy.</li>
-        <li><b>Am Anfang erklärt dir die App alles ausführlich.</b> Damit die Seiten danach übersichtlich bleiben, klappen die Erklärungen
+        <li>Im Ernährungstagebuch hast du einen Barcode-Scanner, kannst eigene Mahlzeiten unter einem Namen speichern und dein Wasser erfassen.</li>
+        <li>Am Anfang erklärt dir die App alles ausführlich. Damit die Seiten danach übersichtlich bleiben, klappen die Erklärungen
           nach dem zweiten Lesen zu „? Erklärung“ zusammen. Ein Tipp darauf holt sie jederzeit zurück.</li>
       </ul>
       <details class="welcome-health"><summary>⚕️ Wichtig: Gesundheitshinweis</summary>${typeof healthListHtml === 'function' ? healthListHtml() : ''}</details>`
