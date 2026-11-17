@@ -3847,6 +3847,79 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .nut-bw .bw-hist-link { margin: 12px 0 0; text-align: center; width: 100%; }
 .nut-bw .nut-prog { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .nut-bw .nut-prog > .nut-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+/* v315: Phasenplan (phaseplan.js) – Farbe je Phase */
+.pp-bulk { --pp: #22c55e; } .pp-recomp, .pp-after { --pp: #64748b; } .pp-diet { --pp: #f97316; } .pp-minicut { --pp: #ef4444; } .pp-brk { --pp: #a855f7; } .pp-maint { --pp: #94a3b8; }
+.pp-tl { display: grid; gap: 6px; margin: 10px 0 4px; }
+.pp-seg { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px;
+  background: color-mix(in srgb, var(--pp) 12%, var(--card)); box-shadow: inset 4px 0 0 var(--pp); }
+.pp-seg.cur { box-shadow: inset 4px 0 0 var(--pp), 0 0 0 1.5px var(--pp); }
+.pp-seg.pp-after { background: transparent; box-shadow: inset 4px 0 0 var(--line-strong); }
+.pp-seg-ic { font-size: 18px; text-align: center; }
+.pp-seg-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.pp-seg-pace { font-size: 13px; color: var(--muted); }
+.pp-seg-side { text-align: right; }
+.pp-seg-date { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pp-seg-kcal { font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pp-next { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--fill); }
+.pp-next.soon { background: var(--warn-soft); box-shadow: inset 0 0 0 1.5px var(--warn); }
+.pp-next-t { font-size: 14.5px; font-weight: 700; }
+.pp-next-to { margin-top: 2px; font-size: 16px; font-weight: 750; }
+.pp-next-hint { margin-top: 4px; font-size: 13px; color: var(--muted); line-height: 1.4; }
+.pp-btns { margin-top: 12px; }
+.pp-btns .btn { min-height: 46px; padding: 8px 10px; font-size: 16px; }
+.pp-open { margin-top: 8px; min-height: 48px; font-size: 16px; }
+.pp-now { margin-left: auto; font-size: 19px; }
+.pp-h { margin: 18px 4px 8px; }
+.pp-var { padding: 14px; }
+.pp-var.on { box-shadow: 0 0 0 2px var(--accent); }
+.pp-var-head { display: flex; align-items: center; gap: 10px; }
+.pp-var-t { flex: 1; font-size: 18px; font-weight: 750; }
+.pp-var-head .vchip { flex: none; min-height: 36px; font-size: 14px; }
+.pp-reach { margin: 6px 0 0; }
+.pp-edit .pp-ph { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--pp) 10%, var(--card)); box-shadow: inset 4px 0 0 var(--pp); }
+.pp-ph-head { display: flex; align-items: center; gap: 8px; }
+.pp-ph-ic { font-size: 18px; }
+.pp-ph-name { flex: 1; font-size: 16px; font-weight: 750; }
+.pp-ph-cur { padding: 2px 8px; border-radius: 999px; background: var(--pp); color: #fff; font-size: 12px; font-weight: 700; }
+.pp-edit .pp-chips { gap: 5px; margin: 8px 0 0; }
+.pp-edit .pp-chips .vchip { flex: 1 1 auto; min-height: 34px; padding: 0 10px; font-size: 14px; white-space: nowrap; }
+.pp-edit .pp-chips span { font-size: 13px; color: var(--muted); }
+.pp-edit .pp-to { margin-top: 8px; }
+.pp-edit .pp-to span { font-size: 14.5px; }
+.pp-edit .pp-to .inp.date { width: auto; min-height: 42px; margin-left: auto; padding: 6px 10px; font-size: 16px; }
+.pp-edit .hint { margin: 6px 0 0; }
+.pp-add { margin-top: 16px; }
+.pp-add .lbl { margin: 0 0 6px; }
+.pp-add .vchip { flex: 1 1 40%; min-height: 38px; font-size: 14.5px; }
+.pp-proj-big { margin: 14px 4px 6px; font-size: 16px; }
+.pp-auto-note { margin: 10px 4px; }
+.pp-note-sw { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 8px 0; font-size: 17px; font-weight: 750; }
+.pp-note-arrow { color: var(--muted); }
+.pp-unreal .btn { margin: 8px 0 0; }
+/* Kalender: geplante Tage */
+.fcal-day.plan { opacity: 1; background: color-mix(in srgb, var(--pp) 16%, var(--card)); box-shadow: inset 0 -3px 0 var(--pp); }
+.fcal-day.plan.maint { --pp: #94a3b8; }
+.fcal-day.plan small { color: var(--text); font-weight: 650; }
+.fcal-day.plan b { color: var(--muted); }
+.pp-cal-leg { margin-top: 10px; }
+.pp-cal-keys { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+.pp-cal-key { display: flex; align-items: center; gap: 5px; }
+.pp-cal-dot { width: 10px; height: 10px; border-radius: 3px; background: var(--pp); }
+/* v314: Muskelkarte (musclemap.js) – Zielmuskel rot und leuchtend, mitbeteiligte Muskeln orange */
+.mm-card { padding: 14px 14px 12px; }
+.mm-svg { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto; }
+.mm-skin { fill: color-mix(in srgb, var(--text) 9%, var(--card)); }
+.mm-m { fill: color-mix(in srgb, var(--text) 20%, var(--card)); stroke: var(--card); stroke-width: .6; stroke-linejoin: round; transition: fill .3s; }
+.mm-m.s { fill: #f59e0b; }
+.mm-m.p { fill: #ef4444; animation: mm-glow 2.4s ease-in-out infinite; }
+@keyframes mm-glow { 0%, 100% { filter: drop-shadow(0 0 1px rgba(239, 68, 68, .5)); } 50% { filter: drop-shadow(0 0 4px rgba(239, 68, 68, .95)); } }
+@media (prefers-reduced-motion: reduce) { .mm-m.p { animation: none; filter: drop-shadow(0 0 2px rgba(239, 68, 68, .7)); } }
+.mm-cap { font-size: 8px; font-weight: 600; fill: var(--muted); text-anchor: middle; }
+.mm-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; margin: 8px 0 0; font-size: 13.5px; line-height: 1.4; color: var(--muted); text-align: center; }
+.mm-item { display: inline; }
+.mm-dot { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 50%; vertical-align: -1px; }
+.mm-dot.p { background: #ef4444; box-shadow: 0 0 5px rgba(239, 68, 68, .8); }
+.mm-dot.s { background: #f59e0b; }
 /* v312: Art der Übung in der Bibliothek */
 .lib-kind .variants.plan { margin: 0; }
 .lib-kind .variants.plan span { margin-bottom: 2px; }

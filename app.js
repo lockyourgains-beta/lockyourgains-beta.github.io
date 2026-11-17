@@ -5965,6 +5965,7 @@ function renderLibEx({ name }) {
       <p class="hint nut-small">Gilt für diese Übung in allen Plänen. Davon hängen Wiederholungsbereich, Verteilung der Sätze, Pausen und Tank ab.</p>
     </div>` : '';
   return `<div class="card lib-fig">${libFigure(name, true)}</div>
+    ${typeof muscleMapHtml === 'function' ? muscleMapHtml(name, t.also) : ''}
     <div class="lib-chips"><span class="lib-chip">${kind}</span>${group ? `<span class="lib-chip">${group}</span>` : ''}</div>
     ${e.note ? `<p class="lib-note">${esc(e.note)}</p>` : ''}
     ${kindPick}
@@ -6015,6 +6016,7 @@ function renderCustomEx(c, e) {
   const t = !e ? {} : typeof shortFor === 'function' ? shortFor(c.like, e.pattern) : FIG_TEXT[e.pattern] || {};
   const trained = data.sessions.some(s => s.entries.some(en => nameKey(en.name) === nameKey(c.name)));
   let h = e ? `<div class="card lib-fig">${libFigure(c.name, true)}</div>` : '';
+  if (typeof muscleMapHtml === 'function') h += muscleMapHtml(c.name, t.also);  // v314: Muskelkarte
   h += `<div class="lib-chips"><span class="lib-chip">★ Eigene Übung</span><span class="lib-chip">${KINDS[c.kind]}</span>
       <span class="lib-chip">${MUSCLES[c.group] || ''}</span></div>
     ${c.note ? `<p class="lib-note">${esc(c.note)}</p>` : ''}`;
@@ -6670,6 +6672,14 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 315, date: '2026-11-17', items: [
+    ['Neu in der Ernährung: „Ziel mit Enddatum planen“. Du trägst Zielgewicht und Enddatum ein, die App plant die passenden Phasen nach ihren Regeln, auch kombiniert, z. B. erst einen Minicut und danach eine Diät.'],
+    ['Ist das Ziel zu schnell gewählt, sagt die App das und schlägt ein späteres Enddatum oder ein erreichbares Zielgewicht vor.'],
+    ['Am Ende jeder Phase wechselt die App automatisch in die nächste. Drei Tage vorher kündigt sie es an, danach gibt es eine Meldung. Im Ernährungskalender siehst du für jeden künftigen Tag das geplante Tagesziel, farbig je Phase.'],
+  ] },
+  { v: 314, date: '2026-11-17', items: [
+    ['Übungsbibliothek: Neue Muskelkarte unter der Figur. Sie zeigt den Körper von vorne und hinten, der Zielmuskel leuchtet rot, mitbeteiligte Muskeln sind orange.'],
+  ] },
   { v: 313, date: '2026-11-17', items: [
     ['Plan → Trainingstag: Der Name jeder Übung steht jetzt groß und fett als Überschrift der Karte. Tauschen geht über „⇄ Ersetzen“.'],
     ['Supersätze im Plan zeigen nur noch „🔗 Supersatz“ und „Lösen“, ohne die Zeile mit Gegenspieler, Pause und Zeitersparnis.'],

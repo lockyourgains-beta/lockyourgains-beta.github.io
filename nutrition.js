@@ -248,6 +248,7 @@ function nutForceDeload() {
 
 // Bei jedem Zeichnen: Erhaltungswochen mitzählen, Minicut-Erhaltungswoche starten (mit Deload im Training)
 function nutSync() {
+  if (typeof ppSync === 'function') ppSync();  // v315: Phasenplan – Ende einer Phase → automatisch die nächste (phaseplan.js)
   const n = data.nutrition;
   if (!n || !nutReady(n)) return;
   const today = todayISO();
@@ -1282,7 +1283,7 @@ function nutPhaseHint(n) {
         in der nächsten Defizit-Woche wieder.${minicut ? ' <b>Der Minicut verlängert sich um diese Woche.</b>' : ''}</p>
       <button class="btn" data-action="nut-nobreak">Diese Woche trotzdem im Defizit bleiben</button></div>`;
   }
-  if (stage === 'done') {
+  if (stage === 'done' && !(typeof ppPlan === 'function' && ppPlan(n))) {  // mit Phasenplan wechselt die App selbst (v315)
     const again = (n.round || 1) < 2;
     return `<div class="card nut-check ok"><p><b>✅ Minicut und Erhaltungswoche sind vorbei</b></p>
       <p class="hint nut-small">${again
@@ -1413,6 +1414,7 @@ function nutGoalCard2(n, c, ph, weekText) {
       <p class="hint nut-small explain nut-goal-explain">${nutGoalExplain(n, c)}</p>
       <div class="nut-actions nut-goal-btns">
         <button class="btn primary nut-goal-switch" data-action="nut-setup">🧭 Ernährungsziel wechseln</button>
+        ${typeof ppPlan === 'function' && !ppPlan(n) ? '<button class="btn outline pp-open" data-action="pp-open">📅 Ziel mit Enddatum planen</button>' : ''}
         <button class="link-btn" data-action="nut-edit">Angaben ändern (Alter, Gewicht, Aktivität, Tempo)</button></div>
     </div>`;
 }
@@ -1464,7 +1466,9 @@ function renderNutrition() {
     // v243: „Heute gegessen“ steht im Tagebuch (im Stil der Tagesziel-Karte), hier nur noch das Tagesziel
     // v260 (User 2026-11-14): Tagesziel-Karte nicht mehr im Reiter, Anpassen (Kalorien, Makros) steht im Tagebuch (nutGoalToolsHtml)
     h += `${typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanCard() : ''}
+      ${typeof ppNoteHtml === 'function' ? ppNoteHtml(n) : ''}
       ${nutGoalCard2(n, c, ph, weekText)}
+      ${typeof ppCardHtml === 'function' ? ppCardHtml(n) : ''}
       ${nutLowCard(n, nutForDay(c))}
       ${nutPauseCard(n)}
       ${nutPhaseHint(n)}
@@ -1650,9 +1654,13 @@ Object.assign(actions, {
       trainAdapt: d.trainAdapt == null ? null : d.trainAdapt,
     };
     const prev = data.nutrition;
+    // v315: anderes Ernährungsziel beendet einen Phasenplan (Rückfrage); gleiches Ziel: der Plan übernimmt das neue Tempo
+    const plan = typeof ppPlan === 'function' && prev ? ppPlan(prev) : null;
+    if (plan && prev.phase !== d.phase && !askOk('Du hast einen Phasenplan. Mit einem anderen Ernährungsziel endet er, und die App wechselt nicht mehr automatisch.\n\nTrotzdem wechseln?')) return;
     data.nutrition = prev && prev.phase === d.phase
       ? { ...prev, ...n, kcalOwn: prev.pace === n.pace ? prev.kcalOwn : null }  // anderes Tempo: wieder der Wert der App
       : nutBeginPhase(n, d.phase, nutWeight());
+    if (plan && prev.phase === d.phase) data.nutrition.plan = { ...plan, phases: plan.phases.map((p, i) => i ? p : { ...p, pace: n.pace, ...(p.phase === 'minicut' ? { weeks: n.weeks } : {}) }) };
     if (typeof nutDraft.hints === 'boolean') data.profile = { ...(data.profile || {}), nutHints: nutDraft.hints };  // v266
     nutDraft = null;
     saveData();
@@ -1706,14 +1714,14 @@ Object.assign(actions, {
   // Minicut: zweiter (und letzter) Durchgang mit demselben Defizit
   'nut-minicut-again': () => {
     const n = data.nutrition;
-    data.nutrition = nutBeginPhase({ ...n, round: 2 }, 'minicut', nutWeight());
+    data.nutrition = nutBeginPhase({ ...n, round: 2, plan: null }, 'minicut', nutWeight());
     saveData();
     toast('Zweiter Minicut-Durchgang ⚡');
     render();
   },
   'nut-to-bulk': () => {
     const n = data.nutrition;
-    data.nutrition = nutBeginPhase({ ...n, pace: 'normal', goalKg: null, round: 1 }, 'bulk', nutWeight());
+    data.nutrition = nutBeginPhase({ ...n, pace: 'normal', goalKg: null, round: 1, plan: null }, 'bulk', nutWeight());
     saveData();
     toast('Weiter mit Aufbau 💪');
     render();

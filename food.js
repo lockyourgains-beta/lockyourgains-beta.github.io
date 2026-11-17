@@ -1555,20 +1555,32 @@ function renderFoodCal(p) {
   // v311: Tage ohne Eintrag, die der Ernährungs-Reiter zum Nachtragen meldet (nutGapDays), gelb markieren
   const gapSet = new Set(typeof nutGapDays === 'function' && typeof nutHintsOn === 'function' && nutHintsOn() ? nutGapDays() : []);
   const gapN = [...gapSet].filter(x => x.startsWith(month)).length;
+  // v315: Phasenplan – künftige Tage zeigen das geplante Tagesziel, farbig je Phase (phaseplan.js)
+  const pm = typeof ppDayMap === 'function' ? ppDayMap() : null;
+  const kTxt = k => k >= 1000 ? fmtNum(Math.round(k / 100) / 10) + 'k' : String(Math.round(k));
+  const planKeys = new Set();
   for (let d = 1; d <= days; d++) {
     const iso = `${month}-${String(d).padStart(2, '0')}`, v = foodDayVals(iso), fut = iso > T;
+    const pl = fut && pm ? pm.get(iso) : null;
+    if (pl) planKeys.add(pl.maint && pl.key !== 'after' && pl.key !== 'brk' ? 'maint' : pl.key);
     if (v) { n++; sum += v.kcal; }
-    const cls = ['fcal-day', v ? 'has' : '', !v && gapSet.has(iso) ? 'gap' : '', foodClosed(iso) ? 'closed' : '', iso === T ? 'today' : '', fut ? 'future' : ''].filter(Boolean).join(' ');
-    cells += `<button class="${cls}" data-action="food-cal-day" data-d="${iso}" ${fut ? 'disabled' : ''}><b>${d}</b><small>${v ? (v.kcal >= 1000 ? fmtNum(Math.round(v.kcal / 100) / 10) + 'k' : Math.round(v.kcal)) : ''}</small></button>`;
+    const cls = ['fcal-day', v ? 'has' : '', !v && gapSet.has(iso) ? 'gap' : '', foodClosed(iso) ? 'closed' : '', iso === T ? 'today' : '', fut ? 'future' : '',
+      pl ? `plan pp-${pl.key}${pl.maint ? ' maint' : ''}` : ''].filter(Boolean).join(' ');
+    cells += `<button class="${cls}" data-action="food-cal-day" data-d="${iso}" ${fut ? 'disabled' : ''}><b>${d}</b><small>${v ? kTxt(v.kcal) : pl ? kTxt(pl.kcal) : ''}</small></button>`;
   }
+  const lastMonth = [T.slice(0, 7), pm && pm.last ? pm.last.slice(0, 7) : ''].sort().pop();
+  const PP_LEG = { minicut: '⚡ Minicut', diet: '🔥 Diät', brk: '🧘 Diätpause', recomp: '⚖️ Body Recomposition', bulk: '💪 Aufbau', maint: 'Erhaltung (Deload bzw. nach dem Minicut, ungefähr)', after: '⚖️ Erhaltung nach dem Plan' };
+  const planLegend = planKeys.size ? `<div class="pp-cal-leg"><p class="hint nut-small">Zahl an künftigen Tagen = geplantes Tagesziel laut deinem Phasenplan.</p>
+      <div class="pp-cal-keys">${Object.keys(PP_LEG).filter(k => planKeys.has(k)).map(k => `<div class="pp-cal-key"><span class="pp-cal-dot pp-${k}" aria-hidden="true"></span><span>${PP_LEG[k]}</span></div>`).join('')}</div></div>` : '';
   const title = first.toLocaleDateString(LOCALE(), { month: 'long', year: 'numeric' });
   const lastDay = `${month}-${String(month === T.slice(0, 7) ? Number(T.slice(8)) : days).padStart(2, '0')}`;
   return `<div class="card fcal">
       <div class="mc-head"><button class="icon-btn" data-action="food-cal-month" data-d="-1" aria-label="Voriger Monat">‹</button>
-        <b>${title}</b><button class="icon-btn" data-action="food-cal-month" data-d="1" ${month >= T.slice(0, 7) ? 'disabled' : ''} aria-label="Nächster Monat">›</button></div>
+        <b>${title}</b><button class="icon-btn" data-action="food-cal-month" data-d="1" ${month >= lastMonth ? 'disabled' : ''} aria-label="Nächster Monat">›</button></div>
       <div class="fcal-grid fcal-wd">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(x => `<span>${x}</span>`).join('')}</div>
       <div class="fcal-grid">${cells}</div>
       <p class="hint nut-small">Zahl = Kalorien des Tages (k = Tausend), Rahmen = Tag abgeschlossen. Tag antippen öffnet ihn im Tagebuch.</p>
+      ${planLegend}
       ${gapN ? `<p class="fcal-gap-note">📝 ${gapN} Tag${gapN === 1 ? ' ohne Eintrag ist' : 'e ohne Eintrag sind'} gelb markiert. Tippe einen Tag an und trag ein, was du gegessen hast.</p>` : ''}
     </div>
     <div class="card"><label class="row"><span>Zu Datum springen</span>
