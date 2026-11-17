@@ -213,7 +213,10 @@ function ppChecks(n, d, segs, sim) {
   if (d.goalNum != null && d.end) {
     const at = ppKgAt(sim, d.end), lose = d.goalNum < d.kg0;
     if (Math.abs(d.goalNum - d.kg0) >= 0.5 && (lose ? at > d.goalNum + 0.3 : at < d.goalNum - 0.3)) {
-      warn.push(`Mit diesen Phasen kommst du bis ${ppD(d.end)} auf ca. ${fmtNum(round1(at))} kg statt auf ${fmtNum(d.goalNum)} kg. Das ist leider etwas unrealistisch. Geh es lieber etwas langsamer an und verschieb das Enddatum.`);
+      // v329 (User): eigene Begründung für Aufbau (Körperfett) und Diät (Defizit)
+      warn.push(`Mit diesen Phasen kommst du bis ${ppD(d.end)} auf ca. ${fmtNum(round1(at))} kg statt auf ${fmtNum(d.goalNum)} kg.`
+        + (lose ? ' Das ist leider etwas unrealistisch. Ein noch größeres Defizit kostet Muskeln und Kraft. Geh es lieber etwas langsamer an und verschieb das Enddatum.'
+          : ' Das ist leider etwas unrealistisch. Schneller zuzunehmen hieße vor allem mehr Körperfett, und das schadet Gesundheit und Training. Verschieb lieber das Enddatum oder plane ein etwas niedrigeres Zielgewicht.'));
     }
   }
   if (n.bodyFat != null && segs.some(s => s.phase === 'bulk')) {
@@ -351,7 +354,13 @@ function ppResultHtml(n, d) {
   const r = d.res;
   if (r.unreal) {
     return `<div class="card nut-check off pp-unreal"><p><b>⚠️ Das ist leider etwas unrealistisch</b></p>
-      <p class="hint nut-small">${r.lose ? 'So schnell abzunehmen' : 'So schnell zuzunehmen'} geht mit den Regeln der App nicht, ohne dass Muskeln, Kraft oder Gesundheit leiden. Geh es lieber etwas langsamer an:</p>
+      ${r.lose ? `<p class="hint nut-small">So schnell abzunehmen geht mit den Regeln der App nicht, ohne dass Muskeln, Kraft oder Gesundheit leiden.
+        Ein zu großes Defizit kostet Muskeln und Leistung im Training und ist auf Dauer kaum durchzuhalten. Geh es lieber etwas langsamer an:</p>`
+      : `<p class="hint nut-small">Muskeln wachsen nur langsam. Deshalb plant die App im Aufbau höchstens etwa 1 % deines Körpergewichts pro Monat.
+        Was du darüber hinaus zunimmst, ist vor allem Körperfett.</p>
+        <p class="hint nut-small">Steigt dein Körperfettanteil zu schnell, ist das ungünstig für die Gesundheit, z. B. für Blutdruck, Blutzucker und
+        Blutfette. Auch im Training merkst du es: Du fühlst dich träger, Übungen mit dem eigenen Körpergewicht wie Klimmzüge oder Dips werden
+        schwerer, und die Diät danach dauert länger. Geh es lieber etwas langsamer an:</p>`}
       ${r.unreal.date ? `<button class="btn" data-action="pp-use-date" data-v="${r.unreal.date}">Enddatum auf ${ppD(r.unreal.date)} verschieben</button>` : ''}
       ${r.unreal.kg != null ? `<button class="btn" data-action="pp-use-goal" data-v="${r.unreal.kg}">Zielgewicht auf ${fmtNum(r.unreal.kg)} kg ändern</button>` : ''}
       ${!r.unreal.date && r.unreal.kg == null ? '<p class="hint nut-small">Wähle ein späteres Enddatum oder ein Ziel näher an deinem jetzigen Gewicht.</p>' : ''}

@@ -1150,6 +1150,7 @@ function nutMeasuredAsk(n, c) {
       ? `Aus dem, was du in den letzten Wochen gegessen hast, und deinem Gewichtsverlauf ergibt sich ein Bedarf von ca. ${nutKcal(st.real)} kcal
         (die App rechnet mit ${nutKcal(st.used)}). Sie geht schrittweise vor und passt dein Tagesziel um ${nutSigned(st.step, 'kcal')} an.`
       : `Das zeigen deine Einträge und dein Gewicht der letzten Wochen.`} Tagesziel um <b>${nutSigned(st.step, 'kcal')}</b> anpassen?</p>
+    ${nutMoveNote(n, c, st.step)}
     <button class="btn primary" data-action="nut-measured-apply" data-v="${st.adj}">Ja, anpassen</button>${NUT_LATER_BTN}</div>`;
 }
 
@@ -1193,6 +1194,35 @@ function nutFloorHint(n) {
 
 const NUT_LATER_BTN = '<button class="btn" data-action="nut-suggest-later">Nicht jetzt</button>';
 
+// v330 (User): Bei jedem Vorschlag zu mehr oder weniger Kalorien auch die Alltagsaktivität ansprechen.
+// Senkung (nur Diät und Minicut): statt oder zusätzlich mehr Bewegung im Alltag. Erhöhung im Aufbau ab 3.000 kcal:
+// Alltagsaktivität etwas herunterfahren, aber dauerhaft nicht unter 6.000–8.000 Schritte am Tag.
+function nutStepsAvg(days = 14) {
+  const from = addDaysISO(todayISO(), -days);
+  const l = data.steps.filter(s => s.date >= from && s.steps > 0);
+  return l.length >= 5 ? Math.round(l.reduce((a, s) => a + s.steps, 0) / l.length / 100) * 100 : null;
+}
+function nutMoveNote(n, c, delta) {
+  if (!n || !delta) return '';
+  const avg = nutStepsAvg();
+  const now = avg ? ` Zurzeit gehst du im Schnitt ca. ${deNum(avg)} Schritte am Tag.` : '';
+  if (delta < 0 && (n.phase === 'diet' || n.phase === 'minicut')) {
+    return `<p class="hint nut-small nut-move">🚶 Statt weniger zu essen, oder zusätzlich dazu, kannst du dich im Alltag mehr bewegen, wenn dein
+      Tagesablauf das zulässt: z. B. ${deNum(2000)} bis ${deNum(3000)} Schritte mehr am Tag (etwa 100 bis 150 kcal), Treppe statt Aufzug, kurze Wege zu Fuß
+      oder mit dem Rad.${now}</p>`;
+  }
+  if (delta > 0 && n.phase === 'bulk' && c && c.kcal > 3000) {
+    if (avg != null && avg <= 8000) {
+      return `<p class="hint nut-small nut-move">🚶 Du isst schon über ${deNum(3000)} kcal am Tag. Mit ca. ${deNum(avg)} Schritten am Tag bist du aber schon
+        bei den ${deNum(6000)} bis ${deNum(8000)} Schritten, die du dauerhaft nicht unterschreiten solltest. Weniger bewegen ist hier keine gute Idee.</p>`;
+    }
+    return `<p class="hint nut-small nut-move">🚶 Du isst schon über ${deNum(3000)} kcal am Tag. Statt noch mehr zu essen, kannst du auch deine
+      Alltagsaktivität etwas herunterfahren, z. B. weniger zusätzliche Wege zu Fuß. ${deNum(6000)} bis ${deNum(8000)} Schritte am Tag solltest du aber dauerhaft
+      nicht unterschreiten, sie sind wichtig für Herz, Kreislauf und Erholung.${now}</p>`;
+  }
+  return '';
+}
+
 // Keine laufenden Kommentare (User-Regel 2026-11-06): Die Karte erscheint nur mit einem Kalorienvorschlag und kurzer Begründung
 // v251 (User 2026-11-14): Zielgewicht, Hinweis mit Anpassungsvorschlag und gemessener Bedarf in einer Karte „Dein Verlauf“
 // v310 (User 2026-11-17): keine eigene Karte mehr, steht unten in der Karte „Körpergewicht“ (bwBlock)
@@ -1215,24 +1245,24 @@ function nutTrendCard(n, c) {
   const detail = feat('nut-trend-detail');
   const cmp = !detail ? '' : off.weekly ? `Wochenschnitt jetzt: <b>${fmtNum(round1(b.a))} kg</b>, vor ${b.weeks === 4 ? 'vier' : 'zwei'} Wochen ${fmtNum(round1(b.b))} kg (${nutSigned(round1(b.diff), 'kg')}). `
     : `Ø der letzten ${NUT_CMP_N} Wiegungen: <b>${fmtNum(round1(b.a))} kg</b>, davor ${fmtNum(round1(b.b))} kg (${nutSigned(b.diff, 'kg')}). `;
-  const card = (text, end) => `<div class="card nut-check off"><p><b>⚠️ ${what}</b></p><p class="hint nut-small">${cmp}${text}</p>${end}</div>`;
+  const card = (text, end, d = 0) => `<div class="card nut-check off"><p><b>⚠️ ${what}</b></p><p class="hint nut-small">${cmp}${text}</p>${nutMoveNote(n, c, d)}${end}</div>`;
   const perDay = v => `täglich etwa <b>${Math.abs(v)} kcal ${v < 0 ? 'weniger' : 'mehr'}</b>`;
   const corr = off.corr;
   if (typeof nutPlanActive === 'function' && nutPlanActive()) {
     return card(`Dein Ernährungsplan ist maßgeblich, die App ändert nichts. Bleibt das so, sprich eine Anpassung (etwa ${nutSigned(corr, 'kcal')} am Tag)
-      mit deinem Ernährungsberater ab.`, NUT_LATER_BTN);
+      mit deinem Ernährungsberater ab.`, NUT_LATER_BTN, corr);
   }
   // Gemessener Bedarf zeigt in dieselbe Richtung: danach anpassen, das ist genauer
   const st = nutMeasuredState(n, c);
   if (st && st.apply && feat('nut-measured')) {
     return card(`Vorschlag laut deinem gemessenen Bedarf: ${perDay(st.step)}.`,
-      `<button class="btn primary" data-action="nut-measured-apply" data-v="${st.adj}">${nutSigned(st.step, 'kcal')} übernehmen</button>${NUT_LATER_BTN}`);
+      `<button class="btn primary" data-action="nut-measured-apply" data-v="${st.adj}">${nutSigned(st.step, 'kcal')} übernehmen</button>${NUT_LATER_BTN}`, st.step);
   }
   if (corr < 0 && c.kcal <= nutFloor(n)) return card('', nutFloorHint(n) + NUT_LATER_BTN);
   if (!detail) return card(`Tagesziel um <b>${nutSigned(corr, 'kcal')}</b> anpassen?`,
-    `<button class="btn primary" data-action="nut-adjust" data-v="${corr}">Ja, anpassen</button>${NUT_LATER_BTN}`);
+    `<button class="btn primary" data-action="nut-adjust" data-v="${corr}">Ja, anpassen</button>${NUT_LATER_BTN}`, corr);
   return card(`Vorschlag: ${perDay(corr)}.`,
-    `<button class="btn primary" data-action="nut-adjust" data-v="${corr}">${nutSigned(corr, 'kcal')} übernehmen</button>${NUT_LATER_BTN}`);
+    `<button class="btn primary" data-action="nut-adjust" data-v="${corr}">${nutSigned(corr, 'kcal')} übernehmen</button>${NUT_LATER_BTN}`, corr);
 }
 
 // Unterbrechung: Formular, laufende oder geplante

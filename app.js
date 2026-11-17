@@ -6697,6 +6697,12 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 330, date: '2026-11-17', items: [
+    ['Kalorienvorschläge nennen jetzt auch die Alltagsaktivität: In Diät und Minicut kannst du dich statt weniger zu essen auch mehr bewegen. Im Aufbau ab 3.000 kcal kannst du die Alltagsaktivität etwas herunterfahren, aber nicht unter 6.000 bis 8.000 Schritte am Tag.'],
+  ] },
+  { v: 329, date: '2026-11-17', items: [
+    ['Phasenplan: Ist ein Aufbau-Ziel zu schnell gewählt, erklärt die App jetzt das Risiko eines zu schnell steigenden Körperfettanteils für Gesundheit und Training. Bei einer Diät bleibt der Hinweis auf das zu große Defizit.'],
+  ] },
   { v: 328, date: '2026-11-17', items: [
     ['Ernährungstagebuch: Die Eiweiß-Kachel zeigt jetzt dein aktuelles Eiweiß-Ziel. Bisher stand dort die untere Grenze der Empfehlung, deshalb änderte sie sich nach dem Anpassen der Makros nicht.'],
     ['Die Meldung nach dem Hinzufügen, z. B. „Haferflocken hinzugefügt ✔“, bleibt jetzt etwas länger stehen.'],
