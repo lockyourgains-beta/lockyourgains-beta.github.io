@@ -442,12 +442,14 @@ Object.assign(actions, {
   // Tagebuch: Mahlzeit wie geplant eintragen
   'food-plan-meal': el => {
     const date = current.params.date || todayISO(), k = el.dataset.meal;
-    const d = nutPlanDay(date);
+    const d = nutPlanActive() ? nutPlanDay(date) : typeof mgActive === 'function' && mgActive() ? mgDay(date) : null;
     const items = (d && d.meals && d.meals[k]) || [];
     if (!items.length) return;
     const reopened = typeof foodReopen === 'function' && foodReopen(date);
     for (const i of items) {
       const g = i.g || 100;
+      const f = i.key && foodGet(i.key);  // v337: erstellter Plan – echte Lebensmittel aus der Grundliste
+      if (f) { data.foodLog.push({ id: uid(), date, meal: k, key: f.key, name: f.name, brand: '', g, per: f.per.slice() }); continue; }
       const per = [i.kcal, i.p, i.c, i.f].map(x => round1(x / g * 100));
       data.foodLog.push({ id: uid(), date, meal: k, key: 'plan:' + nameKey(i.name), name: i.name, brand: 'laut Plan', g, per });
     }

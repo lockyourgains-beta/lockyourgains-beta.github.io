@@ -839,7 +839,8 @@ function renderFood(p) {
       ${nutIntakeForm ? nutIntakeFormHtml() : `<div class="row fe-src-btns">${healthOn() ? '<button class="btn" data-action="health-paste">❤️ Aus Health</button>' : ''}
         <button class="btn" data-action="nut-intake-open" data-date="${date}">✏️ Von Hand</button></div>
       ${healthOn() ? healthPasteBox() + healthGuide() : ''}`}</div>`;
-  const planDay = typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanDay(date) : null;
+  const planDay = typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanDay(date)
+    : typeof mgActive === 'function' && mgActive() ? mgDay(date) : null;  // v337: von der App erstellter Plan (mealgen.js)
   const planMeals = (planDay && planDay.meals) || {};
   for (const k of dayMealKeys(list, planMeals)) {
     const [icon, label] = mealInfo(k);
@@ -853,7 +854,9 @@ function renderFood(p) {
             <span>${e.supp ? '💊 ' : ''}${esc(e.name)}<small>${e.brand ? esc(e.brand) + ' | ' : ''}${e.supp ? foodNum(e.g) + ' Stück' : amtTxt(e.g)}</small></span>
             <b>${e.supp ? 'Ergänzung' : foodKcal(foodVal(e.per, e.g)[0]) + ' kcal'}</b></button>
           <button class="icon-btn danger" data-action="food-del" data-id="${e.id}" aria-label="Entfernen">✕</button></div>`).join('')}
-        ${!items.length && planMeals[k] ? `<p class="hint nut-small np-plan-hint">📋 Plan: ${planMeals[k].map(i => `${esc(i.name)}${i.g ? ` ${amtTxt(i.g)}` : ''}`).join(' | ')}</p>` : ''}
+        ${!items.length && planMeals[k] && planDay.recipes && planDay.recipes[k] ? `<button class="mg-hint" data-action="mg-open-day" data-d="${date}">
+            <span class="mg-hint-t">📋 ${esc(planDay.recipes[k].name)}</span><span class="mg-hint-i">${planMeals[k].map(i => `<span>${amtTxt(i.g)} <span>${esc(i.name)}</span></span>`).join(' | ')}</span></button>`
+          : !items.length && planMeals[k] ? `<p class="hint nut-small np-plan-hint">📋 Plan: ${planMeals[k].map(i => `${esc(i.name)}${i.g ? ` ${amtTxt(i.g)}` : ''}`).join(' | ')}</p>` : ''}
         <div class="row">
           ${!items.length && planMeals[k] ? `<button class="btn primary" data-action="food-plan-meal" data-meal="${k}">✔ Wie geplant</button>` : ''}
           <button class="btn" data-action="food-add" data-meal="${k}">＋ Hinzufügen</button>

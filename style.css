@@ -4022,3 +4022,24 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .food-extra > .mic-line:first-child, .food-extra > .fe-src-btns:first-child { margin-top: 0; }
 .food-extra > .mic-line:first-child { margin-top: -8px; border-top: 0; }
 .food-extra > .food-fs:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+/* v337: Ernährungsplan erstellen lassen (mealgen.js) */
+.mg-days { display: flex; gap: 6px; margin: 0 0 12px; overflow-x: auto; scrollbar-width: none; }
+.mg-days::-webkit-scrollbar { display: none; }
+.mg-day { flex: 1 0 44px; display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 52px; padding: 6px 4px; border: 0; border-radius: 14px;
+  background: var(--fill); color: var(--text); font: inherit; font-size: 14px; font-weight: 650; }
+.mg-day small { font-size: 12px; font-weight: 500; color: var(--muted); }
+.mg-day.on { background: var(--accent); color: #fff; }
+.mg-day.on small { color: rgba(255, 255, 255, .85); }
+.mg-sum .food-sum b.off { color: var(--warn, #d97706); }
+.mg-title { margin: 6px 0 8px; font-size: 18px; line-height: 1.3; }
+.mg-items { list-style: none; margin: 0 0 8px; padding: 0; }
+.mg-items li { display: flex; gap: 10px; align-items: baseline; padding: 5px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.mg-items li:first-child { border-top: 0; }
+.mg-items .mg-g { flex: none; min-width: 58px; text-align: right; font-weight: 650; font-variant-numeric: tabular-nums; }
+.mg-items small { color: var(--muted); white-space: nowrap; }
+.mg-how { margin: 4px 0 10px; }
+.mg-swap { width: 100%; }
+.mg-hint { display: flex; flex-direction: column; gap: 3px; width: 100%; margin: 2px 0 10px; padding: 10px 12px; border: 0; border-radius: 12px;
+  background: var(--fill); color: var(--text); font: inherit; text-align: left; }
+.mg-hint-t { font-size: 15px; font-weight: 650; }
+.mg-hint-i { font-size: 13px; color: var(--muted); line-height: 1.4; }

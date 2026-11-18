@@ -185,6 +185,7 @@ function upgradeData(d) {
   if (!Array.isArray(d.foodMeals)) d.foodMeals = [];
   if (!d.water || typeof d.water !== 'object' || Array.isArray(d.water)) d.water = {};  // Wasser je Tag in ml (v316)
   if (d.waterGoal === undefined) d.waterGoal = null;  // eigenes Wasserziel in ml, sonst aus dem Gewicht
+  if (d.mealPlan === undefined) d.mealPlan = null;  // v337: von der App erstellter Ernährungsplan (mealgen.js)
   if (!Array.isArray(d.cardio)) d.cardio = [];  // Cardio-Einheiten (cardio.js)  // gespeicherte Mahlzeiten (Schnellauswahl)
   if (!d.foodClosed || typeof d.foodClosed !== 'object') {
     // abgeschlossene Tagebuch-Tage; beim Einführen gelten alle bisherigen Tage vor heute als abgeschlossen
@@ -6698,6 +6699,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 337, date: '2026-11-18', items: [
+    ['Ernährungsplan erstellen lassen: Die App stellt Gerichte für jeden Tag zusammen und rechnet die Mengen passend zu deinen Kalorien und Makros. Gerichte tauschen, im Tagebuch mit „✔ Wie geplant“ eintragen. Zu finden unter Ernährung → Mehr.'],
+  ] },
   { v: 336, date: '2026-11-18', items: [
     ['Ernährungstagebuch: Die Mahlzeiten stehen jetzt direkt unter Kalorien und Makros. Vitamine, Ballaststoffe und Zucker sowie „Aus Health“ und „Von Hand“ findest du unter den Mahlzeiten.'],
   ] },
@@ -8151,7 +8155,7 @@ function importData(file) {
       days: d.days, volume: d.volume, rirPlan: d.rirPlan,  // ältere Sicherungen mit nur einem Plan
       sessions: d.sessions, bodyweight: d.bodyweight, cycle: d.cycle, steps: d.steps,
       complaints: d.complaints, hintsDismissed: d.hintsDismissed, dayTemplates: d.dayTemplates,
-      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, nutPlan: d.nutPlan,
+      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, nutPlan: d.nutPlan, mealPlan: d.mealPlan,
       customExercises: d.customExercises, profile: d.profile, prefatV: d.prefatV, rirV: d.rirV,
       measures: Array.isArray(d.measures) ? d.measures : [],
       painLog: Array.isArray(d.painLog) ? d.painLog : [],

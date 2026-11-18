@@ -1512,6 +1512,7 @@ function renderNutrition() {
       ${(bwDone = true) && bwBlock(nutProgressCard(n, c, kg))}
       ${nutTrainCard(n)}
       <div class="card nut-more-list"><h2>Mehr</h2>
+        ${typeof mgOpenBtn === 'function' ? mgOpenBtn() : ''}
         ${typeof nutPlanActive === 'function' && nutPlanActive() ? '' : NP_OPEN_BTN}
         ${typeof mcAvailable === 'function' && mcAvailable() && !mcOn()
           ? '<button class="btn nav" data-action="mc-onoff" data-v="1">🌸 Zykluskalender einschalten<small>Freiwillig: Periode eintragen, Phasen sehen, Wassertage beim Gewicht herausrechnen</small></button>' : ''}
