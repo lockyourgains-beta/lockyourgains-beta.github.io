@@ -442,7 +442,7 @@ Object.assign(actions, {
   // Tagebuch: Mahlzeit wie geplant eintragen
   'food-plan-meal': el => {
     const date = current.params.date || todayISO(), k = el.dataset.meal;
-    const d = nutPlanActive() ? nutPlanDay(date) : typeof mgActive === 'function' && mgActive() ? mgDay(date) : null;
+    const d = nutPlanActive() ? nutPlanDay(date) : typeof mgActive === 'function' && mgActive() ? mgDay(date, undefined, true) : null;
     const items = (d && d.meals && d.meals[k]) || [];
     if (!items.length) return;
     const reopened = typeof foodReopen === 'function' && foodReopen(date);

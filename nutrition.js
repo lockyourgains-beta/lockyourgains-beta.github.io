@@ -1460,10 +1460,13 @@ function renderNutrition() {
   const n = data.nutrition;
   const kg = nutWeight();
   // v218 (User): Ernährungstagebuch ganz oben
+  const planOn = typeof nutPlanActive === 'function' && nutPlanActive();
+  // v340 (User): Ernährungspläne (erstellen lassen, eigenen übernehmen) direkt unter „Essen eintragen“
+  const plans = (typeof mgOpenBtn === 'function' ? mgOpenBtn() : '') + (planOn ? '' : NP_OPEN_BTN);
   let h = (typeof foodTopCard === 'function' ? foodTopCard() : '')
+    + (plans ? `<div class="card nut-plans"><h2>Ernährungspläne</h2>${plans}</div>` : '')
     + (nutIntakeForm ? `<div class="card nut-intake-edit">${nutIntakeFormHtml()}</div>` : '')  // v243: „Von Hand“ aus „Die letzten Tage“
     + (typeof foodOpenCard === 'function' ? foodOpenCard() : '') + (typeof mcCard === 'function' ? mcCard() : '');
-  const planOn = typeof nutPlanActive === 'function' && nutPlanActive();
   // Grundlagen-Karte ganz oben (mit dem Tagesziel für die persönliche Ballaststoff-Menge, falls bekannt)
   const dayKcal = n && nutPaused(n) ? null : planOn ? nutForDay(null).kcal : n && nutReady(n) && kg != null ? nutForDay(nutCalc(n, kg)).kcal : null;
   // v207: Grundlagen als eingeklappte Zeile ganz unten; Körpergewicht direkt unter „Heute gegessen“ (bwBlock), Einträge zuklappbar
@@ -1511,20 +1514,15 @@ function renderNutrition() {
       ${nutPhaseHint(n)}
       ${(bwDone = true) && bwBlock(nutProgressCard(n, c, kg))}
       ${nutTrainCard(n)}
-      <div class="card nut-more-list"><h2>Mehr</h2>
-        ${typeof mgOpenBtn === 'function' ? mgOpenBtn() : ''}
-        ${typeof nutPlanActive === 'function' && nutPlanActive() ? '' : NP_OPEN_BTN}
-        ${typeof mcAvailable === 'function' && mcAvailable() && !mcOn()
-          ? '<button class="btn nav" data-action="mc-onoff" data-v="1">🌸 Zykluskalender einschalten<small>Freiwillig: Periode eintragen, Phasen sehen, Wassertage beim Gewicht herausrechnen</small></button>' : ''}
-        ${feat('nut-explain') ? nutExplain(n, c, kg).replace('class="card nut-help"', 'class="nut-help nut-more-row"') : ''}
-      </div>
+      ${(more => more.trim() ? `<div class="card nut-more-list"><h2>Mehr</h2>${more}</div>` : '')(
+        (typeof mcAvailable === 'function' && mcAvailable() && !mcOn()
+          ? '<button class="btn nav" data-action="mc-onoff" data-v="1">🌸 Zykluskalender einschalten<small>Freiwillig: Periode eintragen, Phasen sehen, Wassertage beim Gewicht herausrechnen</small></button>' : '')
+        + (feat('nut-explain') ? nutExplain(n, c, kg).replace('class="card nut-help"', 'class="nut-help nut-more-row"') : ''))}
       <p class="hint nut-small nut-disclaimer">Alle Werte sind Richtwerte für gesunde Erwachsene. Bei Vorerkrankungen, in
         Schwangerschaft und Stillzeit oder bei Essstörungen bitte vorher ärztlich abklären.</p>`;
   }
   // Ernährungstagebuch (und darunter Plan-Import) auch ohne fertig eingerichtete Phase erreichbar
-  if (paused || (!planOn && (!n || !nutReady(n) || kg == null))) {
-    h += NP_OPEN_BTN;  // v238: das Ernährungstagebuch steht nur noch oben (foodTopCard)
-  }
+  // v340: der Knopf „Eigenen Ernährungsplan übernehmen“ steht immer oben in „Ernährungspläne“
   // Nur ein Health-Knopf: steht in „Heute gegessen“; ohne diese Karte (Ernährung nicht eingerichtet) hier beim Gewicht
   if (!bwDone) h += bwBlock();
   if (typeof photoBtnHtml === 'function') h += photoBtnHtml();  // Fortschrittsfotos (v213, media.js)

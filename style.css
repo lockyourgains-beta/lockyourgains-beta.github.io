@@ -4043,3 +4043,53 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
   background: var(--fill); color: var(--text); font: inherit; text-align: left; }
 .mg-hint-t { font-size: 15px; font-weight: 650; }
 .mg-hint-i { font-size: 13px; color: var(--muted); line-height: 1.4; }
+/* v338: Ernährungsplan – Vorlieben, Einkaufsliste */
+.mg-prefs-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; }
+.mg-prefs-head b { flex: none; font-size: 17px; }
+.mg-prefs-head .hint { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.35; }
+.mg-prefs-head .chev { flex: none; color: var(--muted); }
+.mg-prefs .mg-lbl { margin: 14px 4px 8px; font-size: 14px; }
+.mg-prefs .variants .vchip { flex: 1 1 auto; }
+.mg-bans { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.mg-ban-chip { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 8px; max-width: 100%; text-align: left; }
+.mg-btns { gap: 8px; }
+.mg-btns .btn { flex: 1; min-width: 0; margin: 0; }
+.mg-btns .mg-ban { font-size: 14px; color: var(--muted); }
+.mg-items small + small { margin-left: -4px; }
+.mg-done { opacity: .75; }
+.mg-shop h3 { margin: 0 0 6px; font-size: 16px; }
+.mg-shop-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 46px; padding: 8px 0; border: 0; border-top: 1px solid var(--line);
+  background: none; color: var(--text); font: inherit; font-size: 15px; text-align: left; }
+.mg-shop h3 + .mg-shop-row { border-top: 0; }
+.mg-check { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; box-shadow: inset 0 0 0 2px var(--line-strong);
+  font-size: 14px; font-weight: 700; color: #fff; }
+.mg-shop-n { flex: 1; min-width: 0; }
+.mg-shop-a { flex: none; display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+.mg-shop-a small { color: var(--muted); font-size: 12.5px; }
+.mg-shop-row.done .mg-check { background: var(--accent); box-shadow: none; }
+.mg-shop-row.done .mg-shop-n, .mg-shop-row.done .mg-shop-a { color: var(--muted); text-decoration: line-through; }
+.mg-shop-range { margin: 0 0 4px; font-weight: 650; }
+/* v339: Ernährungsplan – Alternativen je Zutat, Lieblingszutaten */
+.mg-alt-btn { flex: none; align-self: center; margin-left: auto; width: 34px; height: 30px; padding: 0; border: 0; border-radius: 9px; background: var(--fill);
+  color: var(--muted); font: inherit; font-size: 16px; line-height: 1; }
+.mg-alt-btn.on { background: var(--accent); color: #fff; }
+.mg-items li.mg-swapped > span:nth-child(2) { color: var(--accent); font-weight: 600; }
+.mg-items li.mg-alt-panel { display: block; padding: 4px 0 10px; border-top: 0; }
+.mg-alt-panel .hint { margin: 0 0 6px; }
+.mg-alt-panel .variants { margin: 0 0 6px; }
+.mg-alt-panel .vchip { flex: 0 1 auto; }
+.mg-alt-pin { width: 100%; margin: 2px 0 6px; font-size: 14px; }
+.mg-prefs .mg-fav-l { margin: 8px 4px 6px; font-weight: 600; color: var(--text); }
+.mg-prefs .mg-fav .vchip { flex: 0 1 auto; }
+.mg-items .mg-n { flex: 1; min-width: 0; }
+.mg-items .mg-n small { white-space: normal; margin-left: 2px; }
+.mg-items .mg-n small + small { margin-left: 2px; }
+.mg-sub-head { display: flex; align-items: baseline; gap: 10px; width: 100%; margin: 14px 0 4px; padding: 0 4px; border: 0; background: none; color: var(--text);
+  font: inherit; text-align: left; }
+.mg-sub-head .lbl { flex: none; margin: 0; font-size: 14px; }
+.mg-sub-head .hint { flex: 1; min-width: 0; font-size: 13.5px; }
+.mg-sub-head .chev { flex: none; color: var(--muted); }
+/* v340: Karte „Ernährungspläne“ unter „Essen eintragen“ */
+.nut-plans h2 { margin-bottom: 10px; }
+.nut-plans .btn.nav { margin: 0 0 8px; }
+.nut-plans .btn.nav:last-child { margin-bottom: 0; }
