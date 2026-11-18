@@ -465,11 +465,11 @@ const mgCache = new Map();
 /* Plan eines Tages im Format von nutPlanDay (meals: { k: [{ key, name, g, kcal, p, c, f }] }) plus Gerichte und Summen.
    live: schon Eingetragenes berücksichtigen (Tagebuch, Planansicht). Dann fehlen die eingetragenen Mahlzeiten in meals,
    die übrigen sind auf den Rest des Tagesziels gerechnet; eaten = { keys, kcal, p, c, f, left } */
-function mgDay(date = todayISO(), picks = mgPicks(), live = false) {
-  if (!picks || typeof foodGoal !== 'function') return null;
-  const goal = foodGoal(date);
+// Tagesziel und was davon noch offen ist (live: schon Eingetragenes abziehen)
+function mgDayTarget(date, live) {
+  const goal = typeof foodGoal === 'function' ? foodGoal(date) : null;
   if (!goal || !goal.kcal) return null;
-  const wd = mgWd(date), keys = mealKeys();
+  const keys = mealKeys();
   let T = goal, open = keys, eaten = null;
   if (live) {
     const log = foodOn(date).filter(e => e.key !== FOOD_FILL);
@@ -481,20 +481,34 @@ function mgDay(date = todayISO(), picks = mgPicks(), live = false) {
       open = keys.filter(k => !done.includes(k));
     }
   }
+  return { goal, T, keys, open, eaten };
+}
+// Zutaten mit Alternativen (alt: { Zutat: stattdessen }), dayAlt = für diesen Tag ersetzt
+const mgApplyAlt = (its, alt, x = mgX()) => its.map(i => { const a = alt && alt[i.n]; return a && a !== i.n && mgOk(a, x) ? { ...mgConv(i, a), sub: i.n, dayAlt: true } : i; });
+// gerechnete Mengen eines Gerichts als Zeilen
+const mgSlotLines = sl => sl.its.map(i => mgLine(i.n, mgRound(i.g * (i.role === 'X' ? sl.xs : sl.f[i.role] != null ? sl.f[i.role] : 1), i.unit),
+  { unit: i.unit || null, sub: i.sub, dayAlt: i.dayAlt || false })).filter(i => i.g >= 2);
+// v341: Gericht nur für ein Datum eingeplant (aus „Was hab ich da?“): plan.over[datum][mahlzeit] = Rezept-ID
+const mgOver = (date, k) => { const p = mgPlanObj(), id = p && p.over && p.over[date] && p.over[date][k]; return id ? mgValid(id, k) : null; };
+const mgPickD = (picks, date, k) => mgOver(date, k) || mgPick(picks, mgWd(date), k);
+
+function mgDay(date = todayISO(), picks = mgPicks(), live = false) {
+  if (!picks || typeof foodGoal !== 'function') return null;
+  const tgt = mgDayTarget(date, live);
+  if (!tgt) return null;
+  const { goal, T, keys, open, eaten } = tgt, wd = mgWd(date);
   const alt = mgDayAlt(date) || {};
-  const sig = JSON.stringify([wd, keys, open, keys.map(k => (mgPick(picks, wd, k) || {}).id), mgPrefSig(), T.kcal, T.protein, T.carbs, T.fat, eaten && Math.round(eaten.kcal), unitLb(), alt]);
+  const sig = JSON.stringify([wd, keys, open, keys.map(k => (mgPickD(picks, date, k) || {}).id), mgPrefSig(), T.kcal, T.protein, T.carbs, T.fat, eaten && Math.round(eaten.kcal), unitLb(), alt]);
   if (mgCache.has(sig)) return mgCache.get(sig);
   const x = mgX();
-  // „Gerade nicht da?“: für diesen Tag gewählte Alternativen einsetzen (dayAlt = an diesem Tag ersetzt)
-  const slots = open.map(k => ({ k, r: mgPick(picks, wd, k) })).filter(s => s.r).map(s => ({ ...s,
-    its: mgItems(s.r).map(i => { const a = alt[s.k] && alt[s.k][i.n]; return a && a !== i.n && mgOk(a, x) ? { ...mgConv(i, a), sub: i.n, dayAlt: true } : i; }) }));
+  // „Gerade nicht da?“: für diesen Tag gewählte Alternativen einsetzen
+  const slots = open.map(k => ({ k, r: mgPickD(picks, date, k) })).filter(s => s.r).map(s => ({ ...s, its: mgApplyAlt(mgItems(s.r), alt[s.k], x) }));
   const fills = mgFills();
   const solved = slots.length ? mgSolve(slots, T, fills, mgPLo(goal, T, keys, open)) : [];
   const meals = {}, recipes = {}, tot = eaten ? [eaten.kcal, eaten.p, eaten.c, eaten.f] : [0, 0, 0, 0];
-  for (const k of keys) recipes[k] = mgPick(picks, wd, k);
+  for (const k of keys) recipes[k] = mgPickD(picks, date, k);
   for (const sl of solved) {
-    meals[sl.k] = sl.its.map(i => mgLine(i.n, mgRound(i.g * (i.role === 'X' ? sl.xs : sl.f[i.role] != null ? sl.f[i.role] : 1), i.unit),
-      { unit: i.unit || null, sub: i.sub, dayAlt: i.dayAlt || false })).filter(i => i.g >= 2);
+    meals[sl.k] = mgSlotLines(sl);
     fills.forEach((it, fi) => {
       const s = sl.f['E' + fi];
       if (!(s > 0) || it.g * s < (it.unit || 15)) return;  // Kleinstmengen weglassen
@@ -610,7 +624,7 @@ function renderMealPlan() {
         Gefällt dir ein Gericht nicht, tausch es mit „⇄ Anderes Gericht“. Fehlt dir eine Zutat, tipp in ihrer Zeile auf ⇄.</p>
       ${mgDraft ? `<button class="btn primary" data-action="mg-accept">✔ Plan übernehmen</button>
         <p class="hint nut-small">Danach steht im Ernährungstagebuch bei jeder Mahlzeit, was geplant ist, und du trägst sie mit „✔ Wie geplant“ ein.</p>`
-        : '<button class="btn nav" data-action="mg-shop">🛒 Einkaufsliste<small>Alle Zutaten für die nächsten Tage zusammengerechnet</small></button>'}
+        : '<button class="btn nav" data-action="mg-shop">🛒 Einkaufsliste<small>Alle Zutaten für die nächsten Tage zusammengerechnet</small></button>' + ptOpenBtn()}
     </div>
     ${mgPrefsCard()}
     <div class="mg-days" role="tablist">${days.map(x => `<button class="mg-day ${x === mgSel ? 'on' : ''}" data-action="mg-day" data-d="${x}" role="tab"
@@ -660,7 +674,7 @@ function renderMealPlan() {
 }
 
 views.mealplan = { title: 'Ernährungsplan', tab: 'nutrition', render: renderMealPlan,
-  back: p => p.from === 'food' ? ['food', { date: p.date }] : ['nutrition', {}] };
+  back: p => p.from === 'food' ? ['food', { date: p.date }] : p.from === 'pantry' ? ['pantry', {}] : ['nutrition', {}] };
 
 /* ----- Einkaufsliste ----- */
 const MG_GROUPS = [
@@ -733,7 +747,7 @@ function renderMealShop() {
       <div class="variants">${[3, 5, 7].map(n => `<button class="vchip ${shop.n === n ? 'on' : ''}" data-action="mg-shop-n" data-n="${n}">${n} Tage</button>`).join('')}</div>
       <p class="mg-shop-range"><span>${mgDateShort(days[0])}</span> <span>bis</span> <span>${mgDateShort(days[days.length - 1])}</span></p>
       <p class="hint nut-small">Mengen zusammengerechnet und leicht aufgerundet, roh bzw. abgetropft wie im Plan. Was heute schon eingetragen ist, fehlt.
-        Antippen hakt ab.</p></div>`;
+        Antippen hakt ab. Abgehakte Zutaten kommen in deinen Vorrat bei „Was hab ich da?“.</p></div>`;
   if (!groups.length) return h + '<div class="card"><p class="hint">Für diese Tage ist nichts geplant.</p></div>';
   for (const gr of groups) {
     h += `<div class="card mg-shop"><h3>${gr.label}</h3>${gr.items.map(a => {
@@ -775,6 +789,7 @@ Object.assign(actions, {
       const old = addDaysISO(todayISO(), -1);
       for (const d of Object.keys(data.mealPlan.alt)) if (d < old) delete data.mealPlan.alt[d];
     }
+    if (data.mealPlan && data.mealPlan.over) { const old = addDaysISO(todayISO(), -1); for (const d of Object.keys(data.mealPlan.over)) if (d < old) delete data.mealPlan.over[d]; }
     go('mealplan');
   },
   'go-nutrition': () => go('nutrition'),
@@ -785,9 +800,9 @@ Object.assign(actions, {
   // und erst wieder ein schon gezeigtes, wenn alle durch sind
   'mg-swap': el => {
     const k = el.dataset.k, picks = mgPicks(), wd = mgWd(mgSel);
-    const cur = mgPick(picks, wd, k);
+    const cur = mgPickD(picks, mgSel, k);
     if (!cur) return;
-    const other = mealKeys().filter(x => x !== k).map(x => mgPick(picks, wd, x)).filter(Boolean);
+    const other = mealKeys().filter(x => x !== k).map(x => mgPickD(picks, mgSel, x)).filter(Boolean);
     const ids = other.map(r => r.id), fams = other.map(r => r.fam).filter(Boolean);
     const seen = mgSwapSeen[`${wd}|${k}`] = mgSwapSeen[`${wd}|${k}`] || new Set();
     seen.add(cur.id);
@@ -795,7 +810,9 @@ Object.assign(actions, {
     let cand = all.filter(r => !seen.has(r.id) && !ids.includes(r.id) && !(r.fam && fams.includes(r.fam)));
     if (!cand.length) { seen.clear(); seen.add(cur.id); cand = all.filter(r => r.id !== cur.id && !ids.includes(r.id)); }
     if (!cand.length) return;
-    picks[wd] = { ...(picks[wd] || {}), [k]: mgWOrder(cand)[0].id };
+    const next = mgWOrder(cand)[0].id, p = mgPlanObj();
+    if (mgOver(mgSel, k)) p.over[mgSel] = { ...p.over[mgSel], [k]: next };  // nur für diesen Tag eingeplant: dort tauschen
+    else picks[wd] = { ...(picks[wd] || {}), [k]: next };
     mgAltOpen = null;
     if (!mgDraft) saveData();
     render();
@@ -837,7 +854,7 @@ Object.assign(actions, {
     render();
   },
   'mg-ban': el => {
-    const r = mgPick(mgPicks(), mgWd(mgSel), el.dataset.k);
+    const r = mgPickD(mgPicks(), mgSel, el.dataset.k);
     if (!r) return;
     mgPrefsSet({ ban: [...mgPrefs().ban, r.id] });
     toast('Gericht wird nicht mehr vorgeschlagen');
@@ -875,6 +892,7 @@ Object.assign(actions, {
   'mg-shop-tick': el => {
     const s = mgShop(), n = el.dataset.n;
     data.mealPlan.shop = { ...s, done: s.done.includes(n) ? s.done.filter(x => x !== n) : [...s.done, n] };
+    if (!s.done.includes(n) && typeof ptAdd === 'function') ptAdd(n);  // v341: gekauft = im Vorrat
     saveData(); render();
   },
   'mg-shop-reset': () => { data.mealPlan.shop = { ...mgShop(), done: [] }; saveData(); render(); },
@@ -893,5 +911,197 @@ Object.assign(actions, {
     }
     try { await navigator.clipboard.writeText(text); toast('Einkaufsliste kopiert ✔'); }
     catch (e) { uiCopy(text); }
+  },
+});
+
+/* ----- v341: „Was hab ich da?“ – Vorrat angeben, passende Gerichte finden ----------
+   data.pantry = { items: [Zutaten der Grundliste], at: Datum } (bleibt gespeichert; abgehakte Zutaten der Einkaufsliste kommen dazu).
+   Die App vergleicht jedes Gericht (nach den Vorlieben) mit dem Vorrat: Alternativen aus MG_ALT zählen als da (sie werden dann
+   eingesetzt), Öl und Gewürze immer. Fehlende Zutaten wiegen je nach Rolle (Eiweiß und Beilage schwer, Gemüse leicht). */
+const MG_STAPLE = new Set([MG_OIL]);
+const MG_MISS_W = { P: 3, C: 2, F: 1, X: 0.5 };
+let ptQ = '';           // Suchtext
+let ptOpenG = null;     // aufgeklappte Gruppe (Index)
+let ptCat = null;       // Frühstück / Hauptgerichte / Snacks bei den Ergebnissen
+let ptOpenR = null;     // aufgeklapptes Gericht
+let ptMeal = null;      // Mahlzeit, für die das Gericht gedacht ist
+const ptItems = () => (data.pantry && Array.isArray(data.pantry.items)) ? data.pantry.items : [];
+function ptSet(items) { data.pantry = { items: [...new Set(items)], at: todayISO() }; saveData(); }
+function ptAdd(n) { if (!ptItems().includes(n)) ptSet([...ptItems(), n]); }
+
+// Zutaten zur Auswahl: alles, was in Gerichten oder als Alternative vorkommt und zu den Vorlieben passt
+function ptChoices() {
+  const x = mgX(), set = new Set();
+  for (const r of MG_RECIPES) for (const [n] of r.items) set.add(n);
+  for (const l of Object.values(MG_ALT)) l.forEach(n => set.add(n));
+  for (const l of Object.values(MG_SUB)) l.forEach(n => set.add(n));
+  return [...set].filter(n => !MG_STAPLE.has(n) && mgOk(n, x));
+}
+// Vergleich eines Gerichts mit dem Vorrat: { r, miss: [Zutaten], alt: { Zutat: aus dem Vorrat }, used, missW }
+function ptMatch(r, have, x) {
+  const its = mgItems(r);
+  if (!its) return null;
+  const miss = [], alt = {};
+  let used = 0, main = false, altW = 0;
+  for (const i of its) {
+    if (MG_STAPLE.has(i.n)) continue;
+    let ok = have.has(i.n);
+    if (!ok) {
+      const a = (MG_ALT[i.n] || []).find(m => have.has(m) && mgOk(m, x) && !its.some(j => j.n === m) && !Object.values(alt).includes(m));
+      if (a) { alt[i.n] = a; ok = true; altW += MG_MISS_W[i.role] * 0.35; }  // Ersatz zählt als da, aber etwas schwächer
+    }
+    if (ok) { used++; if (i.role === 'P') main = true; } else miss.push(i);
+  }
+  return { r, miss, alt, used, main, missW: miss.reduce((s, i) => s + MG_MISS_W[i.role], 0) + altW };
+}
+// passende Gerichte einer Kategorie: alles da, oder höchstens 2 fehlen und die Eiweißquelle ist da
+function ptResults(cat) {
+  const have = new Set(ptItems()), x = mgX();
+  if (!have.size) return [];
+  return MG_RECIPES.filter(r => r.cat === cat).map(r => ptMatch(r, have, x))
+    .filter(m => m && m.used && (!m.miss.length || (m.miss.length <= 2 && m.main)))
+    .sort((a, b) => a.miss.length - b.miss.length || a.missW - b.missW || b.used - a.used || mgFavN(b.r) - mgFavN(a.r));
+}
+// Mengen für ein einzelnes Gericht: der Anteil dieser Mahlzeit am (restlichen) Tagesziel
+function ptMealLines(date, k, r, alt) {
+  const its = mgApplyAlt(mgItems(r) || [], alt);
+  const tgt = mgDayTarget(date, true);
+  if (!tgt) return its.map(i => mgLine(i.n, i.g, { unit: i.unit || null, sub: i.sub, dayAlt: i.dayAlt || false }));  // ohne Tagesziel: Rezeptmengen
+  const open = tgt.open.includes(k) ? tgt.open : [...tgt.open, k];
+  const sh = ks => ks.reduce((a, q) => a + MG_SHARE[mgCat(q)], 0), f = MG_SHARE[mgCat(k)] / sh(open);
+  const T = { kcal: tgt.T.kcal * f, protein: tgt.T.protein * f, carbs: tgt.T.carbs * f, fat: tgt.T.fat * f };
+  const [sl] = mgSolve([{ k, r, its }], T, [], mgPLo(tgt.goal, tgt.T, tgt.keys, open));
+  return mgSlotLines(sl);
+}
+// Mahlzeiten von heute, die zur Kategorie passen (noch nicht eingetragene zuerst)
+function ptMealKeys(cat) {
+  const log = foodOn(todayISO()), ks = mealKeys().filter(k => mgCat(k) === cat);
+  return [...ks.filter(k => !log.some(e => e.meal === k)), ...ks.filter(k => log.some(e => e.meal === k))];
+}
+function ptDefaultCat() {
+  const log = foodOn(todayISO()), k = mealKeys().find(q => !log.some(e => e.meal === q));
+  return k ? mgCat(k) : 'm';
+}
+
+function renderPantry() {
+  const items = ptItems(), choices = ptChoices(), q = ptQ.trim().toLowerCase();
+  if (!ptCat) ptCat = ptDefaultCat();
+  let h = `<div class="card"><h2>🧺 Was hab ich da?</h2>
+      <p class="hint">Tipp an, was du zu Hause hast. Die App zeigt dir Gerichte, die du damit kochen kannst, und rechnet die Mengen passend zu deinem Tagesziel.
+        Öl und Gewürze zählen immer als da. Ähnliche Zutaten zählen mit, z. B. Putenbrust statt Hähnchenbrust.</p></div>
+    <div class="card pt-have"><h3>Dein Vorrat</h3>
+      ${items.length ? `<div class="mg-bans">${items.slice().sort((a, b) => tr(mgShort(a)).localeCompare(tr(mgShort(b)), LOCALE())).map(n => `<button class="vchip on mg-ban-chip" data-action="pt-toggle" data-n="${esc(n)}" aria-label="Entfernen"><span>${esc(mgShort(n))}</span> ✕</button>`).join('')}</div>
+        <button class="btn center pt-clear" data-action="pt-clear">Vorrat leeren</button>`
+        : '<p class="hint nut-small">Noch nichts ausgewählt. Such unten nach Lebensmitteln oder klapp eine Gruppe auf.</p>'}
+    </div>
+    <div class="card pt-add"><h3>Hinzufügen</h3>
+      <input class="inp pt-search" type="search" data-field="pt-search" value="${esc(ptQ)}" placeholder="Suchen, z. B. Hähnchen" autocomplete="off">
+      ${MG_GROUPS.map(([label], gi) => {
+        const ns = choices.filter(n => mgGroupOf(n) === gi).sort((a, b) => tr(mgShort(a)).localeCompare(tr(mgShort(b)), LOCALE()));
+        if (!ns.length) return '';
+        const sel = ns.filter(n => items.includes(n)).length, open = ptOpenG === gi;
+        return `<div class="pt-group" data-g="${gi}">
+          <button class="mg-sub-head" data-action="pt-group" data-g="${gi}" aria-expanded="${open}"><span class="lbl">${label}</span>
+            <span class="hint">${sel ? `${sel} ausgewählt` : ''}</span><span class="chev">${open ? '▴' : '▾'}</span></button>
+          <div class="variants pt-chips" ${open || q ? '' : 'hidden'}>${ns.map(n => {
+            const s = (n + ' ' + mgShort(n) + ' ' + tr(n) + ' ' + tr(mgShort(n))).toLowerCase();
+            return `<button class="vchip ${items.includes(n) ? 'on' : ''}" data-action="pt-toggle" data-n="${esc(n)}" data-s="${esc(s)}" aria-pressed="${items.includes(n)}" ${q && !s.includes(q) ? 'hidden' : ''}>${esc(mgShort(n))}</button>`;
+          }).join('')}</div></div>`;
+      }).join('')}
+      <p class="hint nut-small pt-none" ${q && !choices.some(n => (n + ' ' + mgShort(n) + ' ' + tr(n) + ' ' + tr(mgShort(n))).toLowerCase().includes(q)) ? '' : 'hidden'}>Nichts gefunden.</p>
+    </div>`;
+  if (!items.length) return h;
+  const cats = [['b', 'Frühstück'], ['m', 'Hauptgerichte'], ['s', 'Snacks']].map(([c, l]) => [c, l, ptResults(c)]);
+  const res = cats.find(c => c[0] === ptCat)[2].slice(0, 30);
+  h += `<div class="card pt-res"><h2>Passende Gerichte</h2>
+      <div class="variants">${cats.map(([c, l, r]) => `<button class="vchip ${ptCat === c ? 'on' : ''}" data-action="pt-cat" data-c="${c}">${l} (${r.length})</button>`).join('')}</div>`;
+  if (!res.length) h += '<p class="hint nut-small">Dafür reicht dein Vorrat noch nicht. Füg mehr hinzu, vor allem Eiweißquellen und Beilagen.</p>';
+  let last = -1;
+  for (const m of res) {
+    const n = Math.min(m.miss.length, 2);
+    if (n !== last) { h += `<p class="lbl mg-lbl pt-sec">${['Alles da', 'Fehlt nur eine Zutat', 'Fehlen zwei Zutaten'][n]}</p>`; last = n; }
+    const open = ptOpenR === m.r.id, alts = Object.entries(m.alt);
+    h += `<div class="pt-r ${open ? 'open' : ''}">
+        <button class="pt-r-head" data-action="pt-open" data-id="${m.r.id}" aria-expanded="${open}"><b>${esc(m.r.name)}</b>
+          ${m.miss.length ? `<span class="pt-miss"><span>${m.miss.length === 1 ? 'Fehlt:' : 'Fehlen:'}</span> ${m.miss.map(i => `<span>${esc(mgShort(i.n))}</span>`).join(', ')}</span>` : ''}
+          ${alts.length ? `<small class="pt-alt">${alts.map(([a, b]) => `<span><span>${esc(mgShort(b))}</span> <span>statt ${esc(mgShort(a))}</span></span>`).join(', ')}</small>` : ''}</button>`;
+    if (open) h += ptDetail(m);
+    h += '</div>';
+  }
+  return h + '</div>';
+}
+
+function ptDetail(m) {
+  const ks = ptMealKeys(m.r.cat);
+  if (!ks.includes(ptMeal)) ptMeal = ks[0];
+  const k = ptMeal, lines = ptMealLines(todayISO(), k, m.r, m.alt), kc = lines.reduce((s, i) => s + i.kcal, 0);
+  const missN = new Set(m.miss.map(i => i.n));
+  return `<div class="pt-detail">
+      ${ks.length > 1 ? `<div class="variants">${ks.map(q => `<button class="vchip ${q === k ? 'on' : ''}" data-action="pt-meal" data-k="${q}">${esc(mealInfo(q)[1])}</button>`).join('')}</div>` : ''}
+      <ul class="mg-items">${lines.map(i => `<li class="${missN.has(i.name) ? 'pt-missing' : ''}"><span class="mg-g">${amtTxt(i.g)}</span><span class="mg-n"><span>${esc(i.name)}</span>${i.unit ? ` <small>(${Math.round(i.g / i.unit)} Stück)</small>` : ''}${i.sub ? ` <small>statt ${esc(i.sub)}</small>` : ''}${missN.has(i.name) ? ' <small>fehlt</small>' : ''}</span></li>`).join('')}</ul>
+      <p class="hint nut-small">${nutKcal(kc)} kcal für ${esc(mealInfo(k)[1])} heute</p>
+      <p class="hint nut-small mg-how">${esc(m.r.how)}</p>
+      <div class="row mg-btns">
+        <button class="btn primary" data-action="pt-log" data-id="${m.r.id}">✔ Jetzt eintragen</button>
+        ${mgActive() ? `<button class="btn" data-action="pt-plan" data-id="${m.r.id}">📋 Heute einplanen</button>` : ''}
+      </div>
+    </div>`;
+}
+
+views.pantry = { title: 'Was hab ich da?', tab: 'nutrition', render: renderPantry, back: p => p.from === 'mealplan' ? ['mealplan', {}] : ['nutrition', {}] };
+const ptOpenBtn = () => '<button class="btn nav pt-open-btn" data-action="pt-open-view">🧺 Was hab ich da?<small>Gib an, was du zu Hause hast, und die App zeigt dir passende Gerichte</small></button>';
+
+// Suche: nur ein- und ausblenden, damit das Eingabefeld den Fokus behält
+fields['pt-search'] = el => {
+  ptQ = el.value;
+  const q = ptQ.trim().toLowerCase();
+  let any = false;
+  $view.querySelectorAll('.pt-group').forEach(g => {
+    const box = g.querySelector('.pt-chips'), open = ptOpenG === Number(g.dataset.g);
+    let hit = false;
+    box.querySelectorAll('[data-s]').forEach(b => { const on = !q || b.dataset.s.includes(q); b.hidden = !on; if (on) hit = true; });
+    box.hidden = q ? !hit : !open;
+    g.hidden = !!q && !hit;
+    if (hit) any = true;
+  });
+  const none = $view.querySelector('.pt-none');
+  if (none) none.hidden = !q || any;
+};
+
+const ptFind = id => { const m = ptMatch(MG_BY_ID.get(id), new Set(ptItems()), mgX()); return m; };
+Object.assign(actions, {
+  'pt-open-view': () => { ptCat = null; ptOpenR = null; ptQ = ''; go('pantry', current.view === 'mealplan' ? { from: 'mealplan' } : {}); },
+  'pt-toggle': el => { const n = el.dataset.n, it = ptItems(); ptSet(it.includes(n) ? it.filter(x => x !== n) : [...it, n]); render(); },
+  'pt-clear': () => { if (!askOk('Vorrat leeren?')) return; ptSet([]); ptOpenR = null; render(); },
+  'pt-group': el => { const g = Number(el.dataset.g); ptOpenG = ptOpenG === g ? null : g; render(); },
+  'pt-cat': el => { ptCat = el.dataset.c; ptOpenR = null; render(); },
+  'pt-open': el => { ptOpenR = ptOpenR === el.dataset.id ? null : el.dataset.id; ptMeal = null; render(); },
+  'pt-meal': el => { ptMeal = el.dataset.k; render(); },
+  // ins Tagebuch: die gerechneten Mengen als Einträge der gewählten Mahlzeit
+  'pt-log': el => {
+    const m = ptFind(el.dataset.id), date = todayISO(), k = ptMeal;
+    if (!m || !k) return;
+    const lines = ptMealLines(date, k, m.r, m.alt);
+    const reopened = typeof foodReopen === 'function' && foodReopen(date);
+    for (const i of lines) { const f = foodGet(i.key); if (f) data.foodLog.push({ id: uid(), date, meal: k, key: f.key, name: f.name, brand: '', g: i.g, per: f.per.slice() }); }
+    foodSync(date);
+    mgCache.clear();
+    saveData();
+    if (reopened) foodReopenToast(); else toast(`${mealLabel(k)} eingetragen ✔`);
+    ptOpenR = null;
+    render();
+  },
+  // in den Ernährungsplan nur für heute (der Wochentag bleibt, wie er ist), Alternativen aus dem Vorrat gleich mit
+  'pt-plan': el => {
+    const m = ptFind(el.dataset.id), date = todayISO(), k = ptMeal, p = data.mealPlan;
+    if (!m || !k || !p) return;
+    p.over = p.over || {}; p.over[date] = { ...(p.over[date] || {}), [k]: m.r.id };
+    p.alt = p.alt || {}; p.alt[date] = { ...(p.alt[date] || {}) };
+    if (Object.keys(m.alt).length) p.alt[date][k] = { ...m.alt }; else delete p.alt[date][k];
+    mgCache.clear();
+    saveData();
+    toast(`Für ${mealLabel(k)} heute eingeplant ✔`);
+    mgSel = date;
+    go('mealplan', { from: 'pantry' });
   },
 });

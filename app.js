@@ -187,6 +187,7 @@ function upgradeData(d) {
   if (d.waterGoal === undefined) d.waterGoal = null;  // eigenes Wasserziel in ml, sonst aus dem Gewicht
   if (d.mealPlan === undefined) d.mealPlan = null;  // v337: von der App erstellter Ernährungsplan (mealgen.js)
   if (d.mealPrefs === undefined) d.mealPrefs = null;  // v338: Vorlieben dafür (vegetarisch, ohne Gluten …)
+  if (d.pantry === undefined) d.pantry = null;  // v341: Vorrat („Was hab ich da?“)
   if (!Array.isArray(d.cardio)) d.cardio = [];  // Cardio-Einheiten (cardio.js)  // gespeicherte Mahlzeiten (Schnellauswahl)
   if (!d.foodClosed || typeof d.foodClosed !== 'object') {
     // abgeschlossene Tagebuch-Tage; beim Einführen gelten alle bisherigen Tage vor heute als abgeschlossen
@@ -6700,6 +6701,10 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 341, date: '2026-11-18', items: [
+    ['Ernährung: „Was hab ich da?“ Gib an, was du zu Hause hast, und die App zeigt dir passende Gerichte. Ähnliche Zutaten zählen mit, und fehlen nur ein oder zwei Dinge, steht es dabei. Die Mengen passen zu deinem Tagesziel, mit „Jetzt eintragen“ landet das Gericht im Tagebuch oder mit „Heute einplanen“ im Ernährungsplan.'],
+    ['Einkaufsliste: Abgehakte Zutaten kommen automatisch in deinen Vorrat.'],
+  ] },
   { v: 340, date: '2026-11-18', items: [
     ['Ernährung: Die Ernährungspläne (erstellen lassen oder eigenen übernehmen) stehen jetzt oben direkt unter „Essen eintragen“.'],
     ['Ernährungsplan: Fleisch, Fisch und andere Eiweißquellen kommen in üblichen Portionen, z. B. beim Chili etwa 180 g Hack statt 90 g. Die Größe richtet sich nach deinem Tagesziel, den Rest gleicht die App über Beilagen und Fett aus.'],
@@ -8172,7 +8177,7 @@ function importData(file) {
       days: d.days, volume: d.volume, rirPlan: d.rirPlan,  // ältere Sicherungen mit nur einem Plan
       sessions: d.sessions, bodyweight: d.bodyweight, cycle: d.cycle, steps: d.steps,
       complaints: d.complaints, hintsDismissed: d.hintsDismissed, dayTemplates: d.dayTemplates,
-      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, nutPlan: d.nutPlan, mealPlan: d.mealPlan, mealPrefs: d.mealPrefs,
+      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, nutPlan: d.nutPlan, mealPlan: d.mealPlan, mealPrefs: d.mealPrefs, pantry: d.pantry,
       customExercises: d.customExercises, profile: d.profile, prefatV: d.prefatV, rirV: d.rirV,
       measures: Array.isArray(d.measures) ? d.measures : [],
       painLog: Array.isArray(d.painLog) ? d.painLog : [],

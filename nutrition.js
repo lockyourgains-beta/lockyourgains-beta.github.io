@@ -1462,7 +1462,7 @@ function renderNutrition() {
   // v218 (User): Ernährungstagebuch ganz oben
   const planOn = typeof nutPlanActive === 'function' && nutPlanActive();
   // v340 (User): Ernährungspläne (erstellen lassen, eigenen übernehmen) direkt unter „Essen eintragen“
-  const plans = (typeof mgOpenBtn === 'function' ? mgOpenBtn() : '') + (planOn ? '' : NP_OPEN_BTN);
+  const plans = (typeof mgOpenBtn === 'function' ? mgOpenBtn() : '') + (typeof ptOpenBtn === 'function' ? ptOpenBtn() : '') + (planOn ? '' : NP_OPEN_BTN);
   let h = (typeof foodTopCard === 'function' ? foodTopCard() : '')
     + (plans ? `<div class="card nut-plans"><h2>Ernährungspläne</h2>${plans}</div>` : '')
     + (nutIntakeForm ? `<div class="card nut-intake-edit">${nutIntakeFormHtml()}</div>` : '')  // v243: „Von Hand“ aus „Die letzten Tage“
