@@ -4823,9 +4823,9 @@ function renderTraining() {
         <h2>${pr ? `<span class="ss-badge" aria-label="Übung ${pr.role} im Supersatz">${pr.role}</span>` : ''}${libEntry(en.name) ? `<button class="lib-link" data-action="lib-open" data-name="${esc(en.name)}"
           aria-label="Ausführung ansehen">${exTitleHtml(en.name)} <span class="info-dot">i</span></button>` : exTitleHtml(en.name)}</h2>
         <button class="det-btn ord-btn" data-action="reorder-toggle" data-ei="${ei}" aria-label="Reihenfolge ändern">⇅</button>
-        <button class="det-btn" data-action="ex-details" data-ei="${ei}" aria-expanded="${det}">Anpassen${hasComment && !det ? ' | 💬' : ''}
-          <span class="chev" aria-hidden="true">▾</span></button>
-        ${det ? `<div class="ex-tools">
+        ${feat('tr-max') || feat('tr-variants') || feat('tr-compare') ? `<button class="det-btn" data-action="ex-details" data-ei="${ei}" aria-expanded="${det}">Anpassen
+          <span class="chev" aria-hidden="true">▾</span></button>` : ''}
+        ${`<div class="ex-tools">
           ${feat('tr-comment') ? `<button class="icon-btn bubble ${hasComment ? 'has' : ''}" data-action="comment-toggle"
             data-ei="${ei}" aria-label="Kommentar">💬 Kommentar</button>` : ''}
           <button class="icon-btn swap" data-action="rep-open" data-ei="${ei}">⇄ Ersetzen</button>
@@ -4833,14 +4833,15 @@ function renderTraining() {
           ${!pr && trSsCandidates(ei).length ? `<button class="icon-btn ss-tr-btn" data-action="tr-ss-open" data-ei="${ei}" aria-expanded="${!!en.ssOpen}">🔗 Supersatz</button>` : ''}
           <button class="icon-btn pain-btn" data-action="pain-open" data-ei="${ei}">🩹 Zwickt</button>
           <button class="icon-btn vid-btn" data-action="vid-open-list" data-name="${esc(en.name)}">🎥 Video</button>
-        </div>` : ''}
+        </div>`}
       </div>`;
-    if (en.ssOpen && det && !pr) h += trSsPickHtml(ei);
+    // v334 (User-Wunsch): Kommentar, Ersetzen, Weglassen, Supersatz, Zwickt und Video stehen wieder immer sichtbar bei der Übung, nicht mehr unter „Anpassen“
+    if (en.ssOpen && !pr) h += trSsPickHtml(ei);
     if (en.added) {
       h += `<div class="added-row"><span>Heute zusätzlich</span>
         <button class="icon-btn" data-action="added-remove" data-ei="${ei}">Entfernen</button></div>`;
     }
-    if (en.commentOpen && det) {
+    if (en.commentOpen) {
       h += `<textarea class="inp comment" rows="3" data-field="tr-comment" data-ei="${ei}"
         placeholder="Kommentar zur Übung, z. B. Sitzhöhe 4, Schulter zwickt …">${esc(en.comment)}</textarea>`;
     }
@@ -6697,6 +6698,19 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 336, date: '2026-11-18', items: [
+    ['Ernährungstagebuch: Die Mahlzeiten stehen jetzt direkt unter Kalorien und Makros. Vitamine, Ballaststoffe und Zucker sowie „Aus Health“ und „Von Hand“ findest du unter den Mahlzeiten.'],
+  ] },
+  { v: 335, date: '2026-11-18', items: [
+    ['Ernährungstagebuch: Nach dem Eintragen, Ändern oder Löschen bleibst du an der Stelle, an der du warst, statt oben zu landen.'],
+    ['„Tag abschließen“ schließt den Tag jetzt direkt ab. Vergisst du es, fragt die App wie bisher am nächsten Tag nach.'],
+  ] },
+  { v: 334, date: '2026-11-18', items: [
+    ['Training: Kommentar, Ersetzen, Heute weglassen, Supersatz, Zwickt und Video stehen wieder direkt bei jeder Übung. Unter „Anpassen“ findest du nur noch Max., Steigerung und Ausführung.'],
+  ] },
+  { v: 333, date: '2026-11-18', items: [
+    ['Ernährungstagebuch: Beim Wischen nach links und rechts folgt die Seite jetzt dem Finger und der neue Tag gleitet herein, auch bei den Pfeilen. Am heutigen Tag federt sie zurück und sagt kurz Bescheid.'],
+  ] },
   { v: 332, date: '2026-11-17', items: [
     ['Ernährung: „⏸ Ernährungsziel unterbrechen“ steht jetzt oben direkt unter „Ernährungsziel wechseln“ und fragt vorher nach.'],
   ] },

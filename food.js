@@ -719,8 +719,10 @@ function foodCloseHtml(date, list) {
         <p><b>✔ Tag abgeschlossen</b>${fill ? ` | Rest aufgefüllt (${nutKcal(fill.per[0])} kcal)` : ''}</p>
         <button class="btn" data-action="food-reopen">Wieder öffnen</button></div>`;
   }
+  // v335 (User-Wunsch): mit Einträgen schließt der Knopf direkt ab; die Nachfrage kommt nur, wenn der Tag offen bleibt (foodOpenCard am Folgetag)
   if (foodCloseAsk !== date) {
-    return `<button class="btn primary" data-action="food-close-ask">✔ Tag abschließen</button>`;
+    return real.length ? `<button class="btn primary food-close-btn" data-action="food-close" data-fill="0">✔ Tag abschließen</button>`
+      : `<button class="btn primary food-close-btn" data-action="food-close-ask">✔ Tag abschließen</button>`;
   }
   const rest = foodRest(date);
   const miss = foodUsualMissing(date);
@@ -830,12 +832,13 @@ function renderFood(p) {
     <div class="row food-nav-btns"><button class="btn" data-action="food-cal">📅 Kalender</button>
       <button class="btn" data-action="food-stats">📊 Woche & Monat</button></div>
     <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) : foodSumHtml(t)}
-      ${date === todayISO() && typeof nutGoalToolsHtml === 'function' ? nutGoalToolsHtml() : ''}
-      ${typeof microBtnHtml === 'function' ? microBtnHtml() : ''}${list.some(e => e.key !== FOOD_FILL) ? foodFsHtml(t, foodGoal(date)) : ''}
+      ${date === todayISO() && typeof nutGoalToolsHtml === 'function' ? nutGoalToolsHtml() : ''}</div>
+    ${date === todayISO() ? foodOpenCard() : ''}`;
+  // v336 (User-Wunsch): Mahlzeiten direkt unter Kalorien und Makros; Vitamine, Ballaststoffe/Zucker und „Aus Health“/„Von Hand“ darunter
+  const extraHtml = `<div class="card food-extra">${typeof microBtnHtml === 'function' ? microBtnHtml() : ''}${list.some(e => e.key !== FOOD_FILL) ? foodFsHtml(t, foodGoal(date)) : ''}
       ${nutIntakeForm ? nutIntakeFormHtml() : `<div class="row fe-src-btns">${healthOn() ? '<button class="btn" data-action="health-paste">❤️ Aus Health</button>' : ''}
         <button class="btn" data-action="nut-intake-open" data-date="${date}">✏️ Von Hand</button></div>
-      ${healthOn() ? healthPasteBox() + healthGuide() : ''}`}</div>
-    ${date === todayISO() ? foodOpenCard() : ''}`;
+      ${healthOn() ? healthPasteBox() + healthGuide() : ''}`}</div>`;
   const planDay = typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanDay(date) : null;
   const planMeals = (planDay && planDay.meals) || {};
   for (const k of dayMealKeys(list, planMeals)) {
@@ -843,7 +846,7 @@ function renderFood(p) {
     const items = list.filter(e => e.meal === k);
     const kcal = foodTotals(items).kcal;
     const prev = yesterday.filter(e => e.meal === k);
-    h += `<div class="card food-meal">
+    h += `<div class="card food-meal" data-meal="${k}">
         <div class="food-meal-head"><b>${icon} ${label}</b><span class="hint">${items.length ? nutKcal(kcal) + ' kcal' : ''}</span></div>
         ${items.map(e => `<div class="food-row">
           <button class="food-pick" data-action="food-entry" data-id="${e.id}">
@@ -866,6 +869,7 @@ function renderFood(p) {
         <div class="food-meal-head"><b>➕ Aufgefüllt bis zum Tagesziel</b><span class="hint">${nutKcal(kc)} kcal</span></div>
         <p class="hint nut-small">Nicht erfasst, geschätzt: Eiweiß ${pr} g | Kohlenhydrate ${ca} g | Fett ${fa} g</p></div>`;
   }
+  h += extraHtml;
   h += waterHtml(date);
   h += foodCloseHtml(date, list);
   if (mealOn()) h += `<button class="link-btn meal-cfg-link" data-action="meal-cfg-open">⚙ Mahlzeiten anpassen</button>`;
@@ -1398,7 +1402,26 @@ function renderFoodOwn() {
 /* ----- Einbindung ----- */
 
 views.food = { title: 'Ernährungstagebuch', tab: 'nutrition', back: 'nutrition', render: renderFood,
-  after: () => { if (typeof nutPctUpdate === 'function') nutPctUpdate(); } };  // v260: Makros in % auch im Tagebuch
+  after: () => {
+    if (typeof nutPctUpdate === 'function') nutPctUpdate();  // v260: Makros in % auch im Tagebuch
+    if (foodAnchor) requestAnimationFrame(foodAnchorRestore);  // v335: nach go() (scrollt nach oben) zurück zur Mahlzeit
+  } };
+
+/* v335 (User-Wunsch): Nach Eintragen, Ändern oder Löschen bleibt das Tagebuch an der Stelle, an der man war.
+   foodAnchor merkt sich die Mahlzeit und wie weit ihre Karte vom oberen Rand entfernt war. */
+let foodAnchor = null;
+function foodAnchorSet(meal) {
+  const c = meal && $view.querySelector(`.food-meal[data-meal="${meal}"]`);
+  foodAnchor = c ? { date: current.params.date || todayISO(), meal, top: c.getBoundingClientRect().top, t: Date.now() } : null;
+}
+function foodAnchorRestore() {
+  const a = foodAnchor;
+  if (!a || current.view !== 'food') return;
+  foodAnchor = null;
+  if ((current.params.date || todayISO()) !== a.date || Date.now() - a.t > 6e5) return;
+  const c = $view.querySelector(`.food-meal[data-meal="${a.meal2 || a.meal}"]`) || $view.querySelector(`.food-meal[data-meal="${a.meal}"]`);
+  if (c) window.scrollTo(0, Math.max(0, c.getBoundingClientRect().top + window.scrollY - a.top));
+}
 views.foodadd = { title: p => MEALS[p.meal] ? mealLabel(p.meal) : 'Hinzufügen', tab: 'nutrition',
   back: p => ['food', { date: p.date }], render: renderFoodAdd };
 views.foodamt = { title: p => p.id ? 'Eintrag ändern' : 'Menge', tab: 'nutrition',
@@ -1407,12 +1430,14 @@ views.foodown = { title: () => foodForm && foodForm.key ? 'Werte ändern' : 'Eig
   back: p => p.id || p.key ? ['foodamt', p] : ['foodadd', { date: p.date, meal: p.meal }], render: renderFoodOwn };
 
 Object.assign(actions, {
-  'food-open': el => go('food', { date: (el && el.dataset.date) || todayISO() }),
+  'food-open': el => { foodAnchor = null; go('food', { date: (el && el.dataset.date) || todayISO() }); },
   'food-day': el => {
-    const date = addDaysISO(current.params.date || todayISO(), Number(el.dataset.d));
-    if (date <= todayISO()) go('food', { date });
+    foodAnchor = null;
+    const d = Number(el.dataset.d), date = addDaysISO(current.params.date || todayISO(), d);
+    if (date <= todayISO()) { go('food', { date }); foodSlide(d); }
   },
   'food-add': el => {
+    foodAnchorSet(el.dataset.meal);
     foodQuery = '';
     foodOnline = null;
     go('foodadd', { date: current.params.date || todayISO(), meal: el.dataset.meal });
@@ -1429,7 +1454,7 @@ Object.assign(actions, {
   },
   'food-online': () => { const q = foodQuery.trim(); if (q) foodSearchOnline(q); },
   'food-pick': el => { foodAmt = null; go('foodamt', { date: current.params.date, meal: current.params.meal, key: el.dataset.key }); },
-  'food-entry': el => { foodAmt = null; go('foodamt', { date: current.params.date, id: el.dataset.id }); },
+  'food-entry': el => { const fe = data.foodLog.find(x => x.id === el.dataset.id); foodAnchorSet(fe && fe.meal); foodAmt = null; go('foodamt', { date: current.params.date, id: el.dataset.id }); },
   'food-g-set': el => {
     foodAmt.g = el.dataset.g;
     render();
@@ -1452,10 +1477,12 @@ Object.assign(actions, {
     foodCache.delete(f.key);
     foodSync(date);
     saveData();
+    const foodAmt0 = foodAmt.meal;
     foodAmt = null;
     foodQuery = '';
     foodOnline = null;
     if (reopened && !f.supp) foodReopenToast(); else toast(e ? 'Gespeichert ✔' : `${f.name} hinzugefügt ✔`);
+    if (foodAnchor) foodAnchor.meal2 = foodAmt0;  // v335: Eintrag ggf. in eine andere Mahlzeit verschoben
     go('food', { date });
   },
   'food-del': el => {
@@ -1466,6 +1493,7 @@ Object.assign(actions, {
     foodSync(e.date);
     saveData();
     if (reopened) foodReopenToast();
+    foodAnchorSet(e.meal);
     go('food', { date: e.date });
   },
   // Tag abschließen
@@ -1875,3 +1903,45 @@ actions['food-stats-shift'] = el => {
   if (ne > todayISO()) ne = todayISO();
   go('foodstats', { ...p, end: ne });
 };
+
+/* ----- v333 (User): Wischen im Tagebuch sichtbar machen ----------
+   Die Tageswahl selbst macht swipeView (app.js) über die Pfeil-Knöpfe. Hier folgt die Seite dem Finger, der neue Tag gleitet
+   herein (auch bei den Pfeilen), und am heutigen Tag federt sie zurück, mit kurzem Hinweis. */
+function foodSlide(dir) {
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  $view.classList.remove('food-slide-l', 'food-slide-r');
+  void $view.offsetWidth;  // Animation neu starten
+  $view.classList.add(dir > 0 ? 'food-slide-l' : 'food-slide-r');
+}
+let foodDrag = null;
+document.addEventListener('touchstart', e => {
+  foodDrag = null;
+  if (current.view !== 'food' || e.touches.length !== 1 || document.querySelector('.welcome, #tour')) return;
+  if (e.target.closest && e.target.closest('textarea, input, select, .table-wrap, .quick-picks')) return;
+  const t = e.touches[0];
+  foodDrag = { x: t.clientX, y: t.clientY, on: false, date: current.params.date || todayISO(), dx: 0 };
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  const d = foodDrag;
+  if (!d || current.view !== 'food') return;
+  const t = e.touches[0], dx = t.clientX - d.x, dy = t.clientY - d.y;
+  if (!d.on) {
+    if (Math.abs(dx) > 12 && Math.abs(dx) > 1.5 * Math.abs(dy)) d.on = true;
+    else { if (Math.abs(dy) > 12) foodDrag = null; return; }
+  }
+  d.dx = dx;
+  const end = dx < 0 && d.date >= todayISO();  // heute: weiter geht es nicht, nur leicht nachgeben
+  $view.style.transition = 'none';
+  $view.style.transform = `translateX(${Math.round(dx * (end ? 0.15 : 0.45))}px)`;
+}, { passive: true });
+const foodDragEnd = () => {
+  const d = foodDrag;
+  foodDrag = null;
+  if (!d || !d.on) return;
+  const moved = (current.params.date || todayISO()) !== d.date;
+  $view.style.transition = moved ? 'none' : 'transform .2s ease';
+  $view.style.transform = '';
+  if (!moved && d.dx < -60 && d.date >= todayISO()) toast('Das ist heute. Nach rechts wischen zeigt die Tage davor.');
+};
+document.addEventListener('touchend', foodDragEnd, { passive: true });
+document.addEventListener('touchcancel', foodDragEnd, { passive: true });

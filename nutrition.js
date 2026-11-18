@@ -1827,7 +1827,11 @@ Object.assign(actions, {
     toast('Gespeichert ✔');
     render();
   },
-  'nut-intake-edit': el => { const d = el.dataset.date; actions['nut-intake-open'](el); go('food', { date: d }); },
+  'nut-intake-edit': el => {
+    const d = el.dataset.date; actions['nut-intake-open'](el); go('food', { date: d });
+    const form = $view.querySelector('.nut-intake-form');  // v336: das Formular steht jetzt unter den Mahlzeiten
+    if (form) form.scrollIntoView({ block: 'center' });
+  },
   'nut-intake-del': el => {
     const food = foodOn(el.dataset.date).length;
     if (!askOk(food ? `Alle ${food} Lebensmittel vom ${fmtDate(el.dataset.date + 'T12:00:00')} aus dem Ernährungstagebuch löschen?`

@@ -40,14 +40,13 @@ const TOURS = {
       text: 'Tipp auf den Namen mit dem „i“: Dann siehst du die Übung als Animation mit Anleitung.' },
     { id: 'tr-details', sel: 'section.card .det-btn', title: 'Anpassen',
       text: () => {
-        const a = [feat('tr-comment') ? 'Kommentar' : '', 'Ersetzen', 'Heute weglassen', 'Technik-Video', feat('tr-max') ? 'Max. bei 10 Wdh.' : '',
-          feat('tr-step') ? 'Steigerung' : '', feat('tr-variants') ? 'Ausführung' : ''].filter(Boolean);
-        const list = a.length > 1 ? `${a.slice(0, -1).join(', ')} und ${a[a.length - 1]}` : a[0];
+        const a = [feat('tr-max') ? 'Max. bei 10 Wdh.' : '', feat('tr-step') ? 'Steigerung' : '', feat('tr-variants') ? 'Ausführung' : ''].filter(Boolean);
+        const list = a.length > 1 ? `${a.slice(0, -1).join(', ')} und ${a[a.length - 1]}` : a[0] || 'die Werte vom letzten Mal';
         return `Hier passt du die Übung an: ${list}. Die App merkt sich, ob du den Bereich lieber offen oder zu hast.`;
       } },
     { id: 'tr-tools', sel: 'section.card .ex-tools', title: 'Kommentar und Ersetzen',
       text: () => (feat('tr-comment') ? '„Kommentar“: eine Notiz zur Übung, z. B. die Sitzhöhe. Sie erscheint beim nächsten Mal wieder. ' : '')
-        + '„Ersetzen“: die Übung heute gegen eine ähnliche tauschen, z. B. wenn das Gerät besetzt ist. Der Plan bleibt, wie er ist.' },
+        + '„Ersetzen“: die Übung heute gegen eine ähnliche tauschen, z. B. wenn das Gerät besetzt ist. Der Plan bleibt, wie er ist. „Heute weglassen“ nimmt sie nur aus diesem Training.' },
     { id: 'tr-video', sel: 'section.card [data-action="vid-open-list"]', title: '🎥 Technik-Video',
       text: 'Film einen Satz und schau ihn dir in Zeitlupe an oder vergleiche ihn mit deinem letzten Video dieser Übung.' },
     { id: 'tr-ss', sel: '.ss-wrap .ss-head', title: '🔗 Supersatz',
@@ -180,7 +179,7 @@ const TOURS = {
   ],
   food: [
     { id: 'food-date', sel: '.food-date', title: 'Tag wählen',
-      text: 'Mit den Pfeilen wechselst du den Tag. So kannst du auch etwas nachtragen.' },
+      text: 'Mit den Pfeilen oder durch Wischen nach links und rechts wechselst du den Tag. So kannst du auch etwas nachtragen.' },
     { id: 'food-sum', sel: '.card.nut-intake', title: 'Tagessumme',
       text: 'Was du an diesem Tag schon gegessen hast, im Vergleich zu deinem Ziel.' },
     { id: 'food-meal', sel: '.card.food-meal', title: 'Mahlzeiten',
@@ -192,7 +191,7 @@ const TOURS = {
     { id: 'food-water', sel: '.water-card', title: '💧 Wasser',
       text: 'Tipp bei jedem Glas oder jeder Flasche kurz auf ＋. Das Tagesziel rechnet die App aus deinem Gewicht, unten kannst du es ändern.' },
     { id: 'food-close', sel: '[data-action="food-close-ask"]|[data-action="food-close"]', title: 'Tag abschließen',
-      text: 'Am Abend den Tag abschließen. Fehlt noch etwas, kann die App den Rest mit deinem Tagesziel auffüllen. So bleibt die Rechnung genau.' },
+      text: 'Am Abend den Tag abschließen. Vergisst du es, fragt die App am nächsten Tag nach und kann den Rest mit deinem Tagesziel auffüllen. So bleibt die Rechnung genau.' },
     { id: 'food-micro', sel: '.mic-line', feat: 'nut-micro', title: '🔬 Vitamine & Mineralstoffe',
       text: 'Hier siehst du, wie viele Vitamine, Mineralstoffe und Fette in dem steckt, was du eingetragen hast, mit den Richtwerten der DGE.' },
   ],
