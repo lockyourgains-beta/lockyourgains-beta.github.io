@@ -444,6 +444,7 @@ function loadDraft() {
     // laufendes Training: Tagesname wie im Plan (z. B. nach der Umbenennung „schwer“/„leicht“ in upgradeData)
     const day = d && data.plans.flatMap(p => p.days).find(x => x.id === d.dayId);
     if (day && day.name.trim()) d.dayName = day.name;
+    if (d && d.progression && !d.own) d.progression.load = true;  // v347: Knopf „Gewicht & Wdh.“ entfallen
     return d;
   } catch (e) { return null; }
 }
@@ -1384,8 +1385,10 @@ const DELOAD_WEIGHT = 0.85;  // Deload: 15 % weniger Gewicht als in der letzten 
 // Grundeinstellung des Plans (ganzer Zyklus) -> Abweichung einer Woche (Schlüssel: roundKey) ->
 // Abweichung eines einzelnen Trainings (draft.progression).
 const PROG_KEYS = { volume: 'Volumen', load: 'Gewicht & Wdh.' };
-const planProgression = (p = activePlan()) => ({ volume: true, load: true, ...p.progression });
-const weekProgression = (key, p = activePlan()) => ({ ...planProgression(p), ...(p.weekProgression || {})[key] });
+// v347 (User): der Knopf „Gewicht & Wdh.“ ist entfallen – Gewicht und Wdh. steigen immer (außer im eigenen Plan ohne Steigerung)
+const loadAlways = p => p && p.own ? {} : { load: true };
+const planProgression = (p = activePlan()) => ({ volume: true, load: true, ...p.progression, ...loadAlways(p) });
+const weekProgression = (key, p = activePlan()) => ({ ...planProgression(p), ...(p.weekProgression || {})[key], ...loadAlways(p) });
 
 // Satz-Woche: ohne Volumenprogression gelten die Sätze der Vorwoche – also die der letzten Woche
 // dieses Zyklus mit Volumenprogression (sonst Intro). volumeNow = Einstellung für das aktuelle Training.
@@ -5066,26 +5069,23 @@ const feelTargetText = t => {
 function progHelpHtml(where) {
   const scope = where === 'today' ? 'Gilt nur für dieses Training. Der Plan bleibt, wie er ist.'
     : 'Die Grundeinstellung gilt für den ganzen Zyklus; in der Tabelle darunter kannst du einzelne Wochen abweichend schalten (umrandet = eigene Einstellung der Woche). Im Training selbst lässt sich beides zusätzlich nur für dieses eine Training ändern.';
-  return `<details class="prog-help"><summary>ⓘ Was bedeuten die Knöpfe?</summary>
+  return `<details class="prog-help"><summary>ⓘ Was bedeutet der Knopf?</summary>
     <p>Antippen schaltet um: <b>✓ = an</b> (die App steigert), <b>✕ = aus</b> (es bleibt, wie es ist).</p>
     <p><b>Volumen</b>: die Zahl der Sätze. <b>An:</b> Von Woche zu Woche kommen Sätze dazu, von der Intro-Woche bis zum Höhepunkt
       am Ende des Zyklus. <b>Aus:</b> Die Sätze bleiben wie in der Vorwoche. In der Intro-Woche gibt es den Knopf nicht. Dort gelten die Start-Sätze.</p>
-    <p><b>Gewicht & Wdh.</b>: die Vorschläge im Training. <b>An:</b> Hast du dein Ziel geschafft, schlägt die App beim nächsten Mal
-      etwas mehr Gewicht oder mehr Wiederholungen vor. <b>Aus:</b> Es stehen deine Werte vom letzten Mal da, „Max. bei 10 Wdh.“ bleibt
-      unverändert. Das Ziel im Tank läuft trotzdem weiter.</p>
-    <p><b>Wann ausschalten?</b> Z. B. wenn du krank warst, schlecht geschlafen hast, wenig Zeit hast, eine neue Technik lernst oder
-      nach einer Verletzung vorsichtig sein willst. Normalerweise bleibt beides an.</p>
+    <p>Gewicht und Wiederholungen steigert die App immer: Hast du dein Ziel geschafft, schlägt sie beim nächsten Mal etwas mehr vor.</p>
+    <p><b>Wann ausschalten?</b> Z. B. wenn du krank warst, schlecht geschlafen hast, wenig Zeit hast oder dich schlecht erholst.
+      Normalerweise bleibt das Volumen an.</p>
     <p class="hint">${scope}</p></details>`;
 }
 
 // Progression nur für dieses Training ein-/ausschalten (nicht im Deload; Volumen erst ab Woche 2)
 function progressionCard() {
-  if (draft.deload || draft.own || !draft.progression) return '';
+  if (draft.deload || draft.own || !draft.progression || draft.week <= 1) return '';  // v347: nur noch Volumen (ab Woche 2)
   const p = draft.progression;
-  const keys = draft.week > 1 ? ['volume', 'load'] : ['load'];
+  const keys = ['volume'];
   const notes = [];
-  if (draft.week > 1 && !p.volume) notes.push('Sätze wie in der Vorwoche.');
-  if (!p.load) notes.push('Gewicht und Wdh. wie beim letzten Mal, keine Steigerung, „Max. bei 10 Wdh.“ bleibt.');
+  if (!p.volume) notes.push('Sätze wie in der Vorwoche.');
   return `<div class="card prog-card"><div class="prog-row"><b>Progression heute</b>
       <div class="variants">${keys.map(k => progChip(k, p[k], 'data-action="prog-today"')).join('')}</div></div>
       ${notes.length ? `<p class="hint">${notes.join(' ')}</p>` : ''}
@@ -5400,9 +5400,9 @@ function progressionTable() {
   const own = activePlan().weekProgression;
   let h = `<p class="lbl chips-title">Progression</p>
     <div class="prog-def"><span>Grundeinstellung<br><small class="hint">ganzer Zyklus</small></span>
-      <div class="variants">${Object.keys(PROG_KEYS).map(k => progChip(k, def[k], 'data-action="prog-plan"')).join('')}</div></div>
+      <div class="variants">${progChip('volume', def.volume, 'data-action="prog-plan"')}</div></div>
     ${progHelpHtml('plan')}
-    <table class="rir prog-table"><tr><th>Woche</th><th>Volumen</th><th>Gewicht & Wdh.</th></tr>`;
+    <table class="rir prog-table"><tr><th>Woche</th><th>Volumen</th></tr>`;
   for (let w = 1; w <= ci.buildWeeks; w++) {
     const round = roundKey(ci.cycleStart, w);
     const p = weekProgression(round);
@@ -5413,10 +5413,10 @@ function progressionTable() {
         data-key="${k}" data-round="${esc(round)}" aria-label="${PROG_KEYS[k]} ${w === 1 ? 'Intro' : 'Woche ' + w}">${p[k] ? '✓' : '✕'}</button></td>`;
     };
     h += `<tr class="${!ci.deload && ci.week === w ? 'cur' : ''}"><td>${w === 1 ? 'Intro' : 'W' + w}
-      ${ci.week === w ? '<small class="hint">jetzt</small>' : ''}</td>${cell('volume')}${cell('load')}</tr>`;
+      ${ci.week === w ? '<small class="hint">jetzt</small>' : ''}</td>${cell('volume')}</tr>`;
   }
   return h + `</table>
-    <p class="hint explain">Volumen = mehr Sätze von Woche zu Woche (aus: Sätze wie in der Vorwoche). Gewicht & Wdh. = Steigerung von Training zu Training (aus: Werte vom letzten Mal halten). Einzelne Wochen antippen, um nur dort abzuweichen (umrandet). Für ein einzelnes Training lässt es sich direkt im Training umschalten.</p>`;
+    <p class="hint explain">Volumen = mehr Sätze von Woche zu Woche (aus: Sätze wie in der Vorwoche). Einzelne Wochen antippen, um nur dort abzuweichen (umrandet). Für ein einzelnes Training lässt es sich direkt im Training umschalten.</p>`;
 }
 
 // Grenzen für die Plus/Minus-Felder einer Übung
@@ -5931,7 +5931,7 @@ function libRow(name) {
   const kind = KINDS[kindOf({ name })];
   return `<button class="btn nav lib-row" data-action="lib-open" data-name="${esc(name)}">
     <span class="lib-thumb">${libFigure(name, false) || '<span class="lib-own" aria-hidden="true">★</span>'}</span>
-    <span class="lib-txt">${esc(name)}<small>${kind}</small></span></button>`;
+    <span class="lib-txt">${esc(name)}<small>${kind}${(pf => pf ? ` | <span class="prof-txt prof-${pf.p}">${EX_PROF_LABEL[pf.p]}</span>` : '')(typeof exProfile === 'function' && exProfile(name))}</small></span></button>`;
 }
 
 function libResults() {
@@ -5999,6 +5999,7 @@ function renderLibEx({ name }) {
     ${typeof muscleMapHtml === 'function' ? muscleMapHtml(name, t.also) : ''}
     <div class="lib-chips"><span class="lib-chip">${kind}</span>${group ? `<span class="lib-chip">${group}</span>` : ''}</div>
     ${e.note ? `<p class="lib-note">${esc(e.note)}</p>` : ''}
+    ${libProfileCard(name)}
     ${kindPick}
     <div class="card">
       <h2>Ausführung</h2>
@@ -6010,6 +6011,22 @@ function renderLibEx({ name }) {
     ${trained ? `<button class="btn nav" data-action="open-exercise" data-name="${esc(name)}">Deine Einträge zu dieser Übung</button>` : ''}
     ${['neuling', 'einsteiger'].includes(activePlan().level) ? coachNote()
       : '<p class="hint">Die Figur zeigt das Bewegungsprinzip. Bei Unsicherheit lass dir die Übung im Studio zeigen.</p>'}`;
+}
+
+// v346: Widerstandsprofil (Last in der Dehnung, ausgeglichen, Last in der Kontraktion) mit Begründung
+function libProfileCard(name) {
+  const pf = typeof exProfile === 'function' && exProfile(name);
+  if (!pf) return '';
+  return `<div class="card lib-prof"><h2>Widerstandsprofil</h2>
+      <p><span class="prof-tag prof-${pf.p}">${EX_PROF_LABEL[pf.p]}</span></p>
+      <p class="hint">${esc(pf.why)}</p>
+      <details class="lib-prof-more"><summary>Was bedeutet das?</summary>
+        <p class="hint">Übungen mit der größten Last in der Dehnung bringen nach aktuellen Studien oft etwas mehr Muskelwachstum. Sie belasten
+          Sehnen und Gelenke in den Endpositionen aber stärker und machen mehr Muskelkater. Übungen mit der größten Last in der Kontraktion sind
+          schonender und erholen sich schneller. Ausgeglichen heißt, der Widerstand verteilt sich über die ganze Bewegung.</p>
+        <p class="hint">Am besten deckt jeder Muskel über die Woche beide Bereiche ab. Das berücksichtigt die App, wenn sie einen Plan
+          automatisch zusammenstellt. Bei Kabel und Maschinen hängt das Profil auch von Kabelhöhe und Maschine ab.</p>
+      </details></div>`;
 }
 
 /* ---------- Eigene Übungen ---------- */
@@ -6703,6 +6720,14 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 347, date: '2026-11-19', items: [
+    ['Progression: Der Knopf „Gewicht & Wdh.“ ist entfallen, im Training, im Plan und im Plan-Assistenten. Gewicht und Wiederholungen steigert die App jetzt immer, umschalten lässt sich nur noch das Volumen.'],
+    ['Plan-Assistent: Grundübungen sind von der Regel zu Dehnung und Kontraktion ausgenommen und bleiben, wie sie sind.'],
+  ] },
+  { v: 346, date: '2026-11-19', items: [
+    ['Übungsbibliothek: Jede Übung hat jetzt ein Widerstandsprofil: Last in der Dehnung, ausgeglichen oder Last in der Kontraktion, mit kurzer Begründung. Im Plan und im Training findest du es hinter dem i.'],
+    ['Plan-Assistent: Beim automatischen Zusammenstellen achtet die App darauf, dass jede Muskelgruppe über die Woche Übungen mit Last in der Dehnung und in der Kontraktion bekommt, soweit es passende Übungen gibt.'],
+  ] },
   { v: 345, date: '2026-11-19', items: [
     ['Cardio: Beim Eintragen siehst du, was du beim letzten Mal bei derselben Aktivität geschafft hast. Nach dem Speichern zeigt die App den Vergleich (z. B. „15 s/km schneller, +0,6 km“) und neue Bestleistungen 🏆.'],
     ['Cardio: In der Liste steht bei jeder Einheit das Tempo und ein Pfeil ▲/▼ gegenüber der vorherigen. In der Statistik gibt es Bestwerte je Aktivität und den Tempo-Verlauf.'],
@@ -7419,7 +7444,7 @@ function startDay(id, readiness = { sleptWell: true, stress: false }) {
     ...(mc ? { mc } : {}),
     // Progression für dieses Training: Einstellung der Woche, im Training noch änderbar (Deload: ohnehin keine)
     progression: own ? { volume: false, load: false }
-      : dl ? { volume: true, load: true } : weekProgression(roundKey(ci.cycleStart, ci.week)),
+      : dl ? { volume: true, load: true } : weekProgression(roundKey(ci.cycleStart, ci.week)),  // load immer an (v347)
     occurrence: nextOccurrence(day.id, ci),  // 2 = dieser Tag wurde diese Woche schon einmal trainiert
     entries: [],
   };

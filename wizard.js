@@ -331,6 +331,28 @@ function wizCandidates(g) {
   return { existing, pool };
 }
 
+// v346 (User-Wunsch): jede Muskelgruppe soll über die Woche Übungen mit der größten Last in der Dehnung (L) und in der
+// Kontraktion (S) haben (exProfile in exercises.js). Fehlt ein Bereich, ersetzt die App eine Übung (nie die Grundübung, nie
+// die einzige des anderen Bereichs) durch eine passende derselben Art, sonst irgendeiner Art. Gibt es keine, bleibt es, wie es ist.
+const wizProf = n => (typeof exProfile === 'function' && exProfile(n) || {}).p || null;
+function wizCoverProfiles(picks, cands, keep = []) {
+  if (picks.length < 2) return picks;
+  for (const want of ['L', 'S']) {
+    if (picks.some(p => wizProf(p) === want)) continue;
+    const other = want === 'L' ? 'S' : 'L';
+    for (let i = picks.length - 1; i >= 0; i--) {
+      if (keep.includes(i) || kindOf({ name: picks[i] }) === 'compound') continue;  // Grundübungen bleiben unberührt (User)
+      const rest = picks.filter((_, j) => j !== i);
+      if (wizProf(picks[i]) === other && !rest.some(p => wizProf(p) === other)) continue;
+      const fits = x => wizProf(x) === want && kindOf({ name: x }) !== 'compound' && !rest.some(p => nameKey(p) === nameKey(x) || moveKey(p) === moveKey(x));
+      const kind = kindOf({ name: picks[i] });
+      const rep = cands.find(x => fits(x) && kindOf({ name: x }) === kind) || cands.find(fits);
+      if (rep) { picks[i] = rep; break; }
+    }
+  }
+  return picks;
+}
+
 function autoPicks(g) {
   const n = exercisesNeeded(g);
   const { existing, pool } = wizCandidates(g);
@@ -359,6 +381,9 @@ function autoPicks(g) {
     }
     picks[i] = lz;
   }
+  // beide Bereiche abdecken (die Latzug-Variante für Anfänger bleibt)
+  const lzi = g === 'lat' && needsCoach() ? picks.findIndex(p => LATZUG.test(p)) : -1, keep = lzi >= 0 ? [lzi] : [];
+  wizCoverProfiles(picks, uniqueNames([...existing, ...pool]), keep);
   return byKind(picks);
 }
 
@@ -619,7 +644,7 @@ function wizDayVariant(di) {
 }
 const wizMoveIn = (list, name) => list.some(([n]) => nameKey(n) !== nameKey(name) && moveKey(n) === moveKey(name));
 // andere Übung derselben Art für diese Muskelgruppe (k = wievielter gleicher Tag), die am Tag noch nicht vorkommt
-function wizAltPick(g, pick, k, list) {
+function wizAltPick(g, pick, k, list, want = null) {
   const kind = kindOf({ name: pick });
   const latzug = g === 'lat' && needsCoach() && /latziehen/i.test(pick);  // Anfänger: an jedem Lat-Tag eine Latzug-Variante
   const all = uniqueNames([...(wiz.picks[g] || []), ...wizCandidates(g).pool]).filter(x => !latzug || /latziehen/i.test(x));
@@ -633,6 +658,7 @@ function wizAltPick(g, pick, k, list) {
   }
   const alts = all.filter(x => kindOf({ name: x }) === kind);
   const start = Math.max(0, alts.findIndex(x => nameKey(x) === nameKey(pick)));
+  if (want) for (let j = 0; j < alts.length; j++) { const x = alts[(start + k + j) % alts.length]; if (fits(x) && wizProf(x) === want) return x; }
   for (let j = 0; j < alts.length; j++) {
     const x = alts[(start + k + j) % alts.length];
     if (fits(x)) return x;
@@ -649,6 +675,17 @@ const wizPairUp = exs => wizSsAsk() && wiz.ss ? ssApply(exs, ssAutoPairs(exs)) :
 function buildPlanDays() {
   const ints = wizDayIntensities(), names = wizDayNames();
   const compUse = {};  // gleiche Tage: Grundübung -> Wdh.-Bereiche, an denen sie schon steht; Zähler der Ersatz-Tage
+  const weekProf = {};  // v346: Muskelgruppe -> Widerstandsprofile, die in der Woche schon vorkommen
+  const wantFor = g => ['L', 'S'].find(p => !(weekProf[g] || new Set()).has(p)) || null;
+  // Muskelgruppe kommt an einem weiteren (anderen) Tag vor und ein Bereich fehlt noch: Nicht-Grundübung durch eine derselben Art
+  // mit dem fehlenden Profil ersetzen (nur wenn es eine gibt; Grundübungen bleiben für die Steigerung gleich)
+  const wantPick = (g, pick, list, want) => {
+    const kind = kindOf({ name: pick });
+    if (kind === 'compound' || !want || wizProf(pick) === want) return null;
+    const all = uniqueNames([...(wiz.picks[g] || []), ...wizCandidates(g).pool]);
+    return all.find(x => kindOf({ name: x }) === kind && wizProf(x) === want && !list.some(([n]) => nameKey(n) === nameKey(x) || moveKey(n) === moveKey(x))) || null;
+  };
+  const weekSeen = {};
   return wiz.days.map((d, di) => {
     const list = [];
     const swaps = (wiz.swaps || {})[di] || {};
@@ -659,16 +696,19 @@ function buildPlanDays() {
         if (kindOf({ name: pick }) === 'compound') {
           const u = (compUse[sameDayKey(d) + '|' + nameKey(pick)] = compUse[sameDayKey(d) + '|' + nameKey(pick)] || { ints: [], alt: 0 });
           if (u.ints.length < 2 && !u.ints.includes(ints[di])) u.ints.push(ints[di]);
-          else { u.alt++; base = wizAltPick(g, pick, u.alt, list) || pick; }
-        } else if (k) base = wizAltPick(g, pick, k, list) || pick;
+          else { u.alt++; base = wizAltPick(g, pick, u.alt, list) || pick; }  // Grundübungen: ohne Profil-Regel
+        } else if (k) base = wizAltPick(g, pick, k, list, wantFor(g)) || pick;
+        else if (weekSeen[g] && weekSeen[g] !== di) base = wantPick(g, pick, list, wantFor(g)) || pick;
         // dieselbe Bewegung schon am Tag (z. B. aus einer anderen Muskelgruppe): andere Übung, sonst weglassen
         if (wizMoveIn(list, base) || list.some(([n]) => nameKey(n) === nameKey(base))) {
-          base = wizAltPick(g, base, 0, list);
+          base = wizAltPick(g, base, 0, list, wantFor(g));
           if (!base) continue;
         }
         const name = swaps[nameKey(base)] || base;
         const ng = groupOf({ name });  // Ersatz aus einer anderen Muskelgruppe zählt dort
         list.push([name, name !== base && PLAN_GROUPS.includes(ng) ? ng : g]);
+        if (wizProf(name)) (weekProf[g] = weekProf[g] || new Set()).add(wizProf(name));
+        if (weekSeen[g] == null) weekSeen[g] = di;
       }
     }
     // Limbs (Beine + Arme ohne Rumpf): erst alle Beinübungen, dann die Arme – sonst stünden Dips vor den Kniebeugen
@@ -1402,18 +1442,17 @@ function renderWizDeload() {
 function renderWizProg() {
   return `<div class="card wiz-q">
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">📈</span><h2>Wie soll sich dein Plan steigern?</h2></div>
-      <p class="hint wiz-q-explain">Normalerweise bleibt <b>beides an</b>. So wird dein Training Woche für Woche ein bisschen
+      <p class="hint wiz-q-explain">Normalerweise bleibt das <b>Volumen an</b>. So wird dein Training Woche für Woche ein bisschen
         fordernder, und genau das bringt Fortschritt. Dahinter steckt das Prinzip <b>Progressive Overload</b>: Dein Körper wird nur
         stärker, wenn er nach und nach etwas mehr leisten muss, als er gewohnt ist.</p>
-      <div class="variants">${Object.keys(PROG_KEYS).map(k => progChip(k, wiz.progression[k], 'data-action="wiz-prog"')).join('')}</div>
+      <div class="variants">${progChip('volume', wiz.progression.volume, 'data-action="wiz-prog"')}</div>
       <div class="prog-explain">
         <p><b>Volumen:</b> Von Woche zu Woche kommen Sätze dazu, so wie du es vorhin in der Volumen-Tabelle gesehen hast
           (Intro → Woche ${wiz.weeks}). <b>Aus:</b> Die Sätze bleiben den ganzen Zyklus auf dem Stand der Intro-Woche. Sinnvoll,
           wenn du gerade wenig Zeit hast oder dich schlecht erholst.</p>
-        <p><b>Gewicht & Wdh.:</b> Die App schlägt dir von Training zu Training etwas mehr Gewicht oder mehr Wiederholungen vor,
-          passend zu deinem Ziel im Tank. <b>Aus:</b> Im Training stehen immer deine Werte vom letzten Mal; das Tank-Ziel läuft
-          trotzdem weiter. Sinnvoll, wenn du z. B. erst die Technik lernen willst oder nach einer Verletzung vorsichtig bist.</p>
-        <p>Lässt sich später jederzeit ändern: für den ganzen Zyklus, einzelne Wochen oder ein einzelnes Training.</p>
+        <p><b>Gewicht und Wiederholungen</b> steigert die App immer: Von Training zu Training schlägt sie dir etwas mehr vor,
+          passend zu deinem Ziel im Tank.</p>
+        <p>Das Volumen lässt sich später jederzeit ändern: für den ganzen Zyklus, einzelne Wochen oder ein einzelnes Training.</p>
       </div>
     </div>${overloadHtml()}
     <div class="row"><button class="btn" data-action="wiz-step" data-to="deloadq">Zurück</button>
@@ -2106,7 +2145,7 @@ Object.assign(actions, {
     plan.volume = wiz.volume;
     if (wiz.rirEdited) Object.assign(plan, { rirPlan: wiz.rir, rirMode: 'table' });  // selbst bearbeitete Tabelle
     else Object.assign(plan, { rirPlan: {}, rirMode: 'auto', rirCourse: wiz.course || 'strong', rirStyle: wizStyle().rir, volStyle: wiz.style || 'mid' });
-    plan.progression = { ...wiz.progression };
+    plan.progression = { ...wiz.progression, load: true };
     if (wiz.ownProg === 'own') Object.assign(plan, { own: true, progression: { volume: false, load: false } });  // v270: ohne Vorgaben
     plan.perWeek = wiz.rotate ? 1 : wiz.perWeek;
     if (wiz.rotate) plan.rotate = wiz.rotate;  // Wechsel-Plan (siehe dayTimes in app.js)
