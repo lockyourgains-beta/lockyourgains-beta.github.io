@@ -4171,3 +4171,5 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 :root[data-theme="dark"] .prof-txt.prof-S, :root[data-theme="dark"] .prof-tag.prof-S { color: #22d3ee; }
 .lib-prof p { margin: 6px 0; }
 .lib-prof-more summary { margin-top: 6px; color: var(--accent); font-size: 14.5px; cursor: pointer; }
+/* v348: Erklärung zum Yoga-Stil */
+.yoga-style-desc { margin: 8px 2px 4px; line-height: 1.45; }

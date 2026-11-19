@@ -6720,6 +6720,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 348, date: '2026-11-19', items: [
+    ['Yoga: Tippst du beim Eintragen einen Stil an, erscheint darunter eine kurze Erklärung, z. B. was Yin von Vinyasa oder Power Yoga unterscheidet.'],
+  ] },
   { v: 347, date: '2026-11-19', items: [
     ['Progression: Der Knopf „Gewicht & Wdh.“ ist entfallen, im Training, im Plan und im Plan-Assistenten. Gewicht und Wiederholungen steigert die App jetzt immer, umschalten lässt sich nur noch das Volumen.'],
     ['Plan-Assistent: Grundübungen sind von der Regel zu Dehnung und Kontraktion ausgenommen und bleiben, wie sie sind.'],

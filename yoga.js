@@ -6,17 +6,28 @@
    Übungen und Abläufe sind freiwillig; Durchgänge und Zeit je Übung auch. */
 
 const YOGA_STYLES = {
-  hatha: { label: 'Hatha', met: 2.5 },
-  vinyasa: { label: 'Vinyasa / Flow', met: 3.3 },
-  power: { label: 'Power Yoga', met: 4.0 },
-  ashtanga: { label: 'Ashtanga', met: 4.0 },
-  yin: { label: 'Yin Yoga', met: 2.0 },
-  restorative: { label: 'Restorative / Entspannung', met: 2.0 },
-  hot: { label: 'Hot Yoga / Bikram', met: 3.5 },
-  kundalini: { label: 'Kundalini', met: 2.5 },
-  iyengar: { label: 'Iyengar', met: 2.5 },
-  nidra: { label: 'Yoga Nidra / Meditation', met: 1.3 },
-  other: { label: 'Sonstiges', met: 2.5 },
+  hatha: { label: 'Hatha', met: 2.5,
+    desc: "Klassisch und ruhig: Haltungen einnehmen und einige Atemzüge halten, dazwischen Pausen, oft mit Atemübungen und Entspannung. Gut zum Einstieg und für allgemeine Beweglichkeit." },
+  vinyasa: { label: 'Vinyasa / Flow', met: 3.3,
+    desc: "Die Haltungen fließen ineinander, jede Bewegung im Takt eines Atemzugs, oft mit Sonnengrüßen. Verbindet Beweglichkeit mit Ausdauer." },
+  power: { label: 'Power Yoga', met: 4.0,
+    desc: "Sportliche Weiterentwicklung von Vinyasa und Ashtanga mit vielen Kraft-Haltungen wie Brett, Chaturanga, Stuhl und Krieger. Fordert Kraft und Kondition." },
+  ashtanga: { label: 'Ashtanga', met: 4.0,
+    desc: "Eine feste, immer gleiche Abfolge im selben Atemrhythmus, meist 5 Atemzüge je Haltung. Man lernt die Serie Stück für Stück und sieht den Fortschritt gut." },
+  yin: { label: 'Yin Yoga', met: 2.0,
+    desc: "Passiv und lang: Haltungen meist im Sitzen oder Liegen 3 bis 5 Minuten halten, die Muskeln bleiben locker. Dehnt Bindegewebe und Gelenke, ein guter Ausgleich zum Krafttraining." },
+  restorative: { label: 'Restorative / Entspannung', met: 2.0,
+    desc: "Ganz entspannt: Der Körper wird mit Kissen, Decken und Blöcken gestützt, kaum Dehnung, lange Haltezeiten. Für Stressabbau, Erholung und besseren Schlaf." },
+  hot: { label: 'Hot Yoga / Bikram', met: 3.5,
+    desc: "Im beheizten Raum bei 35 bis 40 °C. Bikram ist eine feste Folge aus 26 Haltungen und 2 Atemübungen in 90 Minuten. Viel trinken, nicht bei Kreislaufproblemen." },
+  kundalini: { label: 'Kundalini', met: 2.5,
+    desc: "Wiederholte, oft schnelle Bewegungen, viel Atemarbeit wie der Feueratem, dazu Mantras und Meditation. Weniger Haltungen halten, mehr Atmung und Energie." },
+  iyengar: { label: 'Iyengar', met: 2.5,
+    desc: "Sehr genaue Ausrichtung mit Hilfsmitteln wie Gurten, Blöcken und Stühlen, die Haltungen werden länger gehalten und korrigiert. Gut für Haltung, Technik und den Rücken." },
+  nidra: { label: 'Yoga Nidra / Meditation', met: 1.3,
+    desc: "Angeleitete Tiefenentspannung im Liegen oder Meditation im Sitzen, ohne Haltungen. Für Entspannung, Schlaf und Konzentration." },
+  other: { label: 'Sonstiges', met: 2.5,
+    desc: "Für alles, was in keinen der anderen Stile passt, z. B. Mischformen oder Yoga mit Partner." },
 };
 const YOGA_LEVELS = { easy: { label: 'Sanft', f: 0.85 }, mid: { label: 'Mittel', f: 1 }, hard: { label: 'Fordernd', f: 1.2 } };
 const YOGA_CATS = [['warm', 'Aufwärmen und Mobilisation'], ['stand', 'Stehhaltungen'], ['balance', 'Gleichgewicht'], ['back', 'Rückbeugen'],
@@ -578,6 +589,7 @@ function yogaCmpCard() {
 /* ----- Eintragen ----- */
 let yogaForm = null;   // { id?, date, style, level, min, kcal, own, items: [{ p, n: Text, s: Text }] }
 let yogaFlowsOpen = false;
+let yogaStyleTapped = false;  // v348: Erklärung zum Stil erst nach dem Antippen eines Stils
 function yogaFormFresh(y) {
   if (y) return { id: y.id, date: y.date, style: y.style, level: y.level, min: String(y.min), kcal: y.own ? String(y.kcal) : '', own: !!y.own,
     items: (y.items || []).map(i => ({ p: i.p, n: i.n ? String(i.n) : '', s: i.s ? String(i.s) : '' })) };
@@ -621,6 +633,7 @@ function renderYoga() {
       <p class="lbl">Stil</p>
       <div class="variants yoga-styles">${Object.entries(YOGA_STYLES).map(([k, s]) => `<button class="vchip ${f.style === k ? 'on' : ''}" data-action="yoga-style" data-k="${k}">${s.label}</button>`).join('')}</div>
       ${lp ? `<p class="hint nut-small cardio-last"><b>Letztes Mal</b> <span>${fmtDate(lp.date + 'T12:00:00')}</span>: <span>${lp.min} min</span> | <span>${(YOGA_LEVELS[lp.level] || YOGA_LEVELS.mid).label}</span>${lp.items && lp.items.length ? ` | <span>${lp.items.length} Übungen</span>` : ''}</p>` : ''}
+      ${yogaStyleTapped ? `<p class="hint nut-small yoga-style-desc">${esc((YOGA_STYLES[f.style] || YOGA_STYLES.other).desc)}</p>` : ''}
       <p class="lbl">Wie fordernd?</p>
       <div class="seg three">${Object.entries(YOGA_LEVELS).map(([k, l]) => `<button class="${f.level === k ? 'on' : ''}" data-action="yoga-level" data-k="${k}">${l.label}</button>`).join('')}</div>
       <label class="row"><span>Dauer (Minuten)</span>
@@ -816,9 +829,9 @@ fields['yoga-in'] = el => { yogaForm[el.dataset.k] = el.value; const est = docum
 fields['yoga-item'] = el => { const it = yogaForm.items[Number(el.dataset.i)]; if (it) it[el.dataset.k] = el.value; const est = document.getElementById('yoga-est'); if (est) est.innerHTML = yogaEstText(); };
 
 Object.assign(actions, {
-  'yoga-open': () => { yogaForm = null; yogaFlowsOpen = false; yogaCmpId = null; go('yoga'); },
+  'yoga-open': () => { yogaForm = null; yogaFlowsOpen = false; yogaCmpId = null; yogaStyleTapped = false; go('yoga'); },
   'yoga-open-edit': el => { yogaForm = yogaFormFresh(data.yoga.find(y => y.id === el.dataset.id)); go('yoga'); },
-  'yoga-style': el => { yogaForm.style = el.dataset.k; yogaCmpId = null; render(); },
+  'yoga-style': el => { yogaForm.style = el.dataset.k; yogaCmpId = null; yogaStyleTapped = true; render(); },
   'yoga-level': el => { yogaForm.level = el.dataset.k; render(); },
   'yoga-cancel': () => { yogaForm = null; render(); },
   'yoga-pick': () => { ygQ = ''; ygOpenCat = null; go('yogapick'); },
@@ -864,6 +877,7 @@ Object.assign(actions, {
     const added = data.nutrition && data.nutrition.cardioAdd && entry.date === todayISO();
     toast(`🧘 Eingetragen: ${entry.min} min | ca. ${deNum(entry.kcal)} kcal${added ? ', Tagesziel erhöht' : ''}`);
     yogaForm = yogaFormFresh();
+    yogaStyleTapped = false;
     yogaCmpId = entry.id;
     render();
     window.scrollTo(0, 0);
