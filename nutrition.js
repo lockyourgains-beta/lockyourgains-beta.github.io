@@ -1410,7 +1410,7 @@ function nutPhaseOnly(n) {
   const week = nutWeekNo(n);
   const weekText = !stage ? `Woche ${week}` : stage === 'cut' ? `Woche ${week} von ${Math.min(n.weeks, NUT_MINICUT_MAX)}`
     : stage === 'maint' ? 'Erhaltungswoche' : 'abgeschlossen';
-  return `<div class="card nut-goal-card"><span class="lbl">Dein Ernährungsziel</span>
+  return `<div class="card nut-goal-card"><h2 class="nut-goal-title">Dein Ernährungsziel</h2>
       <div class="nut-phase-head"><span class="wiz-q-icon" aria-hidden="true">${ph.icon}</span>
       <div><b>${ph.label}</b><small>seit ${fmtDate(n.since + 'T12:00:00')} | ${weekText}</small></div></div>
       <button class="btn primary nut-goal-switch" data-action="nut-setup">🧭 Ernährungsziel wechseln</button></div>
@@ -1444,7 +1444,7 @@ function nutGoalExplain(n, c) {
     Danach folgt eine Woche auf Erhaltung, zusammen mit einer Deload-Woche im Training.`;
 }
 function nutGoalCard2(n, c, ph, weekText) {
-  return `<div class="card nut-goal-card"><span class="lbl">Dein Ernährungsziel</span>
+  return `<div class="card nut-goal-card"><h2 class="nut-goal-title">Dein Ernährungsziel</h2>
       <div class="nut-phase-head"><span class="wiz-q-icon" aria-hidden="true">${ph.icon}</span>
         <div><b>${ph.label}</b><small>${nutPace(n).label} | seit ${fmtDate(n.since + 'T12:00:00')} | ${weekText}</small></div></div>
       <p class="hint nut-small explain nut-goal-explain">${nutGoalExplain(n, c)}</p>

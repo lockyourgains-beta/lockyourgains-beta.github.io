@@ -1008,7 +1008,7 @@ const histSegHtml = active => `<div class="seg hist-seg">${HIST_SECS.map(([k, l]
   `<button class="${active === k ? 'on' : ''}" data-action="hist-sec" data-k="${k}">${l}</button>`).join('')}</div>`;
 // Statistik: Tonnage nur Experte, Schritte ab Standard, Cardio immer
 const statTabs = () => [['bw', 'Gewicht'], feat('chart-detail') && ['ton', 'Tonnage'], feat('steps') && ['steps', 'Schritte'],
-  typeof renderCardioStats === 'function' && ['cardio', 'Cardio']].filter(Boolean);
+  typeof renderCardioStats === 'function' && ['cardio', 'Cardio'], typeof renderYogaStats === 'function' && ['yoga', 'Yoga']].filter(Boolean);
 function goHist(sec) {
   chartState.withDeload = !!(data.profile && data.profile.chartDeload);  // v297
   const s = HIST_SECS.some(([k]) => k === sec) ? sec : 'cal';
@@ -1083,6 +1083,7 @@ function renderCharts() {
   if (tabs.length > 1) h += `<div class="seg small stat-seg">${tabs.map(([m, l]) =>
     `<button class="${s.mode === m ? 'on' : ''}" data-action="chart-mode" data-mode="${m}">${l}</button>`).join('')}</div>`;
   if (s.mode === 'cardio') return h + renderCardioStats();  // cardio.js
+  if (s.mode === 'yoga') return h + renderYogaStats();  // yoga.js
   if (s.mode === 'bw') return h + bwCmpHtml();  // v261: Körpergewicht und Kalorien
 
   if (s.mode === 'steps') {

@@ -187,8 +187,9 @@ function upgradeData(d) {
   if (d.waterGoal === undefined) d.waterGoal = null;  // eigenes Wasserziel in ml, sonst aus dem Gewicht
   if (d.mealPlan === undefined) d.mealPlan = null;  // v337: von der App erstellter Ernährungsplan (mealgen.js)
   if (d.mealPrefs === undefined) d.mealPrefs = null;  // v338: Vorlieben dafür (vegetarisch, ohne Gluten …)
-  if (d.pantry === undefined) d.pantry = null;  // v341: Vorrat („Was hab ich da?“)
+  if (d.pantry === undefined) d.pantry = null;  // v341: Vorrat („Was hab ich zu Hause?“)
   if (!Array.isArray(d.cardio)) d.cardio = [];  // Cardio-Einheiten (cardio.js)  // gespeicherte Mahlzeiten (Schnellauswahl)
+  if (!Array.isArray(d.yoga)) d.yoga = [];  // v344: Yoga-Einheiten (yoga.js)
   if (!d.foodClosed || typeof d.foodClosed !== 'object') {
     // abgeschlossene Tagebuch-Tage; beim Einführen gelten alle bisherigen Tage vor heute als abgeschlossen
     d.foodClosed = {};
@@ -4664,7 +4665,7 @@ function renderStart() {
     if (skipPick) h += (tb ? `<div class="start-mini">${tb}</div>` : '') + sk;
     else if (tb || sk) h += `<div class="start-mini">${tb}${sk}</div>`;
   }
-  if (typeof cardioStartHtml === 'function') h += `<h2>Cardio</h2>${cardioStartHtml()}`;
+  if (typeof cardioStartHtml === 'function') h += `<h2>Cardio und Yoga</h2>${cardioStartHtml()}${typeof yogaStartHtml === 'function' ? yogaStartHtml() : ''}`;
   // v240: Plan beenden steht hier statt im Plan-Reiter
   if (!planNew) h += `<button class="btn outline center plan-end-btn" data-action="plan-end">⏹ Aktuell laufenden Plan beenden</button>`;
   return h;
@@ -5849,10 +5850,11 @@ const sessionBtn = s => `<button class="btn nav" data-action="open-session" data
 
 // Verlauf: Kalender mit Trainings (und Cardio), angetippter Tag, Trainings des Monats, Übungen
 function renderHistory() {
-  const cardio = typeof cardioStartHtml === 'function' ? cardioStartHtml() : '';
+  const cardio = (typeof cardioStartHtml === 'function' ? cardioStartHtml() : '') + (typeof yogaStartHtml === 'function' ? yogaStartHtml() : '');
   const cardioList = typeof data.cardio !== 'undefined' ? data.cardio : [];
+  const yogaList = Array.isArray(data.yoga) ? data.yoga : [];  // v344
   const seg = typeof histSegHtml === 'function' ? histSegHtml('cal') : '';  // v203: Kalender | Übungen | Statistik | Erfolge
-  if (!data.sessions.length && !cardioList.length) {
+  if (!data.sessions.length && !cardioList.length && !yogaList.length) {
     return seg + cardio + '<p class="hint">Noch keine Trainings gespeichert.</p>';
   }
   const byDay = new Map();
@@ -5864,26 +5866,26 @@ function renderHistory() {
   const icon = c => (typeof CARDIO_TYPES !== 'undefined' && (CARDIO_TYPES[c.type] || CARDIO_TYPES.other).icon) || '🏃';
   const st = calGet('hist');
   let h = seg + calendarHtml('hist', iso => {
-    const ss = byDay.get(iso) || [], cs = cardioList.filter(c => c.date === iso);
-    if (!ss.length && !cs.length) return null;
-    return { cls: ss.length ? (ss.every(s => s.deload) ? 'tr dl' : 'tr') : 'cd', sub: cs.length ? icon(cs[0]) : '' };
+    const ss = byDay.get(iso) || [], cs = cardioList.filter(c => c.date === iso), ys = yogaList.filter(y => y.date === iso);
+    if (!ss.length && !cs.length && !ys.length) return null;
+    return { cls: ss.length ? (ss.every(s => s.deload) ? 'tr dl' : 'tr') : 'cd', sub: cs.length ? icon(cs[0]) : ys.length ? '🧘' : '' };
   });
   h += `<p class="cal-legend"><span class="cal-key tr"></span>Training <span class="cal-key dl"></span>Deload
-    <span class="cal-key cd"></span>nur Cardio</p>`;
+    <span class="cal-key cd"></span>nur Cardio oder Yoga</p>`;
   // angetippter Tag
   if (st.sel) {
-    const ss = byDay.get(st.sel) || [], cs = cardioList.filter(c => c.date === st.sel);
+    const ss = byDay.get(st.sel) || [], cs = cardioList.filter(c => c.date === st.sel), ys = yogaList.filter(y => y.date === st.sel);
     h += `<div class="card cal-day"><p class="cal-day-head"><b>${fmtDate(st.sel + 'T12:00:00', true)}</b></p>
-      ${ss.map(sessionBtn).join('')}${cs.map(c => typeof cardioRowHtml === 'function' ? cardioRowHtml(c) : '').join('')}
-      ${ss.length || cs.length ? '' : '<p class="hint">An diesem Tag hast du nichts eingetragen.</p>'}</div>`;
+      ${ss.map(sessionBtn).join('')}${cs.map(c => typeof cardioRowHtml === 'function' ? cardioRowHtml(c) : '').join('')}${ys.map(y => typeof yogaRowHtml === 'function' ? yogaRowHtml(y) : '').join('')}
+      ${ss.length || cs.length || ys.length ? '' : '<p class="hint">An diesem Tag hast du nichts eingetragen.</p>'}</div>`;
   }
   // Trainings des angezeigten Monats
   const inMonth = sessionsNewestFirst().filter(s => localDay(s.date).slice(0, 7) === st.month);
-  const cdMonth = cardioList.filter(c => c.date.slice(0, 7) === st.month);
+  const cdMonth = cardioList.filter(c => c.date.slice(0, 7) === st.month), ygMonth = yogaList.filter(y => y.date.slice(0, 7) === st.month);
   const [y, m] = st.month.split('-').map(Number);
-  h += `<h2>${MONTHS_DE[m - 1]}: ${inMonth.length} Training${inMonth.length === 1 ? '' : 's'}${cdMonth.length ? ` | ${cdMonth.length}× Cardio` : ''}</h2>`;
+  h += `<h2>${MONTHS_DE[m - 1]}: ${inMonth.length} Training${inMonth.length === 1 ? '' : 's'}${cdMonth.length ? ` | ${cdMonth.length}× Cardio` : ''}${ygMonth.length ? ` | ${ygMonth.length}× Yoga` : ''}</h2>`;
   h += inMonth.length ? inMonth.map(sessionBtn).join('') : '<p class="hint">In diesem Monat keine Trainings.</p>';
-  h += `<h2>Cardio</h2>${cardio}`;
+  h += `<h2>Cardio und Yoga</h2>${cardio}`;
   h += typeof reviewHistoryHtml === 'function' ? reviewHistoryHtml() : '';  // Zyklus-Rückblicke (charts.js)
   h += complaintsHistBtn();  // Beschwerden-Verlauf (v208)
   // die Übungsliste steht seit v203 im Bereich „Übungen“ (charts.js, histExListHtml)
@@ -6701,6 +6703,24 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 345, date: '2026-11-19', items: [
+    ['Cardio: Beim Eintragen siehst du, was du beim letzten Mal bei derselben Aktivität geschafft hast. Nach dem Speichern zeigt die App den Vergleich (z. B. „15 s/km schneller, +0,6 km“) und neue Bestleistungen 🏆.'],
+    ['Cardio: In der Liste steht bei jeder Einheit das Tempo und ein Pfeil ▲/▼ gegenüber der vorherigen. In der Statistik gibt es Bestwerte je Aktivität und den Tempo-Verlauf.'],
+    ['Yoga: Vergleich mit der letzten Einheit im gleichen Stil, bei jeder Übung deine letzte Zeit und Bestzeit, nach dem Speichern neue Bestwerte 🏆.'],
+  ] },
+  { v: 344, date: '2026-11-19', items: [
+    ['Yoga: als eigene Einheit eintragen wie Cardio, mit Stil (Hatha, Vinyasa, Yin, Power …), Dauer und geschätztem Verbrauch. Auf Wunsch mit Übungen, Durchgängen und Zeit je Übung.'],
+    ['Yoga: 149 Haltungen und Atemübungen mit Anleitung und Wirkung, dazu 14 Abläufe wie Sonnengruß A und B, Mondgruß, Morgen- und Abendroutine, Rücken, Hüfte und Dehnen nach dem Krafttraining.'],
+    ['Yoga im Verlauf: im Kalender, mit eigener Statistik (Zeit pro Woche, Stile, häufigste Übungen, längste Haltezeiten). Der Verbrauch zählt wie Cardio ins Tagesziel, wenn du das eingeschaltet hast.'],
+  ] },
+  { v: 343, date: '2026-11-19', items: [
+    ['Ernährung: „Dein Ernährungsziel“ steht jetzt groß und farbig über der Karte.'],
+    ['„Was hab ich da?“ heißt jetzt „Was hab ich zu Hause?“.'],
+    ['Ernährungstagebuch: Beim Hinzufügen stehen zuerst die gespeicherten Mahlzeiten, die du bei dieser Mahlzeit gespeichert hast (z. B. Frühstück), die übrigen darunter.'],
+  ] },
+  { v: 342, date: '2026-11-19', items: [
+    ['Ernährungsplan: 21 neue Rezepte mit Skyr und Magerquark, vor allem kleine Kuchen aus der Mikrowelle (Schoko-Tassenkuchen, Käsekuchen, Brownie, Lebkuchen, Karotte …), dazu Tiramisu-Becher und Schoko-Quark-Pudding. Neu in der Grundliste: Süßungsmittel (Erythrit) und Puddingpulver.'],
+  ] },
   { v: 341, date: '2026-11-18', items: [
     ['Ernährung: „Was hab ich da?“ Gib an, was du zu Hause hast, und die App zeigt dir passende Gerichte. Ähnliche Zutaten zählen mit, und fehlen nur ein oder zwei Dinge, steht es dabei. Die Mengen passen zu deinem Tagesziel, mit „Jetzt eintragen“ landet das Gericht im Tagebuch oder mit „Heute einplanen“ im Ernährungsplan.'],
     ['Einkaufsliste: Abgehakte Zutaten kommen automatisch in deinen Vorrat.'],
@@ -8177,7 +8197,7 @@ function importData(file) {
       days: d.days, volume: d.volume, rirPlan: d.rirPlan,  // ältere Sicherungen mit nur einem Plan
       sessions: d.sessions, bodyweight: d.bodyweight, cycle: d.cycle, steps: d.steps,
       complaints: d.complaints, hintsDismissed: d.hintsDismissed, dayTemplates: d.dayTemplates,
-      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, nutPlan: d.nutPlan, mealPlan: d.mealPlan, mealPrefs: d.mealPrefs, pantry: d.pantry,
+      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, yoga: d.yoga, nutPlan: d.nutPlan, mealPlan: d.mealPlan, mealPrefs: d.mealPrefs, pantry: d.pantry,
       customExercises: d.customExercises, profile: d.profile, prefatV: d.prefatV, rirV: d.rirV,
       measures: Array.isArray(d.measures) ? d.measures : [],
       painLog: Array.isArray(d.painLog) ? d.painLog : [],

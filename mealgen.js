@@ -126,7 +126,7 @@ const MG_P_OVER_W = 1.5;
 // (vorsichtig: Haferflocken, Haferdrink und Falafel zählen als glutenhaltig, veganes Proteinpulver als sojahaltig, Eiweißbrot als gluten-, soja- und milchhaltig)
 const MG_TAG = {
   'Haferflocken': 'g', 'Müsli, ohne Zuckerzusatz': 'gn', 'Knuspermüsli (Crunchy)': 'gn', 'Cornflakes': 'g', 'Vollkornbrot': 'g', 'Mischbrot': 'g', 'Toastbrot (Weizen)': 'g',
-  'Vollkorntoast': 'g', 'Brötchen (Weizen)': 'g', 'Vollkornbrötchen': 'g', 'Baguette': 'g', 'Fladenbrot': 'g', 'Knäckebrot': 'g', 'Laugenbrezel': 'g',
+  'Vollkorntoast': 'g', 'Brötchen (Weizen)': 'g', 'Vollkornbrötchen': 'g', 'Baguette': 'g', 'Fladenbrot': 'g', 'Knäckebrot': 'g', 'Laugenbrezel': 'g', 'Butterkekse': 'gd',
   'Eiweißbrot (Proteinbrot)': 'gsd', 'Nudeln, roh': 'g', 'Vollkornnudeln, roh': 'g', 'Mie-Nudeln, roh': 'ge', 'Wrap (Weizentortilla)': 'g', 'Couscous, roh': 'g',
   'Bulgur, roh': 'g', 'Grieß, roh': 'g', 'Weizenmehl': 'g', 'Gnocchi': 'g', 'Haferdrink': 'g', 'Falafel': 'g', 'Seitan': 'g', 'Croissant': 'gd',
   'Skyr natur': 'd', 'Milch 1,5 %': 'd', 'Milch 3,5 %': 'd', 'Magerquark': 'd', 'Speisequark 20 %': 'd', 'Speisequark 40 %': 'd', 'Frischkäse leicht': 'd',
@@ -216,7 +216,8 @@ const MG_ALT = {
   'Mandeln': ['Walnüsse', 'Haselnüsse', 'Kürbiskerne'], 'Walnüsse': ['Mandeln', 'Haselnüsse'], 'Haselnüsse': ['Mandeln', 'Walnüsse'], 'Cashewkerne': ['Erdnüsse, geröstet', 'Mandeln'],
   'Erdnüsse, geröstet': ['Cashewkerne', 'Mandeln'], 'Kürbiskerne': ['Sonnenblumenkerne'], 'Sonnenblumenkerne': ['Kürbiskerne'], 'Chiasamen': ['Leinsamen'], 'Leinsamen': ['Chiasamen'],
   'Zartbitterschokolade 70 %': ['Vollmilchschokolade'], 'Kartoffelpüree, mit Milch': ['Kartoffeln, gekocht', 'Süßkartoffel'], 'Weizenmehl': ['Haferflocken'],
-  'Proteinriegel': ['Proteinpudding'], 'Kokosraspeln': ['Mandeln'], 'Apfelmus, ungesüßt': ['Apfel'], 'Barbecue-Soße': ['Ketchup'], 'Ketchup': ['Barbecue-Soße'], 'Mayonnaise': ['Joghurt natur 1,5 %', 'Saure Sahne 10 %'],
+  'Proteinriegel': ['Proteinpudding'], 'Kokosraspeln': ['Mandeln'], 'Apfelmus, ungesüßt': ['Apfel'],
+  'Süßungsmittel (Erythrit, Streusüße)': ['Honig', 'Ahornsirup'], 'Puddingpulver Vanille (Speisestärke)': ['Weizenmehl'], 'Butterkekse': ['Haferflocken'], 'Barbecue-Soße': ['Ketchup'], 'Ketchup': ['Barbecue-Soße'], 'Mayonnaise': ['Joghurt natur 1,5 %', 'Saure Sahne 10 %'],
 };
 // Stückware: Gramm je Stück (Mengen werden auf ganze Stück gerundet)
 const MG_UNIT = { 'Ei': 60, 'Wrap (Weizentortilla)': 60, 'Reiswaffel': 8, 'Brötchen (Weizen)': 55, 'Vollkornbrötchen': 60, 'Knäckebrot': 10, 'Vollkorntoast': 25,
@@ -488,7 +489,7 @@ const mgApplyAlt = (its, alt, x = mgX()) => its.map(i => { const a = alt && alt[
 // gerechnete Mengen eines Gerichts als Zeilen
 const mgSlotLines = sl => sl.its.map(i => mgLine(i.n, mgRound(i.g * (i.role === 'X' ? sl.xs : sl.f[i.role] != null ? sl.f[i.role] : 1), i.unit),
   { unit: i.unit || null, sub: i.sub, dayAlt: i.dayAlt || false })).filter(i => i.g >= 2);
-// v341: Gericht nur für ein Datum eingeplant (aus „Was hab ich da?“): plan.over[datum][mahlzeit] = Rezept-ID
+// v341: Gericht nur für ein Datum eingeplant (aus „Was hab ich zu Hause?“): plan.over[datum][mahlzeit] = Rezept-ID
 const mgOver = (date, k) => { const p = mgPlanObj(), id = p && p.over && p.over[date] && p.over[date][k]; return id ? mgValid(id, k) : null; };
 const mgPickD = (picks, date, k) => mgOver(date, k) || mgPick(picks, mgWd(date), k);
 
@@ -542,11 +543,12 @@ const MG_SHORT = { [MG_OIL]: 'Öl', 'Blattsalat (Kopfsalat, Eisberg, Feldsalat)'
   'Kokosmilch (light)': 'Kokosmilch', 'Kakaopulver (ungesüßt)': 'Kakao', 'Sojadrink, ungesüßt': 'Sojadrink', 'Hähnchenschenkel ohne Haut, roh': 'Hähnchenschenkel',
   'Frischkäse natur (Doppelrahm)': 'Frischkäse', 'Hähnchenbrust, gebraten': 'Hähnchenbrust (gebraten)', 'Linsen, gekocht': 'Linsen (gekocht)', 'Rote Bete, gekocht': 'Rote Bete',
   'Kürbis (Hokkaido)': 'Kürbis', 'Frühstücksspeck (Bacon)': 'Bacon', 'Erdnüsse, geröstet': 'Erdnüsse', 'Datteln, getrocknet': 'Datteln', 'Apfelmus, ungesüßt': 'Apfelmus',
-  'Proteinpulver (Whey)': 'Whey', 'Proteinpulver, vegan': 'Veganes Proteinpulver', 'Zartbitterschokolade 70 %': 'Zartbitterschokolade', 'Griechischer Joghurt 10 %': 'Griechischer Joghurt' };
+  'Proteinpulver (Whey)': 'Whey', 'Proteinpulver, vegan': 'Veganes Proteinpulver', 'Zartbitterschokolade 70 %': 'Zartbitterschokolade', 'Griechischer Joghurt 10 %': 'Griechischer Joghurt',
+  'Süßungsmittel (Erythrit, Streusüße)': 'Süßungsmittel', 'Puddingpulver Vanille (Speisestärke)': 'Puddingpulver' };
 const mgShort = n => MG_SHORT[n] || n.replace(/, (roh|trocken)$/, '').replace(/ \((Dose, abgetropft|TK)\)$/, '');
 
 // Lieblingszutaten zur Auswahl: Zutaten, die in mindestens 3 Gerichten als Eiweiß-, Kohlenhydrat- oder Fettquelle vorkommen
-const MG_FAV_SKIP = [MG_OIL, 'Honig', 'Ahornsirup'];  // nur zum Würzen/Süßen, keine echte Quelle
+const MG_FAV_SKIP = [MG_OIL, 'Honig', 'Ahornsirup', 'Puddingpulver Vanille (Speisestärke)', 'Zartbitterschokolade 70 %'];  // nur zum Würzen/Süßen, keine echte Quelle
 let mgFavCache = null;
 function mgFavGroups() {
   if (mgFavCache) return mgFavCache;
@@ -747,7 +749,7 @@ function renderMealShop() {
       <div class="variants">${[3, 5, 7].map(n => `<button class="vchip ${shop.n === n ? 'on' : ''}" data-action="mg-shop-n" data-n="${n}">${n} Tage</button>`).join('')}</div>
       <p class="mg-shop-range"><span>${mgDateShort(days[0])}</span> <span>bis</span> <span>${mgDateShort(days[days.length - 1])}</span></p>
       <p class="hint nut-small">Mengen zusammengerechnet und leicht aufgerundet, roh bzw. abgetropft wie im Plan. Was heute schon eingetragen ist, fehlt.
-        Antippen hakt ab. Abgehakte Zutaten kommen in deinen Vorrat bei „Was hab ich da?“.</p></div>`;
+        Antippen hakt ab. Abgehakte Zutaten kommen in deinen Vorrat bei „Was hab ich zu Hause?“.</p></div>`;
   if (!groups.length) return h + '<div class="card"><p class="hint">Für diese Tage ist nichts geplant.</p></div>';
   for (const gr of groups) {
     h += `<div class="card mg-shop"><h3>${gr.label}</h3>${gr.items.map(a => {
@@ -914,7 +916,7 @@ Object.assign(actions, {
   },
 });
 
-/* ----- v341: „Was hab ich da?“ – Vorrat angeben, passende Gerichte finden ----------
+/* ----- v341: „Was hab ich zu Hause?“ – Vorrat angeben, passende Gerichte finden ----------
    data.pantry = { items: [Zutaten der Grundliste], at: Datum } (bleibt gespeichert; abgehakte Zutaten der Einkaufsliste kommen dazu).
    Die App vergleicht jedes Gericht (nach den Vorlieben) mit dem Vorrat: Alternativen aus MG_ALT zählen als da (sie werden dann
    eingesetzt), Öl und Gewürze immer. Fehlende Zutaten wiegen je nach Rolle (Eiweiß und Beilage schwer, Gemüse leicht). */
@@ -986,7 +988,7 @@ function ptDefaultCat() {
 function renderPantry() {
   const items = ptItems(), choices = ptChoices(), q = ptQ.trim().toLowerCase();
   if (!ptCat) ptCat = ptDefaultCat();
-  let h = `<div class="card"><h2>🧺 Was hab ich da?</h2>
+  let h = `<div class="card"><h2>🧺 Was hab ich zu Hause?</h2>
       <p class="hint">Tipp an, was du zu Hause hast. Die App zeigt dir Gerichte, die du damit kochen kannst, und rechnet die Mengen passend zu deinem Tagesziel.
         Öl und Gewürze zählen immer als da. Ähnliche Zutaten zählen mit, z. B. Putenbrust statt Hähnchenbrust.</p></div>
     <div class="card pt-have"><h3>Dein Vorrat</h3>
@@ -1048,8 +1050,8 @@ function ptDetail(m) {
     </div>`;
 }
 
-views.pantry = { title: 'Was hab ich da?', tab: 'nutrition', render: renderPantry, back: p => p.from === 'mealplan' ? ['mealplan', {}] : ['nutrition', {}] };
-const ptOpenBtn = () => '<button class="btn nav pt-open-btn" data-action="pt-open-view">🧺 Was hab ich da?<small>Gib an, was du zu Hause hast, und die App zeigt dir passende Gerichte</small></button>';
+views.pantry = { title: 'Was hab ich zu Hause?', tab: 'nutrition', render: renderPantry, back: p => p.from === 'mealplan' ? ['mealplan', {}] : ['nutrition', {}] };
+const ptOpenBtn = () => '<button class="btn nav pt-open-btn" data-action="pt-open-view">🧺 Was hab ich zu Hause?<small>Gib an, was du zu Hause hast, und die App zeigt dir passende Gerichte</small></button>';
 
 // Suche: nur ein- und ausblenden, damit das Eingabefeld den Fokus behält
 fields['pt-search'] = el => {

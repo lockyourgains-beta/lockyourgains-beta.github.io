@@ -34,7 +34,8 @@ function cardioEstimate(type, level, min) {
   return Math.round((met - 1) * cardioKg() * (min / 60) / 5) * 5;
 }
 const cardioOn = date => data.cardio.filter(c => c.date === date);
-const cardioKcalOn = date => cardioOn(date).reduce((a, c) => a + (c.kcal || 0), 0);
+// v344: inklusive Yoga (yoga.js), damit beides gemeinsam ins Tagesziel einfließt
+const cardioKcalOn = date => cardioOn(date).reduce((a, c) => a + (c.kcal || 0), 0) + (typeof yogaKcalOn === 'function' ? yogaKcalOn(date) : 0);
 
 // Diese Woche (ab Montag): Anzahl, Minuten, kcal
 function cardioWeek() {
@@ -49,6 +50,79 @@ function cardioStartHtml() {
   const w = cardioWeek();
   return `<button class="btn nav cardio-btn" data-action="cardio-open">🏃 Cardio eintragen
       <small>${w.n ? `Diese Woche: ${w.n}× | ${w.min} min | ca. ${deNum(w.kcal)} kcal` : 'Joggen, Rad, Stepper, Rudergerät …'}</small></button>`;
+}
+
+/* ----- v345: Vergleich mit dem letzten Mal und Bestwerte je Aktivität ----- */
+// Tempo-Angabe je Aktivität: min/km (Laufen, Gehen, Wandern), km/h (Rad), min/100 m (Schwimmen), min/500 m (Rudern)
+const CARDIO_SPEED = { run: 'pace', walk: 'pace', hike: 'pace', bike: 'kmh', ergo: 'kmh', swim: 'p100', row: 'p500' };
+const CARDIO_PER = { pace: [1, '/km', 's/km'], p100: [0.1, '/100 m', 's/100 m'], p500: [0.5, '/500 m', 's/500 m'] };
+const cardioKmh = c => c && c.km > 0 && c.min > 0 ? c.km / (c.min / 60) : null;
+const cardioMmss = m => { const s = Math.round(m * 60); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function cardioSpeedTxt(type, kmh) {
+  const k = CARDIO_SPEED[type] || 'kmh';
+  if (k === 'kmh') return `${fmtNum(round1(kmh))} km/h`;
+  return `${cardioMmss(60 / kmh * CARDIO_PER[k][0])} min${CARDIO_PER[k][1]}`;
+}
+// Tempo-Unterschied: { s: 1 schneller, -1 langsamer, 0 gleich; t: Text }
+function cardioSpeedDelta(type, kmhNew, kmhOld) {
+  const k = CARDIO_SPEED[type] || 'kmh';
+  if (k === 'kmh') { const d = round1(kmhNew - kmhOld); return { s: Math.sign(d), t: d ? `${d > 0 ? '+' : '−'}${fmtNum(Math.abs(d))} km/h` : 'gleich schnell' }; }
+  const d = Math.round((60 / kmhOld - 60 / kmhNew) * CARDIO_PER[k][0] * 60);
+  return { s: Math.sign(d), t: d ? `${Math.abs(d)} ${CARDIO_PER[k][2]} ${d > 0 ? 'schneller' : 'langsamer'}` : 'gleiches Tempo' };
+}
+// vorherige Einheit derselben Aktivität (vor c; für das Formular: die letzte bis zum gewählten Datum, ohne die bearbeitete)
+function cardioPrev(type, date, exceptId, before) {
+  let best = null, bi = -1;
+  data.cardio.forEach((x, i) => {
+    if (x.type !== type || x.id === exceptId || x.date > date) return;
+    if (before != null && x.date === date && i >= before) return;
+    if (!best || x.date > best.date || (x.date === best.date && i > bi)) { best = x; bi = i; }
+  });
+  return best;
+}
+const cardioPrevOf = c => cardioPrev(c.type, c.date, c.id, data.cardio.indexOf(c));
+// Vergleich c gegen p: Teile [{ s, t }] und Hauptrichtung (Tempo, sonst Dauer)
+function cardioCmp(c, p) {
+  const parts = [], kn = cardioKmh(c), ko = cardioKmh(p);
+  if (kn && ko) parts.push(cardioSpeedDelta(c.type, kn, ko));
+  if (c.km != null && p.km != null && round1(c.km - p.km)) { const d = round1(c.km - p.km); parts.push({ s: Math.sign(d), t: `${d > 0 ? '+' : '−'}${fmtNum(Math.abs(d))} km` }); }
+  if (c.min !== p.min) parts.push({ s: Math.sign(c.min - p.min), t: `${c.min > p.min ? '+' : '−'}${Math.abs(c.min - p.min)} min` });
+  return { parts, s: parts.length ? parts[0].s : 0 };
+}
+// Bestwerte einer Aktivität (ohne exceptId): längste Strecke, längste Dauer, schnellstes Tempo (ab 1 km)
+function cardioBest(type, exceptId) {
+  const l = data.cardio.filter(x => x.type === type && x.id !== exceptId);
+  const sp = l.filter(x => x.km >= 1).map(cardioKmh).filter(Boolean);
+  return { n: l.length, km: Math.max(0, ...l.map(x => x.km || 0)), min: Math.max(0, ...l.map(x => x.min)), kmh: sp.length ? Math.max(...sp) : 0 };
+}
+function cardioRecords(c) {
+  const b = cardioBest(c.type, c.id), r = [];
+  if (!b.n) return r;
+  if (c.km && b.km && c.km > b.km) r.push('längste Strecke');
+  if (c.min > b.min) r.push('längste Dauer');
+  const k = cardioKmh(c);
+  if (k && c.km >= 1 && b.kmh && k > b.kmh + 1e-9) r.push('schnellstes Tempo');
+  return r;
+}
+const cardioArrow = s => s > 0 ? '<span class="cmp up" aria-hidden="true">▲</span>' : s < 0 ? '<span class="cmp down" aria-hidden="true">▼</span>' : '<span class="cmp" aria-hidden="true">＝</span>';
+const cardioPartsHtml = parts => parts.map(x => `<span>${x.t}</span>`).join(' | ');
+// „Letztes Mal“ für das Formular
+function cardioLastHtml(f) {
+  const p = cardioPrev(f.type, f.date || todayISO(), f.id);
+  if (!p) return `<p class="hint nut-small cardio-last">Noch keine Einheit ${esc((CARDIO_TYPES[f.type] || CARDIO_TYPES.other).label)}. Ab dem nächsten Mal siehst du hier den Vergleich.</p>`;
+  const k = cardioKmh(p);
+  return `<p class="hint nut-small cardio-last"><b>Letztes Mal</b> <span>${fmtDate(p.date + 'T12:00:00')}</span>: <span>${p.min} min</span>${p.km != null ? ` | <span>${fmtNum(p.km)} km</span>` : ''}${k ? ` | <span>${cardioSpeedTxt(p.type, k)}</span>` : ''} | <span>${CARDIO_LEVELS[p.level] ? CARDIO_LEVELS[p.level].label : ''}</span></p>`;
+}
+let cardioCmpId = null;  // gerade gespeicherte Einheit: Vergleich oben anzeigen
+function cardioCmpCard() {
+  const c = cardioCmpId && data.cardio.find(x => x.id === cardioCmpId);
+  if (!c) return '';
+  const t = CARDIO_TYPES[c.type] || CARDIO_TYPES.other, p = cardioPrevOf(c), rec = cardioRecords(c);
+  if (!p) return `<div class="card cardio-cmp"><p><b>${t.icon} Erste Einheit ${esc(t.label)}</b></p><p class="hint nut-small">Ab dem nächsten Mal vergleicht die App mit dieser Einheit.</p></div>`;
+  const cmp = cardioCmp(c, p);
+  return `<div class="card cardio-cmp"><p><b>${t.icon} Vergleich mit dem letzten Mal</b> <small class="hint">${fmtDate(p.date + 'T12:00:00')}</small></p>
+      <p class="cardio-cmp-row">${cmp.parts.length ? cardioArrow(cmp.s) + ' ' + cardioPartsHtml(cmp.parts) : '<span>Genauso wie beim letzten Mal.</span>'}</p>
+      ${rec.map(r => `<p class="cardio-rec">🏆 <span>Neue Bestleistung: ${r}</span></p>`).join('')}</div>`;
 }
 
 let cardioForm = null;  // { id?, date, type, level, min (Text), km (Text), kcal (Text), own }
@@ -71,9 +145,10 @@ function renderCardio() {
   const f = cardioForm;
   const n = data.nutrition;
   const typeBtn = ([k, t]) => `<button class="cardio-type ${f.type === k ? 'on' : ''}" data-action="cardio-type" data-k="${k}"><span>${t.icon}</span>${t.label}</button>`;
-  let h = `<div class="card cardio-form">
+  let h = `${cardioCmpCard()}<div class="card cardio-form">
       <p class="lbl">Aktivität</p>
       <div class="cardio-types">${Object.entries(CARDIO_TYPES).map(typeBtn).join('')}</div>
+      ${cardioLastHtml(f)}
       <p class="lbl">Wie anstrengend?</p>
       <div class="seg three">${Object.entries(CARDIO_LEVELS).map(([k, l]) =>
         `<button class="${f.level === k ? 'on' : ''}" data-action="cardio-level" data-k="${k}">${l.label}</button>`).join('')}</div>
@@ -96,7 +171,7 @@ function renderCardio() {
         <h2>Ins Tagesziel einrechnen?</h2>
         <div class="seg two"><button class="${on ? 'on' : ''}" data-action="cardio-add" data-v="1">Ja</button>
           <button class="${on ? '' : 'on'}" data-action="cardio-add" data-v="0">Nein</button></div>
-        <p class="hint nut-small"><b>Ja:</b> An Tagen mit Cardio erhöht sich dein Tagesziel um den Verbrauch, vor allem als Kohlenhydrate,
+        <p class="hint nut-small"><b>Ja:</b> An Tagen mit Cardio oder Yoga erhöht sich dein Tagesziel um den Verbrauch, vor allem als Kohlenhydrate,
           die du zum Auftanken brauchst. <b>Nein</b> ist sinnvoll, wenn du dein Cardio schon bei der Aktivität in deinen Angaben
           berücksichtigt hast (sonst zählt es doppelt) oder wenn du in der Diät bewusst etwas mehr Defizit möchtest.
           Fitness-Uhren schätzen oft eher zu hoch. Lieber vorsichtig eintragen.</p>
@@ -118,8 +193,10 @@ function cardioRowHtml(c, edit = false) {
   const t = CARDIO_TYPES[c.type] || CARDIO_TYPES.other;
   const info = `${fmtDate(c.date + 'T12:00:00')} | ${c.min} min${c.km != null ? ` | ${fmtNum(c.km)} km` : ''} | `
     + `${CARDIO_LEVELS[c.level] ? CARDIO_LEVELS[c.level].label + ' | ' : ''}ca. ${deNum(c.kcal)} kcal${c.own ? ' (eigener Wert)' : ''}`;
-  if (!edit) return `<button class="btn nav" data-action="cardio-open-edit" data-id="${c.id}">${t.icon} ${t.label}<small>${info}</small></button>`;
-  return `<li class="bw-row cardio-row"><span>${t.icon} ${t.label}<small class="hint">${info}</small></span>
+  if (!edit) return `<button class="btn nav" data-action="cardio-open-edit" data-id="${c.id}">${t.icon} <span>${t.label}</span><small>${info}</small></button>`;
+  const p = cardioPrevOf(c), cmp = p && cardioCmp(c, p), k = cardioKmh(c);
+  const extra = (k ? `<span>${cardioSpeedTxt(c.type, k)}</span>` : '') + (cmp && cmp.parts.length ? `${k ? ' | ' : ''}${cardioArrow(cmp.s)} ${cardioPartsHtml(cmp.parts.slice(0, 2))}` : '');
+  return `<li class="bw-row cardio-row"><span>${t.icon} <span>${t.label}</span><small class="hint">${info}</small>${extra ? `<small class="hint cardio-row-cmp">${extra}</small>` : ''}</span>
       <button class="icon-btn" data-action="cardio-edit" data-id="${c.id}" aria-label="Bearbeiten">✎</button>
       <button class="icon-btn danger" data-action="cardio-del" data-id="${c.id}" aria-label="Löschen">✕</button></li>`;
 }
@@ -208,18 +285,43 @@ function renderCardioStats() {
   if (types.length) {
     h += `<h2>Nach Aktivität</h2><ul class="list">${types.map(([k, cs]) => {
       const t = CARDIO_TYPES[k] || CARDIO_TYPES.other, tkm = cardioSum(cs, 'km');
-      return `<li class="bw-row cardio-row"><span>${t.icon} ${t.label}<small class="hint">${cs.length}× | ${fmtDur(cardioSum(cs, 'min'))}${
-        cs.some(c => c.km != null) ? ` | ${fmtNum(round1(tkm))} km` : ''} | ca. ${deNum(cardioSum(cs, 'kcal'))} kcal</small></span></li>`;
+      const b = cardioBest(k);
+      return `<li class="bw-row cardio-row"><span>${t.icon} <span>${t.label}</span><small class="hint">${cs.length}× | ${fmtDur(cardioSum(cs, 'min'))}${
+        cs.some(c => c.km != null) ? ` | ${fmtNum(round1(tkm))} km` : ''} | ca. ${deNum(cardioSum(cs, 'kcal'))} kcal</small>
+        <small class="hint cardio-best">🏆 <span>Bestwerte:</span> ${[b.km ? `<span>${fmtNum(b.km)} km</span>` : '', `<span>${fmtDur(b.min)}</span>`, b.kmh ? `<span>${cardioSpeedTxt(k, b.kmh)}</span>` : ''].filter(Boolean).join(' | ')}</small></span></li>`;
     }).join('')}</ul>`;
   }
+  h += cardioSpeedChart();
   return h + add;
+}
+
+// Tempo-Verlauf einer Aktivität (letzte 20 Einheiten mit Strecke), oben = schneller
+const cardioStatType = { k: null };
+function cardioSpeedChart() {
+  const types = Object.keys(CARDIO_TYPES).filter(k => data.cardio.filter(c => c.type === k && cardioKmh(c)).length >= 2);
+  if (!types.length) return '';
+  if (!types.includes(cardioStatType.k)) cardioStatType.k = types[0];
+  const k = cardioStatType.k, list = data.cardio.filter(c => c.type === k && cardioKmh(c)).sort((a, b) => a.date.localeCompare(b.date)).slice(-20);
+  const v = list.map(cardioKmh), lo = Math.min(...v), hi = Math.max(...v), pad = Math.max((hi - lo) * 0.15, hi * 0.03);
+  const y0 = lo - pad, y1 = hi + pad, W = 340, H = 170, L = 58, R = 10, T = 12, B = 24, pw = W - L - R, ph = H - T - B;
+  const X = i => L + (list.length === 1 ? pw / 2 : i * pw / (list.length - 1)), Y = s => T + (1 - (s - y0) / (y1 - y0)) * ph;
+  let svg = `<svg class="chart-svg cardio-speed" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tempo-Verlauf">`;
+  for (const t of [y0 + (y1 - y0) * 0.15, (y0 + y1) / 2, y1 - (y1 - y0) * 0.15]) {
+    svg += `<line class="c-grid" x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}"/><text class="c-text" x="${L - 6}" y="${Y(t) + 4}" text-anchor="end">${cardioSpeedTxt(k, t).replace(/ min\/.*| km\/h/, '')}</text>`;
+  }
+  svg += `<polyline class="c-line" fill="none" points="${list.map((c, i) => `${X(i)},${Y(v[i])}`).join(' ')}"/>`;
+  list.forEach((c, i) => { svg += `<circle class="c-dot" cx="${X(i)}" cy="${Y(v[i])}" r="3.5"/>`; });
+  svg += `<text class="c-text" x="${L}" y="${H - 7}">${fmtDate(list[0].date + 'T12:00:00')}</text><text class="c-text" x="${W - R}" y="${H - 7}" text-anchor="end">${fmtDate(list[list.length - 1].date + 'T12:00:00')}</text></svg>`;
+  const unit = CARDIO_SPEED[k] === 'kmh' || !CARDIO_SPEED[k] ? 'km/h' : 'min' + CARDIO_PER[CARDIO_SPEED[k]][1];
+  return `<h2>Tempo-Verlauf</h2>${types.length > 1 ? `<div class="variants">${types.map(t => `<button class="vchip ${t === k ? 'on' : ''}" data-action="cardio-speed-type" data-k="${t}">${CARDIO_TYPES[t].icon} ${CARDIO_TYPES[t].label}</button>`).join('')}</div>` : ''}
+    <div class="card cardio-chart">${svg}<p class="hint cardio-unit">Tempo in ${unit}, oben = schneller, letzte ${list.length} Einheiten mit Strecke</p></div>`;
 }
 
 views.cardio = { title: 'Cardio', tab: 'start', back: 'start', render: renderCardio };
 
 Object.assign(actions, {
-  'cardio-open': () => { cardioForm = null; go('cardio'); },
-  'cardio-type': el => { cardioForm.type = el.dataset.k; render(); },
+  'cardio-open': () => { cardioForm = null; cardioCmpId = null; go('cardio'); },
+  'cardio-type': el => { cardioForm.type = el.dataset.k; cardioCmpId = null; render(); },
   'cardio-level': el => { cardioForm.level = el.dataset.k; render(); },
   'cardio-cancel': () => { cardioForm = null; render(); },
   'cardio-save': () => {
@@ -240,11 +342,14 @@ Object.assign(actions, {
     toast(`${CARDIO_TYPES[entry.type].icon} Eingetragen: ${entry.min} min${entry.km ? ` | ${fmtNum(entry.km)} km` : ''} | ca. ${deNum(entry.kcal)} kcal${added ? ', Tagesziel erhöht' : ''}`);
     cardioForm = cardioFormFresh();
     cardioForm.type = entry.type;
+    cardioCmpId = entry.id;
     render();
+    window.scrollTo(0, 0);
   },
   'cardio-open-edit': el => { cardioForm = cardioFormFresh(data.cardio.find(c => c.id === el.dataset.id)); go('cardio'); },
   'cardio-range': el => { cardioStat.range = Number(el.dataset.d); render(); },
   'cardio-metric': el => { cardioStat.metric = el.dataset.k; render(); },
+  'cardio-speed-type': el => { cardioStatType.k = el.dataset.k; render(); },
   'cardio-edit': el => { cardioForm = cardioFormFresh(data.cardio.find(c => c.id === el.dataset.id)); render(); window.scrollTo(0, 0); },
   'cardio-del': el => {
     const c = data.cardio.find(x => x.id === el.dataset.id);

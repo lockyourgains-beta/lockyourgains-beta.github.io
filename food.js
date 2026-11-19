@@ -244,6 +244,8 @@ const FOOD_BASE = [
   ['Nuss-Nougat-Creme', 540, 6.3, 57.5, 31, '1 Portion', 15],
   ['Zucker', 400, 0, 100, 0, '1 TL', 5],
   ['Ahornsirup', 260, 0, 67, 0.1, '1 EL', 20],
+  ['Puddingpulver Vanille (Speisestärke)', 344, 0.4, 85, 0.1, '1 EL', 10],
+  ['Süßungsmittel (Erythrit, Streusüße)', 0, 0, 0, 0, '1 EL', 10],
   ['Kakaopulver (ungesüßt)', 311, 25.5, 12.3, 11.2, '1 EL', 8],
   // Süßes, Snacks
   ['Vollmilchschokolade', 535, 7.5, 56, 30, '1 Reihe', 25],
@@ -514,6 +516,8 @@ const FOOD_BASE_FS = {
   'Linseneintopf': [5.6, 1.7],
   'Kartoffelsalat mit Mayonnaise': [1.4, 1.1],
   'Kartoffelsalat mit Essig und Öl': [1.6, 1.2],
+  'Puddingpulver Vanille (Speisestärke)': [1, 0],
+  'Süßungsmittel (Erythrit, Streusüße)': [0, 0],
   'Kakaopulver (ungesüßt)': [29.7, 1],
   'Sweet-Chili-Soße': [1, 48],
   'Barbecue-Soße': [0.7, 19],
@@ -1078,6 +1082,11 @@ function foodSearch(q) {
   return hits.sort((a, b) => a[0] - b[0] || a[1].name.length - b[1].name.length).slice(0, 50).map(x => x[1]);
 }
 
+// Mahlzeit, zu der eine gespeicherte Mahlzeit gehört: gespeichert (ab v343), sonst am Namen erkennbar (Vorschlag beim Speichern)
+function foodMealOf(m) {
+  if (m.meal && MEALS[m.meal]) return m.meal;
+  return Object.keys(MEALS).find(k => norm(m.name) === norm(mealLabel(k)) || norm(m.name) === norm(MEALS[k][1])) || null;
+}
 function foodMealRow(m) {
   const kcal = foodTotals(m.items).kcal;
   return `<div class="food-savedmeal">
@@ -1090,8 +1099,12 @@ function foodMealRow(m) {
 
 function foodResults() {
   const q = foodQuery.trim();
+  // v343 (User): zuerst die Mahlzeiten, die bei dieser Mahlzeit (z. B. Frühstück) gespeichert wurden, darunter die übrigen
+  const cur = MEALS[current.params.meal] ? current.params.meal : null;
   const meals = data.foodMeals.filter(m => !q || norm(m.name).includes(norm(q)));
-  const mealsHtml = meals.length ? `<p class="food-sec">🍽️ Gespeicherte Mahlzeiten</p>${meals.map(foodMealRow).join('')}`
+  const own = cur ? meals.filter(m => foodMealOf(m) === cur) : [], rest = meals.filter(m => !own.includes(m));
+  const mealsHtml = meals.length ? `<p class="food-sec">🍽️ Gespeicherte Mahlzeiten</p>${own.map(foodMealRow).join('')}${own.length && rest.length
+      ? `<p class="hint nut-small food-sec-sub">Von anderen Mahlzeiten</p>` : ''}${rest.map(foodMealRow).join('')}`
     : !q && !data.foodMeals.length ? `<p class="hint nut-small food-meal-tip">🍽️ Isst du etwas öfter? Trag die Mahlzeit einmal ein und tipp im Tagebuch
         auf „💾 Mahlzeit speichern“. Du gibst ihr einen eigenen Namen, danach steht sie hier ganz oben und ist mit einem Tipp eingetragen.</p>` : '';
   if (!q) {
@@ -1620,7 +1633,7 @@ Object.assign(actions, {
     if (!items.length) return;
     const name = await uiPrompt(`Name für diese Mahlzeit (${items.length} Lebensmittel)`, mealLabel(k));
     if (!name || !name.trim()) return;
-    data.foodMeals.push({ id: uid(), name: name.trim(), items });
+    data.foodMeals.push({ id: uid(), name: name.trim(), items, meal: k });  // v343: Mahlzeit, bei der sie gespeichert wurde
     saveData();
     toast(`„${name.trim()}“ gespeichert, beim Hinzufügen ganz oben`);
   },
@@ -1628,6 +1641,7 @@ Object.assign(actions, {
     const m = data.foodMeals.find(x => x.id === el.dataset.id);
     if (!m) return;
     const date = current.params.date || todayISO(), meal = MEALS[current.params.meal] ? current.params.meal : mealDefault();
+    if (!foodMealOf(m)) m.meal = meal;  // ältere ohne Angabe: beim ersten Hinzufügen zuordnen
     const reopened = foodReopen(date);
     m.items.forEach(it => data.foodLog.push({ ...it, id: uid(), date, meal }));
     foodSync(date);

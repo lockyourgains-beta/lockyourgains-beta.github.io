@@ -4113,3 +4113,50 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .pt-detail .variants .vchip { flex: 0 1 auto; }
 .mg-items li.pt-missing { opacity: .6; }
 .pt-detail .mg-btns .btn.primary { flex: 1.2; }
+/* v343: Überschrift „Dein Ernährungsziel“ groß in der Akzentfarbe; gespeicherte Mahlzeiten anderer Mahlzeiten */
+.nut-goal-card .nut-goal-title { margin: 0 0 10px; font-size: 22px; font-weight: 700; color: var(--accent); }
+.food-sec-sub { margin: 10px 4px 4px; }
+/* v344: Yoga */
+.yoga-styles .vchip { flex: 0 1 auto; }
+.yoga-items h2 small { font-size: 13px; font-weight: 500; margin-left: 6px; }
+.yg-item { padding: 10px 0; border-top: 1px solid var(--line); }
+.yg-item-head { display: flex; align-items: center; gap: 10px; }
+.yg-item-head > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.yg-item-head small { color: var(--muted); font-size: 13px; }
+.yg-item-in { display: flex; gap: 10px; margin-top: 8px; }
+.yg-item-in label { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.yg-item-in .inp { width: 100%; }
+.yoga-add-row { gap: 8px; margin-top: 10px; }
+.yoga-add-row .btn { flex: 1; margin: 0; }
+.yoga-add-row .btn.on { background: var(--accent); color: #fff; }
+.yoga-flow-chips { margin: 10px 0 0; }
+.yoga-flow-chips .vchip { flex: 0 1 auto; }
+.yoga-last { margin: 10px 0 0; font-size: 14px; }
+.yoga-row-items { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.35; }
+.yg-cat[hidden], .yg-poses[hidden], .yg-pose[hidden] { display: none; }
+.yg-pose { border-top: 1px solid var(--line); }
+.yg-pose-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 2px; border: 0; background: none; color: var(--text); font: inherit; text-align: left; }
+.yg-pose-btn > span:first-child { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.yg-pose-btn b { font-size: 15.5px; font-weight: 600; }
+.yg-pose-btn small { color: var(--muted); font-size: 12.5px; }
+.yg-pose-r { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--fill); color: var(--muted); font-weight: 700; }
+.yg-pose-btn.on .yg-pose-r { background: var(--accent); color: #fff; }
+.yg-detail { padding: 0 2px 12px; }
+.yg-how { margin: 4px 0 6px; font-size: 15px; line-height: 1.45; }
+.yg-pick .inp, .yg-lib .inp { margin: 0 0 6px; }
+.yg-flow h2 { margin-bottom: 4px; }
+.yg-flow-list { margin: 8px 0 0; padding-left: 22px; }
+.yg-flow-list li { padding: 3px 0; }
+.yg-flow-list small { margin-left: 8px; color: var(--muted); }
+/* v345: Vergleich mit dem letzten Mal, Bestwerte */
+.cardio-last { margin: 10px 2px 12px; }
+.cardio-cmp p { margin: 0 0 6px; }
+.cardio-cmp-row { font-size: 16px; font-weight: 600; }
+.cardio-rec { margin: 6px 0 2px; font-size: 15px; font-weight: 600; }
+.cardio-rec-i { margin: 2px 0 2px 24px; font-size: 14.5px; }
+.cmp { display: inline-block; min-width: 1em; font-weight: 700; color: var(--muted); }
+.cmp.up { color: var(--good, #16a34a); }
+.cmp.down { color: var(--warn, #d97706); }
+.cardio-row-cmp, .cardio-best { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.35; }
+.yg-item-last { margin: 4px 0 0; }
+.cardio-speed .c-line { stroke-width: 2.25; }
