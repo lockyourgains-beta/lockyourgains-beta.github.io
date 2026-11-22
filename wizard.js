@@ -1197,8 +1197,10 @@ function renderWizTime() {
   const opt = (m, text) => `<button class="split-opt freq-opt ${wiz.timeMax === m ? 'on' : ''}" data-action="wiz-time" data-m="${m}">
       <b>höchstens ${m} Minuten</b><small>${text}</small></button>`;
   return wizCard('⏱️', 'Wie lange darf ein Training höchstens dauern?',
-    `Gemeint ist die längste Woche am Ende des Zyklus, ohne Aufwärmen. Am Anfang des Zyklus sind die Trainings kürzer, weil
-      von Woche zu Woche Sätze dazukommen. Die App plant höchstens so viele Sätze pro Training, dass es in diese Zeit passt.`,
+    `Das ist die reine Trainingszeit: deine Sätze mit den Pausen dazwischen. Aufwärmen, Umziehen und Wartezeiten am Gerät kommen
+      noch dazu, deshalb zeigt die Startseite später etwas mehr Zeit an. Gemeint ist die längste Woche am Ende des Zyklus. Am Anfang des
+      Zyklus sind die Trainings kürzer, weil von Woche zu Woche Sätze dazukommen. Die App plant höchstens so viele Sätze pro Training,
+      dass es in diese Zeit passt.`,
     opt(90, `bis etwa ${TIME_CAPS[90]} Sätze, das volle Programm${needsCoach() ? '' : ' (empfohlen)'}`) +
     opt(75, `bis etwa ${TIME_CAPS[75]} Sätze`) +
     opt(60, `bis etwa ${TIME_CAPS[60]} Sätze${needsCoach() ? ', gut für den Anfang (empfohlen)' : ''}`) +
@@ -1966,7 +1968,7 @@ Object.assign(actions, {
     const inputs = $view.querySelectorAll('[data-field="own-name"]');
     inputs[inputs.length - 1].focus();
   },
-  'own-del-ex': el => { wiz.own[wiz.oi].exercises.splice(Number(el.dataset.e), 1); render(); },
+  'own-del-ex': el => { const x = wiz.own[wiz.oi].exercises[Number(el.dataset.e)]; if (x && (x.name || '').trim() && !askOk(`„${x.name.trim()}“ entfernen?`)) return; wiz.own[wiz.oi].exercises.splice(Number(el.dataset.e), 1); render(); },
   'own-prev': () => actions.back(),
   'own-next': () => {
     const d = wiz.own[wiz.oi];
@@ -2049,7 +2051,7 @@ Object.assign(actions, {
     render();
     toast(`„${t.name}“ gespeichert und hinzugefügt`);
   },
-  'wiz-day-del': el => { wiz.days.splice(Number(el.dataset.d), 1); render(); },
+  'wiz-day-del': el => { const d = wiz.days[Number(el.dataset.d)]; if (d && !askOk(`„${d.name}“ entfernen?`)) return; wiz.days.splice(Number(el.dataset.d), 1); render(); },
   'wiz-dayint': el => { wiz.days[el.dataset.d].intensity = el.dataset.k; render(); },
   'wiz-daygroup': el => {
     const d = wiz.days[el.dataset.d], g = el.dataset.g;
@@ -2130,7 +2132,7 @@ Object.assign(actions, {
     go('wizard');
   },
   'wiz-topreview': () => { wiz.step = 'preview'; wiz.fromPreview = false; go('wizard'); },
-  'wiz-unpick': el => { wiz.picks[wizGroups()[wiz.gi]].splice(Number(el.dataset.i), 1); render(); },
+  'wiz-unpick': el => { const n = (wiz.picks[wizGroups()[wiz.gi]] || [])[Number(el.dataset.i)]; if (n && !askOk(`„${n}“ entfernen?`)) return; wiz.picks[wizGroups()[wiz.gi]].splice(Number(el.dataset.i), 1); render(); },
   'wiz-chip': el => wizAddPick(el.dataset.name),
   'wiz-add-typed': () => {
     const input = $view.querySelector('[data-field="wiz-add"]');

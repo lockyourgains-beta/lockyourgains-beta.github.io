@@ -33,18 +33,18 @@ const MG_RECIPES_BASE = [
     items: [['Vollkornbrot', 100, 'C', 0, 200], ['Räuchertofu', 100, 'P'], ['Avocado', 50, 'F'], ['Tomate', 80, 'X'], ['Rucola', 20, 'X']] },
   { id: 'skyrfruit', cat: 'b', name: 'Skyr mit Erdbeeren, Banane und Kürbiskernen', how: 'Skyr glatt rühren, Obst klein schneiden und darauf geben, mit Kürbiskernen und Honig.',
     items: [['Skyr natur', 250, 'P'], ['Erdbeeren', 150, 'X'], ['Banane', 100, 'C', 0, 250], ['Kürbiskerne', 15, 'F'], ['Honig', 10, 'C']] },
-  { id: 'omelette', cat: 'b', name: 'Gemüse-Omelett mit Feta und Reiswaffeln', how: 'Eier und Eiklar verquirlen, mit Paprika und Spinat in die Pfanne geben, Feta darüber bröseln und stocken lassen. Reiswaffeln dazu.',
-    items: [['Ei', 120, 'P', 60], ['Eiklar', 90, 'P'], ['Paprika', 100, 'X'], ['Spinat', 50, 'X'], ['Feta (Schafskäse)', 20, 'F'], ['Reiswaffel', 24, 'C', 8, 64]] },
+  { id: 'omelette', cat: 'b', name: 'Gemüse-Omelett mit Feta und Vollkornbrot', how: 'Eier und Eiklar verquirlen, mit Paprika und Spinat in die Pfanne geben, Feta darüber bröseln und stocken lassen. Vollkornbrot dazu.',
+    items: [['Ei', 120, 'P', 60], ['Eiklar', 90, 'P'], ['Paprika', 100, 'X'], ['Spinat', 50, 'X'], ['Feta (Schafskäse)', 20, 'F'], ['Vollkornbrot', 60, 'C', 0, 200]] },
   { id: 'millet', cat: 'b', fam: 'porridge', name: 'Hirse-Porridge mit Apfel und Zimt', how: 'Hirse in der Milch etwa 15 Minuten köcheln lassen, vom Herd nehmen und das Proteinpulver einrühren. Mit Apfel, Zimt und Mandeln essen.',
     items: [['Hirse, roh', 60, 'C', 0, 130], ['Milch 1,5 %', 250, 'X'], ['Proteinpulver (Whey)', 20, 'P'], ['Apfel', 120, 'X'], ['Mandeln', 10, 'F']] },
   // Haupt­mahlzeiten
-  { id: 'chickenrice', cat: 'm', name: 'Hähnchen mit Reis und Brokkoli', how: 'Reis kochen. Hähnchen in Stücken in Öl braten, Brokkoli dämpfen oder mitbraten.',
-    items: [['Hähnchenbrust, roh', 170, 'P'], ['Reis, roh', 80, 'C', 0, 170], ['Brokkoli', 200, 'X'], [MG_OIL, 8, 'F']] },
+  { id: 'chickenrice', cat: 'm', name: 'Honig-Soja-Hähnchen mit Reis und Brokkoli', how: 'Reis kochen. Hähnchen in Stücken in Öl braten, Brokkoli mitbraten oder dämpfen. Sojasoße, Honig, etwas Knoblauch und einen Schuss Wasser dazugeben und kurz einkochen lassen, bis das Fleisch glänzt.',
+    items: [['Hähnchenbrust, roh', 170, 'P'], ['Reis, roh', 80, 'C', 0, 170], ['Brokkoli', 200, 'X'], ['Sojasoße', 15, 'X'], ['Honig', 8, 'X'], [MG_OIL, 8, 'F']] },
   { id: 'chili', cat: 'm', fam: 'chili', name: 'Chili con Carne mit Reis', how: 'Zwiebel und Hack in Öl anbraten, Paprika, Tomaten, Bohnen und Mais dazugeben und 15 Minuten köcheln lassen. Mit Reis essen.',
     items: [['Rinderhackfleisch mager (5 % Fett), roh', 150, 'P'], ['Kidneybohnen (Dose, abgetropft)', 100, 'C'], ['Reis, roh', 60, 'C'], ['Passierte Tomaten (Passata)', 200, 'X'],
       ['Paprika', 100, 'X'], ['Zwiebel', 50, 'X'], ['Mais (Dose, abgetropft)', 50, 'X'], [MG_OIL, 5, 'F']] },
-  { id: 'salmon', cat: 'm', name: 'Lachs mit Süßkartoffel und grünen Bohnen', how: 'Süßkartoffel in Spalten mit Öl im Ofen backen (200 °C, etwa 25 Minuten), den Lachs die letzten 12 Minuten dazulegen. Bohnen kochen.',
-    items: [['Lachs, roh', 140, 'P'], ['Süßkartoffel', 300, 'C', 0, 500], ['Grüne Bohnen', 150, 'X'], [MG_OIL, 5, 'F']] },
+  { id: 'salmon', cat: 'm', name: 'Lachs mit Süßkartoffel, grünen Bohnen und Joghurt-Dill-Dip', how: 'Süßkartoffel in Spalten mit Öl im Ofen backen (200 °C, etwa 25 Minuten), den Lachs die letzten 12 Minuten dazulegen. Bohnen kochen. Joghurt mit Dill, Zitronensaft und Salz verrühren und dazu essen.',
+    items: [['Lachs, roh', 140, 'P'], ['Süßkartoffel', 300, 'C', 0, 500], ['Grüne Bohnen', 150, 'X'], ['Joghurt natur 1,5 %', 80, 'X'], [MG_OIL, 5, 'F']] },
   { id: 'bolognese', cat: 'm', fam: 'bolognese', name: 'Spaghetti Bolognese mit magerem Hack', how: 'Zwiebel, Karotte und Hack in Öl anbraten, Tomaten dazugeben und köcheln lassen. Mit Nudeln und Parmesan essen.',
     items: [['Nudeln, roh', 90, 'C', 0, 170], ['Rinderhackfleisch mager (5 % Fett), roh', 150, 'P'], ['Passierte Tomaten (Passata)', 200, 'X'], ['Zwiebel', 50, 'X'],
       ['Karotte (Möhre)', 60, 'X'], ['Parmesan', 10, 'F'], [MG_OIL, 5, 'F']] },
@@ -54,12 +54,12 @@ const MG_RECIPES_BASE = [
   { id: 'tunapasta', cat: 'm', name: 'Thunfisch-Nudelsalat', how: 'Nudeln kochen und abkühlen lassen, mit Thunfisch, Gemüse, Joghurt und Öl mischen.',
     items: [['Vollkornnudeln, roh', 80, 'C', 0, 170], ['Thunfisch im eigenen Saft (abgetropft)', 130, 'P'], ['Mais (Dose, abgetropft)', 60, 'X'], ['Tomate', 100, 'X'],
       ['Gurke', 100, 'X'], ['Joghurt natur 1,5 %', 60, 'X'], [MG_OIL, 8, 'F']] },
-  { id: 'steak', cat: 'm', name: 'Steak mit Kartoffeln und Champignons', how: 'Steak von jeder Seite 2 bis 3 Minuten in Öl braten und kurz ruhen lassen. Champignons in der Pfanne braten, dazu Kartoffeln.',
-    items: [['Rindersteak (Hüfte, Rumpsteak), roh', 180, 'P'], ['Kartoffeln, gekocht', 300, 'C', 0, 500], ['Champignons', 150, 'X'], [MG_OIL, 8, 'F']] },
+  { id: 'steak', cat: 'm', name: 'Steak mit Rahmchampignons und Kartoffeln', how: 'Steak von jeder Seite 2 bis 3 Minuten in Öl braten und kurz ruhen lassen. Zwiebel und Champignons im Bratfett anbraten, mit Kochsahne ablöschen, mit Salz, Pfeffer und Petersilie abschmecken und kurz einköcheln lassen. Dazu Kartoffeln.',
+    items: [['Rindersteak (Hüfte, Rumpsteak), roh', 180, 'P'], ['Kartoffeln, gekocht', 300, 'C', 0, 500], ['Champignons', 150, 'X'], ['Zwiebel', 30, 'X'], ['Kochsahne 15 %', 40, 'F'], [MG_OIL, 8, 'F']] },
   { id: 'tofucurry', cat: 'm', fam: 'wok', name: 'Tofu-Gemüse-Pfanne mit Reis', how: 'Tofu würfeln und in Öl knusprig braten, Gemüse dazugeben und mit Sojasoße abschmecken. Mit Reis essen.',
     items: [['Tofu natur', 200, 'P'], ['Reis, roh', 75, 'C', 0, 170], ['Gemüsemischung (TK)', 250, 'X'], ['Sojasoße', 15, 'X'], [MG_OIL, 8, 'F']] },
-  { id: 'bowl', cat: 'm', fam: 'bowl', name: 'Hähnchen-Quinoa-Bowl mit Feta', how: 'Quinoa kochen, Hähnchen braten und mit Kichererbsen, Gurke, Tomate und Feta in einer Schüssel anrichten.',
-    items: [['Hähnchenbrust, roh', 150, 'P'], ['Quinoa, roh', 60, 'C'], ['Kichererbsen (Dose, abgetropft)', 80, 'C'], ['Gurke', 100, 'X'], ['Tomate', 100, 'X'], ['Feta (Schafskäse)', 30, 'F']] },
+  { id: 'bowl', cat: 'm', fam: 'bowl', name: 'Hähnchen-Quinoa-Bowl mit Feta und Joghurtdressing', how: 'Quinoa kochen, Hähnchen in Öl braten und mit Kichererbsen, Gurke, Tomate und Feta in einer Schüssel anrichten. Joghurt mit Zitronensaft, Knoblauch, Salz und Pfeffer verrühren und darüber geben.',
+    items: [['Hähnchenbrust, roh', 150, 'P'], ['Quinoa, roh', 60, 'C'], ['Kichererbsen (Dose, abgetropft)', 80, 'C'], ['Gurke', 100, 'X'], ['Tomate', 100, 'X'], ['Feta (Schafskäse)', 30, 'F'], ['Joghurt natur 1,5 %', 60, 'X'], [MG_OIL, 5, 'F']] },
   { id: 'pollock', cat: 'm', name: 'Seelachs mit Kartoffeln und Rahmspinat', how: 'Seelachs in Öl braten. Spinat dünsten und mit saurer Sahne verrühren, dazu Kartoffeln.',
     items: [['Seelachs, roh', 200, 'P'], ['Kartoffeln, gekocht', 300, 'C', 0, 500], ['Spinat', 200, 'X'], ['Saure Sahne 10 %', 40, 'X'], [MG_OIL, 5, 'F']] },
   { id: 'pesto', cat: 'm', name: 'Pesto-Nudeln mit Hähnchen und Zucchini', how: 'Nudeln kochen, Hähnchen und Zucchini braten, Tomaten dazugeben und alles mit Pesto mischen.',
@@ -69,8 +69,8 @@ const MG_RECIPES_BASE = [
   { id: 'soychili', cat: 'm', fam: 'chili', name: 'Sojaschnetzel-Chili mit Reis', how: 'Sojaschnetzel 10 Minuten in heißer Brühe einweichen und ausdrücken. Mit Zwiebel in Öl anbraten, Paprika, Tomaten, Bohnen und Mais dazugeben und köcheln lassen. Mit Reis essen.',
     items: [['Sojaschnetzel, trocken', 50, 'P'], ['Kidneybohnen (Dose, abgetropft)', 100, 'C'], ['Reis, roh', 60, 'C', 0, 170], ['Passierte Tomaten (Passata)', 200, 'X'],
       ['Paprika', 100, 'X'], ['Zwiebel', 50, 'X'], ['Mais (Dose, abgetropft)', 50, 'X'], [MG_OIL, 8, 'F']] },
-  { id: 'tofubowl', cat: 'm', fam: 'bowl', name: 'Räuchertofu-Bowl mit Quinoa und Edamame', how: 'Quinoa kochen, Edamame kurz garen, Räuchertofu würfeln und anbraten. Mit Karotte, Gurke und Avocado anrichten.',
-    items: [['Räuchertofu', 120, 'P'], ['Edamame (TK)', 80, 'P'], ['Quinoa, roh', 60, 'C', 0, 150], ['Karotte (Möhre)', 60, 'X'], ['Gurke', 100, 'X'], ['Avocado', 40, 'F']] },
+  { id: 'tofubowl', cat: 'm', fam: 'bowl', name: 'Räuchertofu-Bowl mit Quinoa, Edamame und Soja-Limetten-Dressing', how: 'Quinoa kochen, Edamame kurz garen, Räuchertofu würfeln und anbraten. Mit Karotte, Gurke und Avocado anrichten. Sojasoße mit Limettensaft, etwas Ingwer und Wasser verrühren und darüber träufeln.',
+    items: [['Räuchertofu', 120, 'P'], ['Edamame (TK)', 80, 'P'], ['Quinoa, roh', 60, 'C', 0, 150], ['Karotte (Möhre)', 60, 'X'], ['Gurke', 100, 'X'], ['Avocado', 40, 'F'], ['Sojasoße', 15, 'X']] },
   { id: 'chickpeacurry', cat: 'm', fam: 'curry', name: 'Kichererbsen-Spinat-Curry mit Reis', how: 'Zwiebel in Öl anbraten, Currypulver kurz mitrösten. Kichererbsen und Tomaten dazugeben, 10 Minuten köcheln lassen und den Spinat unterheben. Mit Reis essen.',
     items: [['Kichererbsen (Dose, abgetropft)', 200, 'P'], ['Reis, roh', 60, 'C', 0, 170], ['Spinat', 150, 'X'], ['Passierte Tomaten (Passata)', 150, 'X'], ['Zwiebel', 50, 'X'], [MG_OIL, 10, 'F']] },
   { id: 'falafel', cat: 'm', name: 'Falafel-Teller mit Bulgur und Hummus', how: 'Bulgur mit kochendem Wasser übergießen und 10 Minuten quellen lassen. Falafel im Ofen aufbacken und mit Salat, Tomate, Gurke und Hummus anrichten.',
@@ -83,10 +83,10 @@ const MG_RECIPES_BASE = [
     items: [['Ei', 180, 'P', 60], ['Passierte Tomaten (Passata)', 200, 'X'], ['Paprika', 100, 'X'], ['Zwiebel', 50, 'X'], ['Vollkornbrot', 80, 'C', 0, 200], ['Feta (Schafskäse)', 20, 'F'], [MG_OIL, 5, 'F']] },
   { id: 'shrimp', cat: 'm', name: 'Garnelen-Nudeln mit Zucchini und Tomaten', how: 'Nudeln kochen. Garnelen mit Knoblauch in Öl braten, Zucchini und Tomaten kurz mitbraten und alles mit den Nudeln mischen.',
     items: [['Garnelen, roh', 180, 'P'], ['Nudeln, roh', 80, 'C', 0, 170], ['Zucchini', 150, 'X'], ['Tomate', 100, 'X'], [MG_OIL, 10, 'F']] },
-  { id: 'cod', cat: 'm', name: 'Kabeljau mit Reis, Erbsen und Karotten', how: 'Reis kochen. Kabeljau in Öl braten, Erbsen und Karotten dünsten.',
-    items: [['Kabeljau, roh', 200, 'P'], ['Reis, roh', 70, 'C', 0, 170], ['Erbsen (TK)', 100, 'X'], ['Karotte (Möhre)', 80, 'X'], [MG_OIL, 8, 'F']] },
-  { id: 'pork', cat: 'm', name: 'Schweinefilet mit Bulgur und Paprikagemüse', how: 'Bulgur quellen lassen. Schweinefilet in Medaillons schneiden und in Öl braten, Paprika und Zwiebel mitbraten.',
-    items: [['Schweinefilet, roh', 170, 'P'], ['Bulgur, roh', 70, 'C', 0, 150], ['Paprika', 150, 'X'], ['Zwiebel', 50, 'X'], [MG_OIL, 8, 'F']] },
+  { id: 'cod', cat: 'm', name: 'Kabeljau mit Reis, Erbsen-Möhren-Gemüse und Dillsoße', how: 'Reis kochen. Kabeljau in Öl braten. Erbsen und Karotten dünsten. Kochsahne mit Dill, Zitronensaft und etwas Senf kurz aufkochen und über den Fisch geben.',
+    items: [['Kabeljau, roh', 200, 'P'], ['Reis, roh', 70, 'C', 0, 170], ['Erbsen (TK)', 100, 'X'], ['Karotte (Möhre)', 80, 'X'], ['Kochsahne 15 %', 40, 'F'], [MG_OIL, 8, 'F']] },
+  { id: 'pork', cat: 'm', name: 'Schweinefilet mit Bulgur und Paprika-Tomaten-Gemüse', how: 'Bulgur quellen lassen. Schweinefilet in Medaillons schneiden und in Öl braten, herausnehmen. Paprika und Zwiebel im Bratfett anbraten, Passata und Paprikapulver dazugeben und etwa 5 Minuten schmoren lassen.',
+    items: [['Schweinefilet, roh', 170, 'P'], ['Bulgur, roh', 70, 'C', 0, 150], ['Paprika', 150, 'X'], ['Zwiebel', 50, 'X'], ['Passierte Tomaten (Passata)', 100, 'X'], [MG_OIL, 8, 'F']] },
   // Snacks
   { id: 'quarkberry', cat: 's', name: 'Magerquark mit Himbeeren', how: 'Quark glatt rühren, Beeren und Mandeln darauf geben und mit Honig süßen.',
     items: [['Magerquark', 200, 'P'], ['Himbeeren', 100, 'X'], ['Honig', 10, 'C'], ['Mandeln', 10, 'F']] },
@@ -371,6 +371,32 @@ function mgPick(picks, wd, k) {
 const mgVal = (name, g) => { const f = mgFood(name); return f ? f.per.slice(0, 4).map(v => (v || 0) * g / 100) : [0, 0, 0, 0]; };
 const mgKcalOf = its => its.reduce((s, i) => s + mgVal(i.n, i.g)[0], 0);
 
+/* v351: Ergänzungen passend verteilen. Banane, Nüsse und Proteinpulver nur zu süßen Gerichten (Quark, Porridge, Shake …),
+   nicht zu herzhaften (z. B. Thunfisch- oder Seitan-Snack); Reiswaffeln eher zu herzhaften Snacks. Steckt die Zutat schon
+   in einem Frühstück oder Snack, wird dort einfach die Menge erhöht. Hauptgerichte bekommen nur im Notfall etwas dazu. */
+const MG_SWEET = new Set(['Ananas', 'Apfel', 'Apfelmus, ungesüßt', 'Banane', 'Birne', 'Erdbeeren', 'Heidelbeeren', 'Himbeeren', 'Kirschen', 'Kiwi',
+  'Mandarine, Clementine', 'Mango', 'Orange', 'Pfirsich, Nektarine', 'Weintrauben', 'Datteln, getrocknet', 'Rosinen', 'Honig', 'Ahornsirup',
+  'Marmelade, Konfitüre', 'Kakaopulver (ungesüßt)', 'Süßungsmittel (Erythrit, Streusüße)', 'Proteinpulver (Whey)', 'Proteinpulver, vegan', 'Proteinpudding',
+  'Proteinriegel', 'Puddingpulver Vanille (Speisestärke)', 'Butterkekse', 'Haferflocken', 'Müsli, ohne Zuckerzusatz', 'Knuspermüsli (Crunchy)', 'Chiasamen',
+  'Kokosraspeln', 'Zartbitterschokolade 70 %', 'Grieß, roh']);
+const MG_SAVORY = new Set(['Avocado', 'Balsamico-Essig', 'Blattsalat (Kopfsalat, Eisberg, Feldsalat)', 'Champignons', 'Edamame (TK)', 'Feta (Schafskäse)',
+  'Frühlingszwiebeln', 'Gewürzgurken', 'Gouda', 'Gurke', 'Halloumi', 'Harzer Käse', 'Hummus', 'Kartoffeln, gekocht', 'Ketchup', 'Kichererbsen (Dose, abgetropft)',
+  'Kidneybohnen (Dose, abgetropft)', 'Kohlrabi', 'Linsen, gekocht', 'Mais (Dose, abgetropft)', 'Mozzarella light', 'Paprika', 'Parmesan', 'Passierte Tomaten (Passata)',
+  'Räuchertofu', 'Rucola', 'Schwarze Bohnen (Dose, abgetropft)', 'Seitan', 'Senf', 'Sojasoße', 'Staudensellerie', 'Sweet-Chili-Soße', 'Süßkartoffel', 'Tempeh',
+  'Tofu natur', 'Tomate', 'Tomatenmark', 'Weiße Bohnen (Dose, abgetropft)', 'Zucchini', 'Zwiebel']);
+const mgSweet = its => its.some(i => MG_SWEET.has(i.n)) && !its.some(i => MG_SAVORY.has(i.n) || /[mf]/.test(MG_TAG[i.n] || ''));
+const MG_FILL_SWEET = ['Banane', 'Mandeln', 'Proteinpulver (Whey)'];
+function mgFillSlot(slots, it) {
+  const cat = sl => mgCat(sl.k), sweet = sl => (sl.sweet != null ? sl.sweet : (sl.sweet = mgSweet(sl.its)));
+  const tries = [sl => cat(sl) !== 'm' && sl.its.some(i => i.n === it.n)];
+  const sw = MG_FILL_SWEET.includes(it.sub || it.n), pow = it.role === 'P';
+  if (sw) tries.push(sl => cat(sl) !== 'm' && sweet(sl));
+  else tries.push(sl => cat(sl) === 's' && !sweet(sl), sl => cat(sl) === 's');
+  if (!sw || pow) tries.push(sl => cat(sl) !== 'm');  // Proteinpulver notfalls als Shake dazu
+  for (const f of tries) for (let i = slots.length - 1; i >= 0; i--) if (f(slots[i])) return i;
+  return sw && !pow ? -1 : slots.length - 1;  // Banane und Nüsse an einem Tag ohne süße Mahlzeit lieber weglassen
+}
+
 /* Mengen für einen Tag: Für jede Mahlzeit und Rolle (P, C, F) ein Faktor auf die Grundmenge. Gesucht sind Faktoren, mit denen
    der Tag Kalorien und Eiweiß möglichst genau trifft (Kohlenhydrate und Fett etwas weniger streng) und jede Mahlzeit grob
    ihren Anteil bekommt. Gelöst als kleines Ausgleichsproblem mit Grenzen (Koordinatenabstieg).
@@ -410,12 +436,11 @@ function mgSolve(slots, T, fills, pLo = MG_BOUNDS.P[0]) {
     meal.b = fix[0];
     rows.push(meal);
   });
-  // Ergänzungen beim Snack (sonst bei der letzten Mahlzeit), nur wenn die Gerichte allein das Ziel nicht erreichen
-  const sIdx = slots.map(x => mgCat(x.k)).lastIndexOf('s');
-  const fillSi = sIdx >= 0 ? sIdx : slots.length - 1;
+  // Ergänzungen nur, wenn die Gerichte allein das Ziel nicht erreichen; v351: jeweils bei einer passenden Mahlzeit (mgFillSlot)
   fills.forEach((it, fi) => {
-    const j = vars.length;
-    vars.push({ si: fillSi, role: 'E' + fi, s: 0, z: 0, lo: 0, hi: it.max / it.g, lam: it.role === 'P' ? 0.04 : 0.004 });  // Pulver nur, wenn es wirklich fehlt
+    const j = vars.length, si = mgFillSlot(slots, it);
+    if (si < 0) return;
+    vars.push({ si, role: 'E' + fi, s: 0, z: 0, lo: 0, hi: it.max / it.g, lam: it.role === 'P' ? 0.04 : 0.004 });  // Pulver nur, wenn es wirklich fehlt
     mgVal(it.n, it.g).forEach((x, n) => day[n].a.set(j, x));
   });
   rows.push(...day);
@@ -880,7 +905,7 @@ Object.assign(actions, {
     render();
     window.scrollTo(0, 0);
   },
-  'mg-cancel': () => { mgDraft = null; go('nutrition'); },
+  'mg-cancel': () => { if (!askOk('Vorschlag verwerfen?\n\nDer Ernährungsplan wird nicht übernommen.')) return; mgDraft = null; go('nutrition'); },
   'mg-end': () => {
     if (!askOk('Ernährungsplan beenden?\n\nDein Tagesziel und dein Tagebuch bleiben, wie sie sind.')) return;
     data.mealPlan = null;
@@ -897,7 +922,7 @@ Object.assign(actions, {
     if (!s.done.includes(n) && typeof ptAdd === 'function') ptAdd(n);  // v341: gekauft = im Vorrat
     saveData(); render();
   },
-  'mg-shop-reset': () => { data.mealPlan.shop = { ...mgShop(), done: [] }; saveData(); render(); },
+  'mg-shop-reset': () => { if (!askOk('Alle Häkchen entfernen?')) return; data.mealPlan.shop = { ...mgShop(), done: [] }; saveData(); render(); },
   'mg-shop-share': async () => {
     const shop = mgShop(), { days, groups } = mgShopList();
     const lines = [`${tr('Einkaufsliste')}: ${mgDateShort(days[0])} ${tr('bis')} ${mgDateShort(days[days.length - 1])}`];

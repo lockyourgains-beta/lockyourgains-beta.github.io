@@ -438,6 +438,7 @@ const tourCard = () => `<div class="card"><h2>💡 Einführungen</h2>
 
 Object.assign(actions, {
   'tour-reset': () => {
+    if (!askOk('Einführungen zurücksetzen?\n\nDie Erklärungen erscheinen dann wieder beim Öffnen der Fenster.')) return;  // v350
     data.tour = { seen: {}, off: false };
     if (typeof visitsReset === 'function') visitsReset();  // v209: Erklärtexte stehen danach auch wieder offen
     saveData(); render();

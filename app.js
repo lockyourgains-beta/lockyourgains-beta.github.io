@@ -627,15 +627,35 @@ function uiDialog(opts) {
         ${opts.input ? `<input class="inp dlg-inp" type="${opts.input.type || 'text'}" autocomplete="off" value="${esc(opts.input.value || '')}" placeholder="${esc(opts.input.placeholder || '')}">` : ''}
         ${opts.copy != null ? `<textarea class="inp dlg-copy" rows="5" readonly>${esc(opts.copy)}</textarea>` : ''}
         <div class="dlg-btns${choices.length > 2 ? ' many' : ''}">${choices.map((c, i) =>
-          `<button class="btn ${c.danger ? 'danger-fill' : c.primary ? 'primary' : ''}" data-dlg="${i}">${esc(c.label)}</button>`).join('')}</div>
+          `<button class="btn ${c.danger ? 'danger-fill' : c.primary ? 'primary' : ''}" data-dlg="${i}"${c.wait ? ' disabled' : ''}><span>${esc(c.label)}</span>${c.wait ? `<span class="dlg-cd"> (${c.wait})</span>` : ''}</button>`).join('')}</div>
       </div>`;
+    // v350 (User): „Ja“ bei Beenden/Löschen erst nach einigen Sekunden antippbar (Countdown im Knopf)
+    const waits = [];
+    choices.forEach((c, i) => {
+      if (!c.wait) return;
+      let n = c.wait;
+      const b = () => back.querySelector(`[data-dlg="${i}"]`);
+      const t = setInterval(() => {
+        n--;
+        const el = b();
+        if (!el) { clearInterval(t); return; }
+        if (n > 0) { const cd = el.querySelector('.dlg-cd'); if (cd) cd.textContent = ` (${n})`; }
+        else { clearInterval(t); el.disabled = false; const cd = el.querySelector('.dlg-cd'); if (cd) cd.remove(); }
+      }, 1000);
+      waits.push(t);
+    });
     const done = v => {
+      waits.forEach(clearInterval);
       document.removeEventListener('keydown', key, true);
       back.classList.remove('show');
       setTimeout(() => back.remove(), 180);
       resolve(v);
     };
-    const pick = i => { const c = choices[i]; done(c.value === '__input' ? back.querySelector('.dlg-inp').value : c.value); };
+    const pick = i => {
+      const btn = back.querySelector(`[data-dlg="${i}"]`);
+      if (btn && btn.disabled) return;  // noch gesperrt
+      const c = choices[i]; done(c.value === '__input' ? back.querySelector('.dlg-inp').value : c.value);
+    };
     const key = e => {
       if (e.key === 'Escape' && cancelLabel) { e.preventDefault(); e.stopPropagation(); done(opts.input ? null : false); }
       if (e.key === 'Enter' && !e.shiftKey && !(e.target && e.target.tagName === 'TEXTAREA')) { e.preventDefault(); pick(choices.length - 1); }
@@ -657,10 +677,20 @@ function uiDialog(opts) {
 }
 window.alert = msg => { uiDialog({ msg }); };
 // Bestätigen: Knopf-Beschriftung aus dem Text („… löschen?“ → „Löschen“)
+// v350 (User): Alles, was etwas beendet, löscht, verwirft, entfernt oder überschreibt, ist eine Ja/Nein-Frage,
+// und „Ja“ lässt sich erst nach CONFIRM_WAIT Sekunden antippen
+const CONFIRM_WAIT = 3;
+const DESTROY_VERB = /(?:^|[^\wäöüß])(löschen|entfernen|verwerfen|zurücksetzen|ersetzen|beenden|leeren|weglassen|unterbrechen|abbrechen|absagen)(?![\wäöüß])/i;
+const DESTROY_HINT = /nicht rückgängig|gehen? [^.]{0,40}verloren|werden [^.]{0,30}(ersetzt|überschrieben)|endgültig/i;
 function confirmOpts(msg) {
   const t = String(msg).split(/\n\s*\n/)[0];  // nur der erste Absatz (die eigentliche Frage)
-  const verb = (t.match(/(?:^|[^\wäöüß])(löschen|entfernen|verwerfen|zurücksetzen|ersetzen|beenden)(?![\wäöüß])/i) || [])[1];
+  const verb = (t.match(DESTROY_VERB) || [])[1];
   const danger = /(?:^|[^\wäöüß])(löschen|verwerfen)(?![\wäöüß])/i.test(t);
+  const check = /OK = /.test(String(msg));  // „Stimmt das? OK = so speichern …“: normale Rückfrage
+  if (!check && (verb || DESTROY_HINT.test(String(msg)))) {
+    const ok = verb ? `Ja, ${verb.toLowerCase()}` : 'Ja';
+    return { msg, confirm: true, danger, choices: [{ label: 'Nein', value: false }, { label: ok, value: true, primary: !danger, danger, wait: CONFIRM_WAIT }], cancel: 'Nein' };
+  }
   return { msg, confirm: true, ok: verb ? dlgCap(verb.toLowerCase()) : 'Ja', danger };
 }
 function uiConfirm(msg) {
@@ -1855,7 +1885,8 @@ function volDurText() {
   const dur = days.map(d => [Math.round(estDuration(d, 1, p)), Math.round(estDuration(d, bw, p))]);
   const list = days.map((d, i) => `<b>${esc(d.name)}</b> ca. ${dur[i][0] === dur[i][1] ? fmtDur(dur[i][1]) : `${fmtDur(dur[i][0])} → ${fmtDur(dur[i][1])}`}`).join(' | ');
   let t = `⏱ So lange dauern deine Trainingstage damit etwa (Intro → Höhepunkt): ${list}.`;
-  if (p.timeMax && Math.max(...dur.map(x => x[1])) > p.timeMax * 1.1) t += ` Das ist etwas länger als die ${p.timeMax} min, die du beim Erstellen gewählt hast. Die App übernimmt deine Zahlen trotzdem so.`;
+  // Vergleich mit der Auswahl im Assistenten: die meint die Zeit ohne Aufwärmen
+  if (p.timeMax && Math.max(...days.map(d => estDuration(d, bw, p, false, false))) > p.timeMax * 1.1) t += ` Das ist etwas länger als die ${p.timeMax} min, die du beim Erstellen gewählt hast. Die App übernimmt deine Zahlen trotzdem so.`;
   return t;
 }
 
@@ -1947,7 +1978,29 @@ function autoSetsForDay(day, week, deload, vol = data.volume, half = false) {
 // Grundübung 4, normale Übung 3, Isolation (Assistenz) 2 min; nach dem letzten Satz des Trainings keine Pause.
 // Sätze wie im Training (draftEntries): Muskelgruppen-Volumen der Woche, sonst Wochenplan der Übung; deload = halbe Sätze.
 const REST_MIN = { compound: 4, normal: 3, assist: 2 };
-function estDuration(day, week, plan = activePlan(), deload = false) {
+// v353 (User): Aufwärmsätze zählen mit, je Satz WARM_MIN Minuten (Satz und Pause, dazu das passende Gewicht suchen). Anzahl wie
+// im Training vorgeschlagen (defaultWarmup): selbst angepasst wie zuletzt, Langhantel-Grundübung je nach Arbeitsgewicht, normale
+// Übung 1, Isolation und Eigengewicht 0. Im Training zählt das tatsächliche Aufwärmen der Übung (en.warmup).
+const WARM_MIN = 2;
+const EST_MORE = 'Plane trotzdem etwas mehr Zeit ein, z. B. fürs Umziehen oder wenn ein Gerät gerade belegt ist.';
+const warmCache = new Map();
+function warmCount(name, en) {
+  if (en && en.warmup) return en.warmup.length;
+  if (en && en.target && en.target.bodyweight) return 0;
+  const key = data.sessions.length + '|' + nameKey(name);
+  if (warmCache.has(key)) return warmCache.get(key);
+  const kind = warmupKind({ name }), custom = lastWarmup(name);
+  let n = custom ? custom.length : !kind ? 0 : kind === 'normal' ? 1 : null;
+  if (n == null) {
+    const last = lastEntry(name), s0 = last && ofVariant(last.sets, '')[0], ex = planExercise(name);
+    const work = (s0 && s0.weight) || (ex && ex.max10) || null;
+    n = work ? warmupSets(work).length : 3;
+  }
+  if (warmCache.size > 500) warmCache.clear();
+  warmCache.set(key, n);
+  return n;
+}
+function estDuration(day, week, plan = activePlan(), deload = false, warm = true) {
   const exs = day.exercises.filter(e => e.name.trim());
   if (!exs.length) return 0;
   const bw = data.cycle.buildWeeks || 4;
@@ -1955,7 +2008,7 @@ function estDuration(day, week, plan = activePlan(), deload = false) {
   const auto = autoSetsForDay(day, deload ? bw : w, deload, plan.volume || {});
   const items = exs.map(ex => {
     const n = auto.has(ex.id) ? auto.get(ex.id) : deload ? deloadSets(setsForWeek(ex, bw, bw)) : setsForWeek(ex, w, bw);
-    return { n, rest: REST_MIN[kindOf(ex)] || 3, extra: deload ? 0 : techPlanMin(ex, n) };  // Teil-Sätze (v211)
+    return { n, rest: REST_MIN[kindOf(ex)] || 3, extra: deload ? 0 : techPlanMin(ex, n), warm: warm ? warmCount(ex.name) : 0 };  // Teil-Sätze (v211)
   });
   return seqMinutes(items, dayPairs(exs, ssOn(plan)));  // Supersätze (v210): kürzere Pausen im Wechsel
 }
@@ -2012,7 +2065,7 @@ function dayPairs(exs, on = ssOn()) {
 function seqMinutes(items, pairs = new Map()) {
   let t = 0, last = 0;
   const add = (n, rest) => { if (n > 0) { t += n * (1 + rest); last = rest; } };
-  for (const x of items) t += x.n > 0 ? x.extra || 0 : 0;  // Teil-Sätze von Intensitätstechniken (v211)
+  for (const x of items) t += x.n > 0 ? (x.extra || 0) + (x.warm || 0) * WARM_MIN : 0;  // Teil-Sätze von Intensitätstechniken (v211), Aufwärmen (v353)
   for (let i = 0; i < items.length; i++) {
     const p = pairs.get(i);
     if (p && p.role === 'A' && items[i + 1]) {
@@ -2092,9 +2145,9 @@ function ssClean(exs) {
   const ok = dayPairs(exs, true);
   exs.forEach((ex, i) => { if (ex.ss && !ok.has(i)) { delete ex.ss; delete ex.ssRest; } });
 }
-// „ca. 55 min“ bzw. „ca. 45–60 min“ (auf 5 min gerundet)
+// „ca. 55 min“ bzw. „ca. 45–60 min“ (v353, User: großzügig, auf 5 min aufgerundet)
 function estText(lo, hi = lo) {
-  const r = m => Math.max(5, Math.round(m / 5) * 5);
+  const r = m => Math.max(5, Math.ceil(m / 5 - 1e-9) * 5);
   const a = r(Math.min(lo, hi)), b = r(Math.max(lo, hi));
   if (a === b) return `ca. ${fmtDur(a)}`;
   return b <= 60 ? `ca. ${a}–${b} min` : `ca. ${fmtDur(a)} – ${fmtDur(b)}`;
@@ -2110,10 +2163,10 @@ const KIND_RANK = { compound: 0, normal: 1, assist: 2 };
 function trimToTime(entries, limit) {
   const info = entries.map((en, i) => {
     const ex = planExercise(en.name) || { name: en.name }, kind = kindOf(ex);
-    return { en, i, rank: KIND_RANK[kind] != null ? KIND_RANK[kind] : 1, rest: REST_MIN[kind] || 3, group: groupOf(ex), max: en.sets.length, n: 0 };
+    return { en, i, rank: KIND_RANK[kind] != null ? KIND_RANK[kind] : 1, rest: REST_MIN[kind] || 3, group: groupOf(ex), max: en.sets.length, n: 0, warm: warmCount(en.name, en) };
   });
   const pairs = entryPairs(entries);  // Supersätze (v210): kürzere Pausen im Wechsel
-  const time = () => seqMinutes(info.map(x => ({ n: x.n, rest: x.rest, extra: techMinutes(x.en.sets.slice(0, x.n)) })), pairs);
+  const time = () => seqMinutes(info.map(x => ({ n: x.n, rest: x.rest, extra: techMinutes(x.en.sets.slice(0, x.n)), warm: x.warm })), pairs);
   info.forEach(x => { x.n = x.max; });
   const before = time();
   if (before <= limit) return null;
@@ -2811,11 +2864,23 @@ function holdSets(name, v, onlyPlan = false) {
 // Neueste Sätze einer Variante (falls es keine Bezugswoche mit dieser Variante gibt)
 function lastVariantSets(name, v) {
   for (const s of sessionsNewestFirst()) {
+    if (s.deload) continue;  // v352: Deload-Sätze sind kein Maßstab (sonst danach zu leicht, im Deload doppelt entlastet)
     const e = s.entries.find(en => nameKey(en.name) === nameKey(name));
     const sets = e ? ofVariant(e.sets, v) : [];
     if (sets.length) return sets;
   }
   return [];
+}
+
+// v352: Satz einer Variante (z. B. mit Pause) im Deload aus ihrem letzten normalen Training: wie deloadTarget 15 % leichter
+// bei gleichen Wdh. (Eigengewicht: Wdh. so, dass DELOAD_RIR im Tank bleiben), nie schwerer als die normalen Deload-Sätze
+function deloadVariantSet(ref, t) {
+  if (ref.weight == null) {
+    const cap = ref.reps + (ref.rir != null ? ref.rir : 0);
+    return { weight: null, reps: Math.max(minReps(), Math.floor(cap - DELOAD_RIR)) };
+  }
+  const d = deloadTarget(t, { weight: ref.weight, reps: ref.reps });
+  return { weight: t.weight != null && d.weight > t.weight ? t.weight : d.weight, reps: d.reps };
 }
 
 // Vorschlag aus Vorwoche (prev = { sets, planned, target }) und Vergleichswoche (cmp) für Satz i,
@@ -2959,7 +3024,8 @@ function proposeSet(en, i, v) {
     ({ p, rule } = refProposal(t, en.prevWeek, en.compare, i, k, v));
     if (!p && v) {
       const lastV = lastVariantSets(en.name, v).map(s => t.bodyweight ? { ...s, weight: null } : s);
-      if (lastV.length) p = fromRef(refAt(lastV, k), t, k === 0, i);
+      // v352 (Fehler, User): im Deload die Variante wie die normalen Sätze entlasten, nicht die Werte einer normalen Woche
+      if (lastV.length) p = t.deload ? deloadVariantSet(refAt(lastV, 0), t) : fromRef(refAt(lastV, k), t, k === 0, i);
     }
   }
   if (p && !v && rule !== 'brake') {
@@ -3392,7 +3458,7 @@ function ssAutoPreview(day, plan = activePlan()) {
 // (nur dieses Training, en.ssToday) – trimToTime kürzt danach nur noch, was dann immer noch zu viel ist
 function ssForTime(limit) {
   if (!ssOn() || draft.own) return;
-  const items = () => draft.entries.map(en => ({ n: en.sets.length, rest: REST_MIN[kindOf(planExercise(en.name) || { name: en.name })] || 3 }));
+  const items = () => draft.entries.map(en => ({ n: en.sets.length, rest: REST_MIN[kindOf(planExercise(en.name) || { name: en.name })] || 3, warm: warmCount(en.name, en) }));
   if (seqMinutes(items(), draftPairs()) <= limit) return;
   const mk = () => draft.entries.map(en => ({ ...(planExercise(en.name) || { name: en.name }), name: en.name, ss: en.ss, ssRest: en.ssRest, en }));
   let exs = mk();
@@ -3404,7 +3470,7 @@ function ssForTime(limit) {
   let pairs = all;
   for (let k = 1; k <= all.length; k++) {
     const pick = all.slice(0, k).sort((x, y) => x[0] - y[0]), list = ssApply(mk(), pick);
-    const t = seqMinutes(list.map(x => ({ n: x.en.sets.length, rest: REST_MIN[kindOf(x)] || 3 })), dayPairs(list));
+    const t = seqMinutes(list.map(x => ({ n: x.en.sets.length, rest: REST_MIN[kindOf(x)] || 3, warm: warmCount(x.en.name, x.en) })), dayPairs(list));
     pairs = pick;
     if (t <= limit) break;
   }
@@ -4535,7 +4601,8 @@ function timeLimitHtml() {
           immer noch nicht passt, fallen Sätze weg.</p>` : ''}
         <p class="hint">Die App kürzt das Training passend: Jede geplante Muskelgruppe bekommt zuerst 1–2 Sätze (mit einer
           Grundübung, wenn es eine gibt), dann folgen die übrigen Sätze der Grundübungen, danach normale Übungen und zuletzt
-          Isolationsübungen. Gerechnet wird mit 1 Minute pro Satz plus Pause (Grundübung 4, normale Übung 3, Isolation 2 Minuten).</p>
+          Isolationsübungen. Gerechnet wird mit 1 Minute pro Satz plus Pause (Grundübung 4, normale Übung 3, Isolation 2 Minuten),
+          jeder Aufwärmsatz mit 2 Minuten. Umziehen und Wartezeiten am Gerät sind nicht eingerechnet.</p>
         <div class="row"><button class="btn" data-action="time-cancel">Abbrechen</button>
           <button class="btn primary" data-action="time-save">Übernehmen</button></div>
       </div>`;
@@ -4657,7 +4724,8 @@ function renderStart() {
     // v272 (User 2026-11-14): Reihenfolge der Tage auch hier dauerhaft ändern (wie im Plan-Reiter, planDayOrderHtml)
     + (planDayOrder && data.days.length > 1 ? planDayOrderHtml()
       : data.days.map((d, i) => dayBtn(d, i) + (d === nextDay && !draft ? `<div class="tl-attach">${timeLimitHtml()}</div>` : '')).join('')
-        + (data.days.length > 1 ? '<button class="btn outline center pday-order-btn" data-action="pday-order">⇅ Reihenfolge der Tage ändern</button>' : ''));
+        + (data.days.length > 1 ? '<button class="btn outline center pday-order-btn" data-action="pday-order">⇅ Reihenfolge der Tage ändern</button>' : '')
+        + (data.days.some(d => d.exercises.some(e => e.name.trim())) ? `<p class="hint est-note">⏱ Die Zeiten sind geschätzt, mit Aufwärmen. ${EST_MORE}</p>` : ''));
   const tlAttached = !draft && !!nextDay;
   const tlShown = !draft && !tlAttached && (timeEdit || limit);
   if (tlShown) h += timeLimitHtml();
@@ -4692,7 +4760,7 @@ const tcFind = full => draft.entries.find(e => nameKey(e.name) === nameKey(full.
 function tcMinutes(list) {  // list: [{ en, n }]
   const items = list.filter(x => x.n > 0).map(x => {
     const kind = kindOf(planExercise(x.en.name) || { name: x.en.name });
-    return { n: x.n, rest: REST_MIN[kind] || 3, extra: techMinutes(x.en.sets.slice(0, x.n)) };
+    return { n: x.n, rest: REST_MIN[kind] || 3, extra: techMinutes(x.en.sets.slice(0, x.n)), warm: warmCount(x.en.name, x.en) };
   });
   return seqMinutes(items, new Map());
 }
@@ -5224,7 +5292,8 @@ function renderPlan() {
   if (active.equip === 'home') h += homeEqCard();
   if (data.days.some(d => estDuration(d, 1, active))) {
     h += `<p class="hint explain">Geschätzte Trainingsdauer: je Satz 1 Minute, dazu Pause nach jedem Satz: Grundübungen 4, normale Übungen 3,
-      Isolationsübungen 2 Minuten (ohne Aufwärmen)${ssOn() ? '; im Supersatz 2 Minuten nach jedem Satz, bei zwei Isolationsübungen 90 Sekunden' : ''}.</p>`;
+      Isolationsübungen 2 Minuten${ssOn() ? '; im Supersatz 2 Minuten nach jedem Satz, bei zwei Isolationsübungen 90 Sekunden' : ''}.
+      Jeder Aufwärmsatz zählt mit ${WARM_MIN} Minuten (Satz, Pause und passendes Gewicht suchen). ${EST_MORE}</p>`;
   }
   if (active.own) {
     return h + `<button class="btn center" data-action="add-day">+ Trainingstag hinzufügen</button>
@@ -6720,6 +6789,26 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 354, date: '2026-11-22', items: [
+    ['Plan-Assistent: Bei der Frage nach der Trainingsdauer steht jetzt dabei, dass die reine Trainingszeit mit den Satzpausen gemeint ist. Aufwärmen, Umziehen und Wartezeiten kommen noch dazu.'],
+  ] },
+  { v: 353, date: '2026-11-22', items: [
+    ['Trainingsdauer: Aufwärmsätze zählen jetzt mit, je 2 Minuten für Satz, Pause und das passende Gewicht. Die geschätzte Zeit wird außerdem großzügig aufgerundet, auch beim Kürzen mit „Wenig Zeit?“. Unter den Trainingstagen steht ein kleiner Hinweis, etwas mehr Zeit fürs Umziehen oder belegte Geräte einzuplanen.'],
+  ] },
+  { v: 352, date: '2026-11-22', items: [
+    ['Fehler behoben: Im Deload war ein zusätzlicher Satz mit Pause (oder einer anderen Ausführung) so schwer wie in einer normalen Trainingswoche. Er wird jetzt wie die übrigen Deload-Sätze entlastet, mit etwa 15 % weniger Gewicht und mindestens 3 Wdh. im Tank.'],
+  ] },
+  { v: 351, date: '2026-11-22', items: [
+    ['Ernährungsplan: Gut 20 Gerichte nach echten Rezepten überarbeitet. Wo bisher Soße, Dressing oder Dip fehlte, ist jetzt eins dabei, z. B. Honig-Soja-Hähnchen mit Reis und Brokkoli, Steak mit Rahmchampignons, Kabeljau mit Dillsoße oder Fish and Chips mit Joghurt-Remoulade. Das Omelett gibt es mit Vollkornbrot statt Reiswaffeln.'],
+    ['Ergänzungen passen jetzt zum Gericht: Reicht der Plan nicht für dein Tagesziel, kommen Banane, Nüsse oder Proteinpulver nur noch zu süßen Mahlzeiten wie Quark, Porridge oder Shake und Reiswaffeln zu herzhaften Snacks. Bisher landete z. B. eine Banane auch beim Thunfisch-Snack.'],
+  ] },
+  { v: 350, date: '2026-11-22', items: [
+    ['Sicherheitsfrage: Alles, was etwas beendet oder löscht (Training verwerfen, Plan beenden, Einträge löschen …), fragt jetzt mit Ja oder Nein nach. „Ja“ lässt sich erst nach 3 Sekunden antippen, damit nichts aus Versehen passiert.'],
+    ['Neu mit Nachfrage: Satz mit Eingaben entfernen, Zyklus beenden, Unterbrechung beenden, Vorschlag verwerfen, Häkchen entfernen, Einführungen zurücksetzen sowie Tage, Übungen und Phasen im Plan-Assistenten und Phasenplan entfernen.'],
+  ] },
+  { v: 349, date: '2026-11-22', items: [
+    ['Yoga: Alle 149 Übungen haben jetzt eine ausführliche Beschreibung mit Schritten, häufigen Fehlern, einer leichteren und einer schwereren Variante und Hinweisen zur Vorsicht. Zu finden unter „Yoga-Übungen und Abläufe“, wenn du eine Übung aufklappst.'],
+  ] },
   { v: 348, date: '2026-11-19', items: [
     ['Yoga: Tippst du beim Eintragen einen Stil an, erscheint darunter eine kurze Erklärung, z. B. was Yin von Vinyasa oder Power Yoga unterscheidet.'],
   ] },
@@ -8801,7 +8890,8 @@ const actions = {
     saveDraft(); render();
   },
   'tr-del-set': el => {
-    const sets = draft.entries[el.dataset.ei].sets;
+    const sets = draft.entries[el.dataset.ei].sets, last = sets[sets.length - 1];
+    if (last && last.touched && !askOk('Den letzten Satz mit deinen Eingaben entfernen?')) return;  // v350
     if (sets.length) sets.pop();
     refreshPrefat();
     saveDraft(); render();
@@ -9156,6 +9246,7 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
   'cyc-end-ask': () => { cycEndAsk = true; render(); },
   'cyc-end-cancel': () => { cycEndAsk = false; render(); },
   'cyc-end': el => {
+    if (!askOk('Zyklus jetzt beenden?\n\nAlle eingetragenen Trainings bleiben gespeichert.')) return;  // v350
     const ci = cycleInfo();
     if (el.dataset.m === 'deload') {
       if (ci.deload) { toast('Die Deload-Woche läuft schon'); return; }
@@ -9417,7 +9508,8 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
     render();
   },
   'se-del-set': el => {
-    const sets = sessionEdit.entries[el.dataset.ei].sets;
+    const sets = sessionEdit.entries[el.dataset.ei].sets, last = sets[sets.length - 1];
+    if (last && (String(last.weight || '') !== '' || String(last.reps || '') !== '') && !askOk('Den letzten Satz entfernen?')) return;  // v350
     if (sets.length) sets.pop();
     render();
   },

@@ -1743,6 +1743,7 @@ Object.assign(actions, {
   },
   // Laufende Unterbrechung beenden (gestern war der letzte Tag) oder geplante absagen
   'nut-pause-end': () => {
+    if (!askOk('Unterbrechung beenden?\n\nAb heute gilt wieder dein normales Tagesziel.')) return;  // v350
     nutPauseFinish(data.nutrition, addDaysISO(todayISO(), -1));
     saveData();
     render();

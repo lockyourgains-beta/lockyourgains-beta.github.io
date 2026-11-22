@@ -480,7 +480,7 @@ Object.assign(actions, {
   'pp-use-goal': el => { ppDraft.goal = fmtNum(Number(el.dataset.v)); actions['pp-calc'](); },
   'pp-ph-pace': el => { ppDraft.phases[Number(el.dataset.i)].pace = el.dataset.k; render(); },
   'pp-ph-weeks': el => { const p = ppDraft.phases[Number(el.dataset.i)]; p.weeks = Number(el.dataset.w); render(); },
-  'pp-ph-del': el => { ppDraft.phases.splice(Number(el.dataset.i), 1); render(); },
+  'pp-ph-del': el => { if (!askOk('Diese Phase entfernen?')) return; ppDraft.phases.splice(Number(el.dataset.i), 1); render(); },
   'pp-ph-add': el => { ppAdd(ppDraft, el.dataset.p); render(); },
   'pp-save': () => {
     const d = ppDraft, n = data.nutrition;

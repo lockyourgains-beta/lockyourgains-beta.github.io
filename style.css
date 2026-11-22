@@ -4173,3 +4173,13 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .lib-prof-more summary { margin-top: 6px; color: var(--accent); font-size: 14.5px; cursor: pointer; }
 /* v348: Erklärung zum Yoga-Stil */
 .yoga-style-desc { margin: 8px 2px 4px; line-height: 1.45; }
+/* v349: ausführliche Yoga-Beschreibungen */
+.yg-sec { margin: 12px 0 4px; font-size: 14.5px; font-weight: 650; color: var(--text); }
+.yg-steps, .yg-faults { margin: 0 0 4px; padding-left: 22px; font-size: 14.5px; line-height: 1.45; }
+.yg-steps li, .yg-faults li { margin: 3px 0; }
+.yg-var { margin: 6px 0; font-size: 14.5px; line-height: 1.45; }
+.yg-var-l { font-weight: 650; }
+.yg-warn { margin: 8px 0 4px; padding: 8px 10px; border-radius: 10px; background: var(--fill); font-size: 14px; line-height: 1.45; }
+/* v350: „Ja“ bei Beenden/Löschen erst nach 3 Sekunden */
+.dlg-btns .btn:disabled { opacity: .45; cursor: not-allowed; }
+.dlg-cd { font-variant-numeric: tabular-nums; }
