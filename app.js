@@ -1987,6 +1987,7 @@ const warmCache = new Map();
 function warmCount(name, en) {
   if (en && en.warmup) return en.warmup.length;
   if (en && en.target && en.target.bodyweight) return 0;
+  if (en && en.sets && firstWorkWeight(en)) return defaultWarmup(en).length;  // im Training: wie der Vorschlag zum heutigen Gewicht
   const key = data.sessions.length + '|' + nameKey(name);
   if (warmCache.has(key)) return warmCache.get(key);
   const kind = warmupKind({ name }), custom = lastWarmup(name);
@@ -2010,8 +2011,15 @@ function estDuration(day, week, plan = activePlan(), deload = false, warm = true
     const n = auto.has(ex.id) ? auto.get(ex.id) : deload ? deloadSets(setsForWeek(ex, bw, bw)) : setsForWeek(ex, w, bw);
     return { n, rest: REST_MIN[kindOf(ex)] || 3, extra: deload ? 0 : techPlanMin(ex, n), warm: warm ? warmCount(ex.name) : 0 };  // Teil-Sätze (v211)
   });
-  return seqMinutes(items, dayPairs(exs, ssOn(plan)));  // Supersätze (v210): kürzere Pausen im Wechsel
+  // v355: Mobility vor dem Training (1 min je Satz); nicht beim Vergleich mit der Zeitwahl im Assistenten (warm = false)
+  const mob = warm && typeof mobDay === 'function' ? mobMinutes(mobDay(day, plan)) : 0;
+  return seqMinutes(items, dayPairs(exs, ssOn(plan))) + mob;  // Supersätze (v210): kürzere Pausen im Wechsel
 }
+// Dauer der Übungen eines laufenden Trainings (wie trimToTime, alle Sätze)
+const entriesMinutes = entries => seqMinutes(entries.map(en => {
+  const kind = kindOf(planExercise(en.name) || { name: en.name });
+  return { n: en.sets.length, rest: REST_MIN[kind] || 3, extra: techMinutes(en.sets), warm: warmCount(en.name, en) };
+}), entryPairs(entries));
 
 /* ---------- Supersätze (v210, User-Wunsch 2026-11-11) ----------
    Zwei Übungen im Wechsel: A1 → B1 → A2 → B2 …, nach jedem einzelnen Satz SS_REST Minuten Pause (statt 2–4 min je Übungsart).
@@ -4771,7 +4779,7 @@ function tcPickInit() {
 function timeEditHtml() {
   if (!draft.timePick) tcPickInit();
   const full = draft.timeFull, pick = draft.timePick;
-  const est = tcMinutes(full.map((f, k) => ({ en: f, n: pick[k] })));
+  const est = tcMinutes(full.map((f, k) => ({ en: f, n: pick[k] }))) + mobMinutes(draft.mob);  // v355: mit Mobility
   const rows = full.map((f, k) => {
     const n = pick[k], max = f.sets.length, min = tcDone(tcFind(f));
     return `<div class="tc-row${n ? '' : ' off'}"><span class="tc-name">${esc(f.name)}<small>${n ? `${n} von ${max} Sätzen` : 'fällt heute weg'}</small></span>
@@ -4825,13 +4833,17 @@ function timeCutNote() {
   if (!draft.timeLimit) return '';
   if (draft.timeFull && !draft.timeOk) return timeEditHtml();
   const btns = draft.timeFull ? `<span class="tc-btns"><button class="btn small" data-action="tc-edit">Anpassen</button>
-    <button class="btn small" data-action="tc-full">Ganzes Training</button></span>` : '';
+    <button class="btn small" data-action="tc-full">Ganzes Training</button></span>`
+    : draft.mobCut ? '<span class="tc-btns"><button class="btn small" data-action="tc-full">Ganzes Training</button></span>' : '';
+  // v355: Mobility gekürzt oder weggelassen
+  const mob = draft.mobCut ? `<br><small>🤸 Mobility heute ${draft.mob.length ? 'gekürzt' : 'weggelassen'}</small>` : '';
   const ss = (draft.ssToday || []).length ? `<br><small>🔗 Heute im Supersatz: ${draft.ssToday.map(([a, b]) => `${esc(a)} + ${esc(b)}`).join(' | ')}</small>` : '';
+  if (!c && draft.mobCut) return `<p class="intro-note time-note">⏱ Zeitlimit ${draft.timeLimit} min: Damit es passt, ${draft.mob.length ? 'ist die Mobility heute kürzer' : 'fällt heute die Mobility weg'}. Die Übungen bleiben vollständig.${ss}${btns}</p>`;
   if (ss && !c) return `<p class="intro-note time-note">⏱ Zeitlimit ${draft.timeLimit} min: Mit Supersätzen passt das Training ohne Kürzen.${ss}</p>`;
   if (!c) return `<p class="intro-note time-note">⏱ Zeitlimit ${draft.timeLimit} min: Das Training passt schon so, nichts gekürzt.</p>`;
   return `<p class="intro-note time-note">⏱ Auf ca. ${fmtDur(c.after)} gekürzt (Zeitlimit ${c.limit} min, sonst ca. ${fmtDur(c.before)}).
     ${c.cut.length ? `<br><small>Weniger Sätze: ${c.cut.map(x => `${esc(x.name)} ${x.from} → ${x.to}`).join(' | ')}</small>` : ''}
-    ${c.dropped.length ? `<br><small>Heute ausgelassen: ${c.dropped.map(esc).join(' | ')}</small>` : ''}${ss}${btns}</p>`;
+    ${c.dropped.length ? `<br><small>Heute ausgelassen: ${c.dropped.map(esc).join(' | ')}</small>` : ''}${mob}${ss}${btns}</p>`;
 }
 
 function renderTraining() {
@@ -4882,6 +4894,7 @@ function renderTraining() {
       : `<p class="first-max-hint first-max-top">🆕 Kennenlernen: Nimm bei neuen Übungen ein Gewicht, mit dem du die Wiederholungen sicher schaffst, und sag nach jedem
         Satz, wie er sich angefühlt hat. Die App passt das Gewicht danach an.</p>`;
   }
+  if (typeof mobTrainingHtml === 'function' && (!swipe || cur === 0)) h += mobTrainingHtml();  // v355: Mobility vor dem Training
   const stalls = stagnationHints();
   // Supersätze (v210): Paar in einem Rahmen, Kopf mit Runde und „Heute einzeln“; beim Wischen beide auf einem Bildschirm
   const pairs = draftPairs(), raw = entryPairs(draft.entries, true);
@@ -5794,6 +5807,7 @@ function renderDay({ id }) {
     return `<label class="lbl">Name des Trainingstags
         <input class="inp" type="text" data-field="day-name" value="${esc(day.name)}"></label>
       <p class="hint">Eigener Plan: Sätze und Wiederholungen legst du pro Übung selbst fest. Die App steigert nichts.</p>
+      ${typeof mobPlanHtml === 'function' ? mobPlanHtml(day) : ''}
       <h2>Übungen</h2>${dayReorderHtml(day)}${dayReorder === day.id ? '' : day.exercises.map(ownExerciseCard).join('')}
       <button class="btn center" data-action="add-ex">+ Übung hinzufügen</button>
       <button class="btn primary" data-action="day-done">✔ Fertig</button>
@@ -5813,6 +5827,7 @@ function renderDay({ id }) {
         Sätze und Wiederholungen werden automatisch aus Muskelgruppe, Übungsart und Zykluswoche berechnet.`
       : 'Frei: Sätze und Wiederholungen legst du pro Übung selbst fest.'}</p>
     ${feat('day-volume') ? volumeSummary(day) : ''}
+    ${typeof mobPlanHtml === 'function' ? mobPlanHtml(day) : ''}
     <h2>Übungen</h2>${dayReorderHtml(day)}`;
   if (dayReorder === day.id) return h;
   const bw = data.cycle.buildWeeks;
@@ -6018,6 +6033,7 @@ function renderLibrary() {
     <div id="lib-groups" ${libQuery.trim() ? 'hidden' : ''}>
     <p class="hint explain">Jede Übung mit animierter Ausführung, Zielmuskeln und Tipps. Muskelgruppe antippen zum Aufklappen.</p>
     ${feat('custom-ex') ? '<button class="btn outline lib-add-btn" data-action="libc-new">＋ Eigene Übung hinzufügen</button>' : ''}
+    ${typeof MOB_EX !== 'undefined' ? '<button class="btn outline lib-add-btn mob-lib-btn" data-action="mob-lib">🤸 Mobility-Übungen<small>zum Aufwärmen, mit Erklärung</small></button>' : ''}
     <p class="hint explain">Dir fehlt eine Übung, z. B. ein besonderes Gerät in deinem Studio? Leg sie einmal an, danach kannst du sie
       jederzeit wieder aufrufen: im Plan, im Plan-Assistenten und beim Ersetzen oder Hinzufügen im Training.</p>`;
   if (data.customExercises.length) {
@@ -6394,7 +6410,8 @@ function renderSession({ id, fresh, edit, week }) {
     <button class="btn ${fresh ? 'primary' : 'outline'} share-btn" data-action="share-open" data-id="${s.id}">📤 Ergebnis teilen</button>`;
   const progNote = s.progression ? ` | ${progOffText(s.progression)}` : '';
   let h = top + `<p class="sub">${fmtDate(s.date, true)}<br>${esc(s.dayName)}${s.light ? ' | leichtes Training in der Wettkampf-Woche (keine Steigerung)' : s.deload ? ' | Deload-Woche (keine Steigerung)' : progNote}` +
-    (s.readiness ? `<br>Tagesform: ${readinessText(s.readiness)}` : '') + (s.timeLimit ? `<br>⏱ auf ${s.timeLimit} min gekürzt` : '') + '</p>' +
+    (s.readiness ? `<br>Tagesform: ${readinessText(s.readiness)}` : '') + (s.timeLimit ? `<br>⏱ auf ${s.timeLimit} min gekürzt` : '') +
+    (s.mob && typeof mobSessionText === 'function' && mobSessionText(s) ? `<br>🤸 Mobility: ${esc(mobSessionText(s))}` : '') + '</p>' +
     `${feat('session-edit') ? `<button class="btn outline" data-action="se-edit" data-id="${s.id}">✎ Training bearbeiten</button>` : ''}<ul class="list">`;
   for (const e of s.entries) {
     const res = e.result
@@ -6789,6 +6806,14 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 356, date: '2026-11-23', items: [
+    ['Ernährungstagebuch: Unter jeder Mahlzeit stehen jetzt klein ihre Kalorien und Makros.'],
+  ] },
+  { v: 355, date: '2026-11-23', items: [
+    ['Mobility: über 100 Übungen für Hüfte, Sprunggelenk, Knie, Wirbelsäule, Schulter, Handgelenk und Nacken, jede mit Ausführung, wofür sie gut ist, passenden Kraftübungen, häufigen Fehlern, leichter und schwerer. Zu finden in der Übungsbibliothek.'],
+    ['Mobility vor dem Training: Im Plan kannst du bei jedem Trainingstag Mobility-Übungen hinzufügen oder dir passende vorschlagen lassen. Im Training stehen sie abhakbar ganz oben. Neue Pläne fragen im Plan-Assistenten danach.'],
+    ['Die App rechnet 1 Minute je Mobility-Satz in die Trainingszeit ein. Bei „Wenig Zeit?“ fällt Mobility zuerst weg.'],
+  ] },
   { v: 354, date: '2026-11-22', items: [
     ['Plan-Assistent: Bei der Frage nach der Trainingsdauer steht jetzt dabei, dass die reine Trainingszeit mit den Satzpausen gemeint ist. Aufwärmen, Umziehen und Wartezeiten kommen noch dazu.'],
   ] },
@@ -7542,6 +7567,7 @@ function startDay(id, readiness = { sleptWell: true, stress: false }) {
   };
   // erst nach dem Anlegen von draft, weil setupEntry die Zykluswoche aus draft liest
   draft.entries = draftEntries(day);
+  draft.mob = typeof mobDay === 'function' ? mobDay(day).map(m => ({ id: m.id, sets: m.sets || 1, done: 0 })) : [];  // v355
   // Zyklus „stark eingeschränkt“: 1 Satz weniger bei Übungen mit mindestens 3 Sätzen (User-Regel 2026-11-09)
   if (mc && mc.cut) {
     for (const en of draft.entries) {
@@ -7560,7 +7586,16 @@ function startDay(id, readiness = { sleptWell: true, stress: false }) {
     draft.timeLimit = tl.min;
     const fullCopy = JSON.parse(JSON.stringify(draft.entries));  // v245: für „Anpassen“ und „Ganzes Training“
     if (tl.ss) ssForTime(tl.min);  // Supersätze (v210): erst Pausen sparen, dann Sätze kürzen
-    draft.timeCut = trimToTime(draft.entries, tl.min);
+    // v355 (User): Mobility fällt zuerst weg, sie bleibt nur, soweit sie neben dem ganzen Training noch in die Zeit passt
+    if (draft.mob.length) {
+      const kept = mobFit(draft.mob, tl.min - entriesMinutes(draft.entries));
+      if (kept.length < draft.mob.length) Object.assign(draft, { mobFull: draft.mob.map(m => ({ ...m })), mob: kept, mobCut: true });
+    }
+    draft.timeCut = trimToTime(draft.entries, tl.min - mobMinutes(draft.mob));
+    if (draft.timeCut) {  // Angaben mit Mobility, Zeitlimit wie eingestellt
+      const mb = mobMinutes(draft.mobFull || draft.mob), ma = mobMinutes(draft.mob);
+      Object.assign(draft.timeCut, { limit: tl.min, before: draft.timeCut.before + mb, after: draft.timeCut.after + ma });
+    }
     if (draft.timeCut) draft.timeFull = fullCopy;
     refreshPrefat();
     if (tl.once) { delete data.timeLimit; saveData(); }
@@ -8167,6 +8202,7 @@ function saveTraining() {
 
   const session = { id: uid(), dayId: draft.dayId, dayName: draft.dayName, date: draft.date, entries };
   if (draft.deload) session.deload = true;
+  if ((draft.mob || []).some(m => m.done)) session.mob = draft.mob.filter(m => m.done).map(m => ({ id: m.id, done: m.done }));  // v355
   else if (!prog.volume || !prog.load) session.progression = { volume: prog.volume, load: prog.load };
   if (draft.light) session.light = true;  // Hyrox-Wettkampf-Woche: leicht, aber keine Deload-Woche (dlSession)
   if (draft.penalty) session.readiness = draft.readiness;
@@ -8559,11 +8595,17 @@ const actions = {
     saveDraft(); render();
   },
   'tc-full': () => {
-    const pick = {}; draft.timeFull.forEach((f, k) => { pick[k] = f.sets.length; });
-    tcApply(pick);
-    // Supersätze, die nur fürs Zeitlimit gekoppelt wurden, wieder lösen (wie im Plan)
-    draft.entries.forEach(en => { const f = draft.timeFull.find(x => nameKey(x.name) === nameKey(en.name)); if (!f) return;
-      if (f.ss) Object.assign(en, { ss: f.ss, ssRest: f.ssRest }); else { delete en.ss; delete en.ssRest; } });
+    if (draft.timeFull) {
+      const pick = {}; draft.timeFull.forEach((f, k) => { pick[k] = f.sets.length; });
+      tcApply(pick);
+      // Supersätze, die nur fürs Zeitlimit gekoppelt wurden, wieder lösen (wie im Plan)
+      draft.entries.forEach(en => { const f = draft.timeFull.find(x => nameKey(x.name) === nameKey(en.name)); if (!f) return;
+        if (f.ss) Object.assign(en, { ss: f.ss, ssRest: f.ssRest }); else { delete en.ss; delete en.ssRest; } });
+    }
+    if (draft.mobFull) {  // v355: Mobility wieder vollständig (Häkchen bleiben)
+      draft.mob = draft.mobFull.map(m => ({ ...m, done: ((draft.mob || []).find(x => x.id === m.id) || {}).done || 0 }));
+      Object.assign(draft, { mobFull: null, mobCut: false });
+    }
     Object.assign(draft, { timeLimit: null, timeCut: null, timeFull: null, timePick: null, timeOk: false, ssToday: [] });
     saveDraft(); render();
     toast('Wieder das ganze Training');

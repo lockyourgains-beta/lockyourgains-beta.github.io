@@ -917,8 +917,10 @@ function renderFood(p) {
   for (const k of dayMealKeys(list, planMeals)) {
     const [icon, label] = mealInfo(k);
     const items = list.filter(e => e.meal === k);
-    const kcal = foodTotals(items).kcal;
+    const mt = foodTotals(items), kcal = mt.kcal;
     const prev = yesterday.filter(e => e.meal === k);
+    // v356 (User-Wunsch): unter den Lebensmitteln klein die Summe der Mahlzeit mit Makros
+    const sumHtml = items.some(e => !e.supp) ? `<p class="hint food-meal-sum">${nutKcal(kcal)} kcal | Eiweiß ${Math.round(mt.p)} g | KH ${Math.round(mt.c)} g | Fett ${Math.round(mt.f)} g</p>` : '';
     h += `<div class="card food-meal" data-meal="${k}">
         <div class="food-meal-head"><b>${icon} ${label}</b><span class="hint">${items.length ? nutKcal(kcal) + ' kcal' : ''}</span></div>
         ${items.map(e => `<div class="food-row">
@@ -926,6 +928,7 @@ function renderFood(p) {
             <span>${e.supp ? '💊 ' : ''}${esc(e.name)}<small>${e.brand ? esc(e.brand) + ' | ' : ''}${e.supp ? foodNum(e.g) + ' Stück' : amtTxt(e.g)}</small></span>
             <b>${e.supp ? 'Ergänzung' : foodKcal(foodVal(e.per, e.g)[0]) + ' kcal'}</b></button>
           <button class="icon-btn danger" data-action="food-del" data-id="${e.id}" aria-label="Entfernen">✕</button></div>`).join('')}
+        ${sumHtml}
         ${!items.length && planMeals[k] && planDay.recipes && planDay.recipes[k] ? `<button class="mg-hint" data-action="mg-open-day" data-d="${date}">
             <span class="mg-hint-t">📋 ${esc(planDay.recipes[k].name)}</span><span class="mg-hint-i">${planMeals[k].map(i => `<span>${amtTxt(i.g)} <span>${esc(i.name)}</span></span>`).join(' | ')}</span></button>`
           : !items.length && planMeals[k] ? `<p class="hint nut-small np-plan-hint">📋 Plan: ${planMeals[k].map(i => `${esc(i.name)}${i.g ? ` ${amtTxt(i.g)}` : ''}`).join(' | ')}</p>` : ''}

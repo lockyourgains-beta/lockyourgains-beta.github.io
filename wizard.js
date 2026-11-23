@@ -449,6 +449,7 @@ function wizStart() {
     progression: { volume: true, load: true },  // Grundeinstellung des neuen Plans
     style: 'mid',                      // Volumen-Variante (VOL_STYLES): 'high' / 'mid' / 'low'
     timeMax: 90,                       // Höchstdauer eines Trainings in Minuten (TIME_CAPS)
+    mob: 'auto',                       // v355: Mobility vor dem Training ('auto' = Vorschlag der App, 'self' = selbst hinzufügen)
     perWeek: 1,                        // jeder Trainingstag 1× oder 2× pro Woche
     volDiv: 1,                         // Wochensätze auf so viele Durchgänge je Tag verteilen (siehe daysWith)
     weekWanted: {},                    // eingetippte Sätze pro Woche (Muskelgruppe -> [Intro…W4]), werden beim Speichern genau verteilt
@@ -741,9 +742,9 @@ function buildPlanDays() {
 
 /* --- Darstellung --- */
 
-const STEP_PILL = { mode: 0, progchoice: 0, level: 0, equip: 0, homeeq: 0, sessions: 0, cat: 0, split: 0, time: 0, style: 0, freq: 0, days: 0, basics: 1, prio: 2, low: 2, auto: 2,
+const STEP_PILL = { mode: 0, progchoice: 0, level: 0, equip: 0, homeeq: 0, sessions: 0, cat: 0, split: 0, time: 0, mob: 0, style: 0, freq: 0, days: 0, basics: 1, prio: 2, low: 2, auto: 2,
   volume: 3, rir: 4, manual: 5, preview: 5, intq: 6, deloadq: 6, progq: 6 };
-const OWN_PILL = { mode: 0, progchoice: 0, sessions: 0, ownday: 1, ownname: 2 };
+const OWN_PILL = { mode: 0, progchoice: 0, sessions: 0, mob: 0, ownday: 1, ownname: 2 };
 
 function wizSteps() {
   const own = wiz.mode === 'own';
@@ -760,12 +761,12 @@ function wizFlow() {
   // „Womit trainierst du?“ kommt zuerst (alle Modi; „Nur Maschinen“ nur Einfach/Standard) – zu Hause danach die Ausrüstung
   const eq = wiz.equip === 'home' ? ['equip', 'homeeq'] : ['equip'];
   if (wiz.mode === 'import') return ['mode', 'progchoice'];  // v270: danach öffnet sich die Tabellen-Übernahme
-  if (wiz.mode === 'own') return ['mode', 'progchoice', ...eq, 'sessions', 'ownday', 'ownname'];
+  if (wiz.mode === 'own') return ['mode', 'progchoice', ...eq, 'sessions', 'mob', 'ownday', 'ownname'];
   const custom = wiz.cat === 'custom';
   const tpl = SPLITS.find(s => s.id === wiz.split);
   // Modi: Einfach endet nach der Aufteilung (die App stellt den Rest selbst zusammen, siehe wizQuick),
   // Standard ohne Volumen-Variante und RIR-Tabelle
-  const steps = ['mode', 'progchoice', ...eq, 'level', 'sessions', 'time', 'split'];  // time: Höchstdauer (alle Modi, gleich nach „wie oft“)
+  const steps = ['mode', 'progchoice', ...eq, 'level', 'sessions', 'time', 'mob', 'split'];  // v355: mob = Mobility vor dem Training  // time: Höchstdauer (alle Modi, gleich nach „wie oft“)
   const noProg = wiz.ownProg === 'own';  // v270: ohne Steigerung – keine Fragen zu Intensitätsverlauf, Variante und Tank
   // v247 (User 2026-11-14): erst der Intensitätsverlauf, dann die Volumen-Variante
   const full = feat('wiz-full');  // v317: Experte fragt alles, Standard nur das Nötige (Rest mit Standardwerten)
@@ -1192,6 +1193,16 @@ function renderWizSplit() {
       <span class="cat-icon">🛠️</span><b>Eigene Aufteilung</b><small>Trainingstage selbst zusammenstellen</small></button>` : ''), false);
 }
 
+// v355 (User): Mobility vor dem Training – Vorschlag der App je Trainingstag oder nur bei Bedarf selbst hinzufügen
+function renderWizMob() {
+  const opt = (v, t, d) => `<button class="split-opt freq-opt ${wiz.mob === v ? 'on' : ''}" data-action="wiz-mob" data-v="${v}"><b>${t}</b><small>${d}</small></button>`;
+  return wizCard('🤸', 'Mobility vor dem Training?',
+    `Ein paar Mobility-Übungen vor dem Training machen Gelenke und Muskeln für die Bewegungen des Tages bereit, z. B. Hüfte und
+      Sprunggelenke vor Kniebeugen oder die Schultern vor dem Bankdrücken. Die App rechnet etwa ${MOB_MIN} Minute je Satz in die Trainingszeit ein.`,
+    opt('auto', 'Ja, passende Übungen vorschlagen', 'Die App wählt je Trainingstag 4 Übungen, passend zu den Muskeln und Übungen des Tages. Im Plan kannst du sie jederzeit ändern.') +
+    opt('self', 'Nein, ich füge bei Bedarf selbst welche hinzu', 'Im Plan kannst du bei jedem Trainingstag Mobility-Übungen aus der Bibliothek auswählen, mit Erklärung und wofür sie gut sind.'));
+}
+
 // Schritt „Trainingsdauer“: Höchstdauer in der längsten Woche -> Satzgrenze pro Training (TIME_CAPS)
 function renderWizTime() {
   const opt = (m, text) => `<button class="split-opt freq-opt ${wiz.timeMax === m ? 'on' : ''}" data-action="wiz-time" data-m="${m}">
@@ -1486,7 +1497,7 @@ function renderWizFocus(kind) {
 function renderWizard() {
   if (!wiz) return '<p class="hint">Der Assistent wurde beendet.</p><button class="btn primary" data-action="wiz-start">Neu starten</button>';
   let h = wizSteps();
-  const simple = { mode: renderWizMode, ownday: renderWizOwnDay, ownname: renderWizOwnName, level: renderWizLevel, equip: renderWizEquip, homeeq: renderWizHomeEq, sessions: renderWizSessions, split: renderWizSplit, time: renderWizTime, style: renderWizStyle, course: renderWizCourse, freq: renderWizFreq, days: renderWizDays,
+  const simple = { mode: renderWizMode, ownday: renderWizOwnDay, ownname: renderWizOwnName, level: renderWizLevel, equip: renderWizEquip, homeeq: renderWizHomeEq, sessions: renderWizSessions, split: renderWizSplit, time: renderWizTime, mob: renderWizMob, style: renderWizStyle, course: renderWizCourse, freq: renderWizFreq, days: renderWizDays,
     basics: renderWizBasics, intq: renderWizInt, deloadq: renderWizDeload, progq: renderWizProg, progchoice: renderWizProgChoice };
   if (simple[wiz.step]) return h + simple[wiz.step]();
   if (wiz.step === 'prio' || wiz.step === 'low') return h + renderWizFocus(wiz.step);
@@ -1945,6 +1956,7 @@ Object.assign(actions, {
     render();
   },
   'wiz-course': el => { wiz.course = el.dataset.k; wiz.rir = {}; render(); },
+  'wiz-mob': el => { wiz.mob = el.dataset.v; render(); },
   'wiz-quick-go': () => wizQuick(),
   'wiz-style': el => {
     if (wiz.style !== el.dataset.k) { wiz.style = el.dataset.k; wiz.rir = {}; wiz.volKey = {}; }
@@ -2012,6 +2024,7 @@ Object.assign(actions, {
     const days = wiz.own.map(d => ({ id: uid(), name: d.name.trim() || 'Trainingstag', intensity: '', exercises: ownExercises(d, app) }));
     const plan = newPlan(wiz.name.trim() || 'Mein Plan', days);
     plan.byHand = true;  // selbst eingetragen: offene Tage werden mit demselben Formular weiter erstellt
+    plan.mob = wiz.mob === 'auto' ? 'auto' : 'self';  // v355
     if (app) Object.assign(plan, { level: wiz.level, rirMode: 'auto', rirCourse: 'strong', rirStyle: 0 });
     else Object.assign(plan, { own: true, progression: { volume: false, load: false } });
     if (wizMachines()) plan.equip = 'machine';  // Ersetzen: passende Übungen zuerst
@@ -2153,6 +2166,7 @@ Object.assign(actions, {
     if (wiz.rotate) plan.rotate = wiz.rotate;  // Wechsel-Plan (siehe dayTimes in app.js)
     if (wiz.level) plan.level = wiz.level;
     plan.timeMax = wiz.timeMax || null;  // gewählte Höchstdauer (nur zur Info, null = ohne Grenze)
+    plan.mob = wiz.mob === 'auto' ? 'auto' : 'self';  // v355
     if (wizMachines()) plan.equip = 'machine';  // Ersetzen schlägt dann zuerst Maschinen vor
     if (wizHome()) plan.equip = 'home';          // nur vorhandene Gewichte, Ersetzen zuerst passende Heim-Übungen
     data.plans.push(plan);
