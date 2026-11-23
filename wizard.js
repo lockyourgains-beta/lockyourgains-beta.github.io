@@ -1451,11 +1451,11 @@ function renderWizDeload() {
         <b>4–5 Trainingswochen + 1 Deload-Woche</b> sind der gängige Zyklus: lang genug, um sich spürbar zu steigern, und kurz genug,
         dass sich nicht zu viel Ermüdung ansammelt. Du kannst das jederzeit anpassen, auch später noch im Trainings-Reiter.</p>
       <div class="wiz-weeks-slider">
-        <p class="wiz-weeks-val"><b id="wiz-weeks-n">${wiz.weeks} Trainingswochen</b> + Deload <small id="wiz-weeks-tag">${cycleLenInfo(wiz.weeks).tag}</small></p>
+        <p class="wiz-weeks-val"><b id="wiz-weeks-n">${wiz.weeks} Trainingswochen</b> + ${wiz.deload === 'rest' ? 'Pause' : 'Deload'} <small id="wiz-weeks-tag">${cycleLenInfo(wiz.weeks, wiz.deload === 'rest').tag}</small></p>
         <input type="range" class="wiz-range" min="4" max="${CYCLE_MAX}" step="1" value="${wiz.weeks}" data-field="wiz-weeks-range" aria-label="Trainingswochen pro Zyklus">
         <div class="wiz-range-scale" aria-hidden="true">${Array.from({ length: CYCLE_MAX - 3 }, (_, i) => `<span>${i + 4}</span>`).join('')}</div>
       </div>
-      <p class="hint" id="wiz-weeks-info">${cycleLenInfo(wiz.weeks).text}</p>
+      <p class="hint" id="wiz-weeks-info">${cycleLenInfo(wiz.weeks, wiz.deload === 'rest').text}</p>
       <div class="cyc-overview">
         <div class="${wiz.weeks <= 5 ? 'on' : ''}"><b>4 bis 5 Wochen</b><span>gängig</span></div>
         <div class="${wiz.weeks > 5 && wiz.weeks <= 8 ? 'on' : ''}"><b>6 bis 8 Wochen</b><span>länger, dafür kleinere Steigerung von Woche zu Woche</span></div>
@@ -1470,6 +1470,8 @@ function renderWizDeload() {
         Danach bist du meist stärker als vorher, und der nächste Zyklus beginnt mit der Intro-Woche.</p>
       ${opt('auto', 'Automatisch (empfohlen)', `Nach deinen ${wiz.weeks} Trainingswochen folgt immer automatisch die Deload-Woche. Du
         musst an nichts denken. Ideal für Neulinge und Einsteiger und für alle, die einen festen Rhythmus mögen.`)}
+      ${opt('rest', 'Pause statt Deload', `Nach deinen ${wiz.weeks} Trainingswochen hast du ${RB_MIN} bis ${RB_MAX} Tage komplett frei, danach
+        beginnt der nächste Zyklus direkt mit der Intro-Woche. ${DELOAD_REST_WHY}`)}
       ${opt('self', 'Selbst bestimmen', `Die ${wiz.weeks} Trainingswochen sind dann nur der Plan bis zur ersten möglichen Pause:
         Nach der letzten Aufbauwoche geht es Woche für Woche weiter („Verlängerung“): Sätze und
         Tank bleiben wie in der letzten Aufbauwoche, Gewicht und Wiederholungen steigen weiter. Den Deload legst du per Knopf auf
@@ -2356,7 +2358,7 @@ Object.assign(actions, {
     data.cycle.defWeeks = wiz.weeks;
     data.cycle.adj = 0;
     data.cycle.buildWeeks = wiz.weeks;
-    if (wiz.deload === 'self') plan.deload = 'self';
+    if (wiz.deload === 'self' || wiz.deload === 'rest') plan.deload = wiz.deload;  // v365: auch Pause statt Deload
     // neuer Zyklus 1 – mit welcher Woche er beginnt, fragt die App beim ersten Training (siehe entryweek in app.js)
     setRound(newCycleId(), 1, 1);
     plan.askEntry = true;
@@ -2438,7 +2440,7 @@ Object.assign(fields, {
 // v267: Schieberegler für die Zykluslänge – beim Ziehen nur Beschriftung und Text, beim Loslassen neu zeichnen
 fields['wiz-weeks-range'] = el => {
   wiz.weeks = Math.min(CYCLE_MAX, Math.max(4, Number(el.value) || 4));
-  const info = cycleLenInfo(wiz.weeks), set = (id, t) => { const x = document.getElementById(id); if (x) x.textContent = t; };
+  const info = cycleLenInfo(wiz.weeks, wiz.deload === 'rest'), set = (id, t) => { const x = document.getElementById(id); if (x) x.textContent = t; };
   set('wiz-weeks-n', `${wiz.weeks} Trainingswochen`); set('wiz-weeks-tag', info.tag);
   const p = document.getElementById('wiz-weeks-info'); if (p) p.innerHTML = info.text;
   document.querySelectorAll('.cyc-overview > div').forEach((d, i) => d.classList.toggle('on', i === (wiz.weeks <= 5 ? 0 : wiz.weeks <= 8 ? 1 : 2)));

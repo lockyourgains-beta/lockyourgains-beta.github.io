@@ -2151,6 +2151,11 @@ span.setno { display: flex; flex-direction: column; align-items: center; justify
 .nut-cardio { margin: 8px 0 0; padding: 8px 12px; border-radius: 12px; background: var(--success-soft); font-size: 15px; }
 .nut-cardio.off { background: var(--fill); color: var(--muted); }
 .nut-cardio .link-btn { margin-left: 4px; }
+.nut-td-row { margin-top: 10px; flex-direction: column; align-items: stretch; gap: 6px; }  /* v364 */
+.nut-td-row > span { min-width: 0; }
+.nut-td-row .stepper { flex: none; justify-content: center; }
+.nut-td-row .stepper b { white-space: nowrap; font-size: 17px; min-width: 0; padding: 0 2px; text-align: center; }
+.fe-train { margin-top: 10px; font-size: 14.5px; }
 .mode-ask .mode-opts { margin: 8px 0; }
 .mode-ask .btn { text-align: center; }
 
@@ -4232,3 +4237,9 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .mob-sets > span { min-width: 30px; }
 .mob-del { font-size: 14px !important; }
 .mob-chk { width: 34px; height: 34px; }
+/* v365: Pause statt Deload */
+.rest-break { border: 1px solid var(--line); }
+.rest-break p { margin: 6px 0 0; }
+.rest-next { font-weight: 600; }
+.rest-next small { display: block; margin-top: 4px; font-weight: 500; color: var(--muted); }
+.pill.rest { white-space: nowrap; }

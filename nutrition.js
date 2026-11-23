@@ -242,7 +242,7 @@ function nutBreakNow(n = data.nutrition) {
 function nutForceDeload() {
   const ci = cycleInfo();
   if (ci.deload) return;
-  if (selfDeload()) startDeloadNow();
+  if (dlByHand()) startDeloadNow();  // v365: auch bei „Pause statt Deload“
   else setRound(ci.cycleStart, data.cycle.buildWeeks + 1, ci.cycle);
 }
 
@@ -282,13 +282,57 @@ function nutSync() {
 
 // Cardio (cardio.js): Verbrauch eines Tages, der ins Tagesziel einfließt (nur wenn eingeschaltet)
 const nutCardio = date => data.nutrition && data.nutrition.cardioAdd && typeof cardioKcalOn === 'function' ? cardioKcalOn(date) : 0;
-// Tagesziel für einen bestimmten Tag: Grundziel + Cardio (zusätzliche Kalorien vor allem als Kohlenhydrate)
+/* v364 (User-Wunsch 2026-11-23): mehr Kalorien an Trainingstagen. data.nutrition.trainDay = true schaltet es ein,
+   trainDayKcal = Plus (Standard 200, 50 bis 500 in 50er-Schritten). Trainingstag = an diesem Tag wurde ein Krafttraining begonnen
+   (laufendes Training) oder gespeichert. Das Plus geht wie beim Cardio in die Kohlenhydrate. */
+const NUT_TD_KCAL = 200, NUT_TD_MIN = 50, NUT_TD_MAX = 500, NUT_TD_STEP = 50;
+const nutTdKcal = () => { const n = data.nutrition; return n && n.trainDay ? Math.min(NUT_TD_MAX, Math.max(NUT_TD_MIN, n.trainDayKcal || NUT_TD_KCAL)) : 0; };
+function nutTrainedOn(date) {
+  if (typeof draft !== 'undefined' && draft && draft.date && localDay(draft.date) === date) return true;
+  return (data.sessions || []).some(s => s.date && localDay(s.date) === date);
+}
+const nutTrainBonus = date => nutTdKcal() && nutTrainedOn(date) ? nutTdKcal() : 0;
+// Tagesziel für einen bestimmten Tag: Grundziel + Cardio + Trainingstag (zusätzliche Kalorien vor allem als Kohlenhydrate)
 function nutForDay(c, date = todayISO()) {
   // importierter Ernährungsplan (nutplan.js) ist maßgeblich
   if (typeof nutPlanActive === 'function' && nutPlanActive()) c = nutPlanTarget(date);
-  const x = c ? nutCardio(date) : 0;
-  return x ? { ...c, kcal: c.kcal + x, carbs: c.carbs + Math.round(x / 4 / 5) * 5, cardio: x } : c;
+  const x = c ? nutCardio(date) : 0, t = c ? nutTrainBonus(date) : 0;
+  return x || t ? { ...c, kcal: c.kcal + x + t, carbs: c.carbs + Math.round((x + t) / 4 / 5) * 5, cardio: x, train: t } : c;
 }
+
+// Einstellung „Mehr Kalorien an Trainingstagen“ (Reiter Ernährung und Tagebuch → Kalorien und Makros anpassen)
+function nutTrainDayHtml(n, inPanel = false) {
+  const on = !!n.trainDay, k = nutTdKcal() || n.trainDayKcal || NUT_TD_KCAL;
+  const today = on && nutTrainedOn(todayISO());
+  const body = `<div class="seg two"><button class="${on ? 'on' : ''}" data-action="nut-trainday" data-v="1">Ja</button>
+        <button class="${on ? '' : 'on'}" data-action="nut-trainday" data-v="0">Nein</button></div>
+      ${on ? `<div class="row nut-td-row"><span>Plus an Trainingstagen</span>
+        <div class="stepper"><button data-action="nut-trainday-step" data-d="-1" ${k <= NUT_TD_MIN ? 'disabled' : ''} aria-label="Weniger">−</button>
+          <b>+${k} kcal</b>
+          <button data-action="nut-trainday-step" data-d="1" ${k >= NUT_TD_MAX ? 'disabled' : ''} aria-label="Mehr">+</button></div></div>
+        <p class="nut-cardio">${today ? `🏋️ Heute ist Trainingstag: +${k} kcal sind schon im Tagesziel.` : `🏋️ Startest du heute ein Training, kommen automatisch ${k} kcal dazu.`}</p>` : ''}
+      <p class="hint nut-small">An Tagen, an denen du ein Training beginnst, erhöht die App dein Tagesziel automatisch um diesen Betrag,
+        vor allem als Kohlenhydrate. Die liefern Energie fürs Training und helfen bei der Erholung. An Tagen ohne Training gilt dein normales
+        Tagesziel. 200 kcal sind ein guter Ausgangswert, das sind etwa 50 g Kohlenhydrate, z. B. zwei Bananen oder eine Portion Reis.</p>
+      ${on ? `<p class="hint nut-small">In einer Diät wird das Defizit an Trainingstagen etwas kleiner, im Aufbau der Überschuss etwas größer. Passt dein
+        Gewicht über die Wochen nicht zu deinem Ziel, schlägt die App wie gewohnt eine Anpassung vor.</p>` : ''}`;
+  return inPanel ? `<h3 class="fe-goal-h">Mehr Kalorien an Trainingstagen</h3>${body}`
+    : `<div class="card nut-td"><h2>🏋️ Mehr Kalorien an Trainingstagen?</h2>${body}</div>`;
+}
+actions['nut-trainday'] = el => {
+  const n = data.nutrition;
+  if (!n) return;
+  n.trainDay = el.dataset.v === '1';
+  if (n.trainDay && !n.trainDayKcal) n.trainDayKcal = NUT_TD_KCAL;
+  saveData(); render();
+  toast(n.trainDay ? `An Trainingstagen +${nutTdKcal()} kcal` : 'Gleiches Tagesziel an allen Tagen');
+};
+actions['nut-trainday-step'] = el => {
+  const n = data.nutrition;
+  if (!n) return;
+  n.trainDayKcal = Math.min(NUT_TD_MAX, Math.max(NUT_TD_MIN, (n.trainDayKcal || NUT_TD_KCAL) + Number(el.dataset.d) * NUT_TD_STEP));
+  saveData(); render();
+};
 
 // Wassereinlagerung durch den Menstruationszyklus (menstrual.js) – solche Gewichtswerte zählen nicht für Trend und Bedarf
 const nutWaterDay = d => typeof mcWater === 'function' && mcWater(d);
@@ -937,6 +981,7 @@ function nutGoalToolsHtml() {
       ${c.note === 'floor' ? `<p class="nut-warn">Weniger als ${deNum(nutFloor(n))} kcal empfiehlt die App nicht, sonst fehlen schnell Nährstoffe.</p>` : ''}
       ${macros}
       ${feat('nut-protein-detail') ? nutProteinNote(n, c) : ''}
+      ${nutTrainDayHtml(n, true)}
       <p class="nut-relax explain">😌 <b>Kein Stress:</b> Du musst diese Werte nicht aufs Gramm genau treffen. Entscheidend ist, dass Kalorien
         und Eiweiß über die Woche gesehen ungefähr passen, ±10 % sind völlig in Ordnung.</p>
     </div>`;
@@ -1508,6 +1553,7 @@ function renderNutrition() {
     h += `${typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanCard() : ''}
       ${typeof ppNoteHtml === 'function' ? ppNoteHtml(n) : ''}
       ${nutGoalCard2(n, c, ph, weekText)}
+      ${nutTrainDayHtml(n)}
       ${nutPauseCard(n)}
       ${typeof ppCardHtml === 'function' ? ppCardHtml(n) : ''}
       ${nutLowCard(n, nutForDay(c))}

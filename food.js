@@ -819,6 +819,13 @@ function foodDayLabel(date) {
   return rel ? `${rel}<small>${long}</small>` : long;
 }
 
+// v364: Trainingstag im Tagebuch (Plus aus „Mehr Kalorien an Trainingstagen“, siehe nutForDay)
+function foodTrainLine(date, c) {
+  if (typeof nutTdKcal !== 'function' || !nutTdKcal()) return '';
+  if (c.train) return `<p class="nut-cardio fe-train">🏋️ Trainingstag: +${c.train} kcal im Tagesziel, vor allem als Kohlenhydrate.</p>`;
+  return date === todayISO() ? `<p class="nut-cardio off fe-train">🏋️ Startest du heute ein Training, kommen automatisch ${nutTdKcal()} kcal dazu.</p>` : '';
+}
+
 // Tagesziel (falls die Ernährung eingerichtet ist)
 function foodGoal(date = todayISO()) {
   if (nutPausedOn(date)) return null;  // Phase unterbrochen: kein Tagesziel
@@ -903,7 +910,7 @@ function renderFood(p) {
     </div>
     <div class="row food-nav-btns"><button class="btn" data-action="food-cal">📅 Kalender</button>
       <button class="btn" data-action="food-stats">📊 Woche & Monat</button></div>
-    <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) : foodSumHtml(t)}
+    <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) + foodTrainLine(date, foodGoal(date)) : foodSumHtml(t)}
       ${date === todayISO() && typeof nutGoalToolsHtml === 'function' ? nutGoalToolsHtml() : ''}</div>
     ${date === todayISO() ? foodOpenCard() : ''}`;
   // v336 (User-Wunsch): Mahlzeiten direkt unter Kalorien und Makros; Vitamine, Ballaststoffe/Zucker und „Aus Health“/„Von Hand“ darunter
