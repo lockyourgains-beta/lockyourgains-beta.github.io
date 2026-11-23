@@ -4192,6 +4192,18 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .mob-good { margin: 2px 0 6px; font-size: 15px; line-height: 1.45; }
 .mob-add-first { display: block; width: 100%; margin: 6px 0 14px; }
 .mob-plan { margin-bottom: 14px; }
+/* v358: Stufe des Mobility-Vorschlags (Plan) und Regler im Assistenten */
+.mob-plan-off .mob-add-first { margin: 4px 0 6px; }
+.mob-lvl { margin-top: 10px; }
+.mob-lvl .vchip { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  padding: 6px 4px; line-height: 1.1; }
+.mob-lvl .vchip b { font-size: 17px; }
+.mob-lvl .vchip small { font-size: 13px; font-weight: 600; }
+.mob-lvl .vchip.on::before { content: none; }
+.mob-btns .btn { flex: 1 1 0; min-width: 0; min-height: 44px; justify-content: center; white-space: nowrap; font-size: 15px; padding-left: 8px; padding-right: 8px; }
+.wiz-mob-slider .wiz-range-scale { padding: 0; margin: 0 -16px; }
+.wiz-mob-slider .wiz-range-scale span { width: 64px; text-align: center; line-height: 1.2; }
+.wiz-mob-slider .wiz-range-scale small { display: block; font-size: 12px; }
 .mob-plan-head, .mob-tr-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .mob-plan-head h2 { margin: 0; font-size: 17px; }
 .mob-list { list-style: none; margin: 8px 0 6px; padding: 0; }

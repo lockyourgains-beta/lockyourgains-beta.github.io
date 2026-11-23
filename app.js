@@ -1663,9 +1663,14 @@ function planIntensityCard(bw) {
       <button class="btn small" data-action="plan-rir-auto">Auf automatische Werte umstellen</button></div>`;
   if (!feat('tr-rir-input')) return '';  // Einfach: läuft im Hintergrund mit „Deutlich“
   const prev = [...Array(Math.max(1, Math.min(bw, 8)))].map((_, i) => `${i ? 'W' + (i + 1) : 'Intro'} ${fmtNum(rirAutoRange('normal', i + 1, p)[0])}`).join(' | ');
-  return `<div class="int-card"><p class="lbl">Wie stark soll die Intensität im Zyklus steigen?</p>
-      <div class="variants">${Object.entries(RIR_COURSES).map(([k, x]) => chip('plan-course', k, x.label, (p.rirCourse || 'strong') === k)).join('')}</div>
-      <p class="hint">${esc(RIR_COURSES[p.rirCourse || 'strong'].text)}${p.rirStyle ? ` Dazu ${p.rirStyle > 0 ? '0,5 mehr' : '0,5 weniger'} im Tank aus der Volumen-Variante „${p.volStyle === 'hard' ? 'Beides' : p.rirStyle > 0 ? 'Mehr Volumen' : 'Weniger Volumen'}“${p.rirStyle < 0 ? ' (alle Übungen mindestens 0,5)' : ''}.` : ''} Tank normaler Übungen: ${prev}.</p></div>`;
+  // v360 (User): keine Auswahl des Verlaufs mehr, Standard „Deutlich“. Ältere Pläne mit anderem Verlauf können umstellen.
+  const c = RIR_COURSES[p.rirCourse] ? p.rirCourse : 'strong';
+  return `<div class="int-card"><p class="lbl">Intensität im Zyklus</p>
+      ${c !== 'strong' ? `<p class="hint">Dieser Plan nutzt noch den früheren Verlauf „${RIR_COURSES[c].label}“. Neue Pläne werden von Woche zu Woche deutlich intensiver.</p>
+        <button class="btn small" data-action="plan-course" data-k="strong">Auf den Standard umstellen</button>` : ''}
+      <p class="hint">${esc(RIR_COURSES[c].text)}</p>
+      ${p.rirStyle ? `<p class="hint">Dazu 0,5 ${p.rirStyle > 0 ? 'mehr' : 'weniger'} im Tank aus der Volumen-Variante „${p.volStyle === 'hard' ? 'Beides' : p.rirStyle > 0 ? 'Mehr Volumen' : 'Weniger Volumen'}“${p.rirStyle < 0 ? ' (alle Übungen mindestens 0,5)' : ''}.</p>` : ''}
+      <p class="hint">Tank normaler Übungen: ${prev}.</p></div>`;
 }
 
 function rirTable(buildWeeks) {
@@ -2419,6 +2424,11 @@ const execOf = v => isBo(v) ? String(v).slice(3) : v || '';   // Ausführung ohn
 const makeBo = exec => exec ? 'bo_' + exec : 'bo';
 const EXEC_VARIANTS = { '': 'Normal', pause: 'mit Pause', slow: 'langsam' };  // Knöpfe der Ausführung im Plan (Techniken extra)
 const variantOf = s => (s && s.variant) || '';
+/* v357 (User-Wunsch 2026-11-23): Ausführung im Plan nur für bestimmte Sätze. ex.vSets = Satznummern ab 1, von vorne gezählt;
+   fehlt es, gilt ex.variant für alle Sätze. Später im Zyklus dazukommende Sätze sind normal, Satznummern, die es in einem
+   Training nicht gibt (z. B. im Deload), fallen weg. Einstellbar ab Standard (tr-variants), nur für die Ausführung, nicht für Techniken. */
+const vSetsOf = ex => ex && ex.variant && Array.isArray(ex.vSets) && ex.vSets.length ? ex.vSets : null;
+const execAt = (ex, i) => { const s = vSetsOf(ex); return !s || s.includes(i + 1) ? (ex && ex.variant) || '' : ''; };
 // „mit Pause“ und „langsam“ lassen sich zusammen wählen: Knopf v an/aus, ausgehend von der bisherigen Ausführung cur
 function variantToggle(cur, v) {
   if (v !== 'pause' && v !== 'slow') return v;
@@ -2450,7 +2460,7 @@ const techOn = () => feat('tr-variants');
 // Technik eines Satzes laut Plan (i = Satz, n = Sätze heute)
 const techVariant = (ex, i, n) => {
   const t = ex.tech;
-  return t && TECHS[t.k] && techOn() && !(draft && draft.deload) && (t.at === 'all' || i === n - 1) ? t.k : ex.variant || '';
+  return t && TECHS[t.k] && techOn() && !(draft && draft.deload) && (t.at === 'all' || i === n - 1) ? t.k : execAt(ex, i);
 };
 /* ---------- Top-Set + Back-off (v295, User-Regel 2026-11-15) ----------
    Pro Übung im Plan (ex.scheme = 'top', ex.topN = 1|2), ab Standard, nicht bei Eigengewicht. Die Top-Sets sind normale Sätze
@@ -2475,8 +2485,8 @@ function schemeRowHtml(ex, i) {
 function planVariant(ex, i, n) {
   if (!schemeOn(ex) || n <= topNOf(ex)) return techVariant(ex, i, n);
   const tv = techVariant(ex, i, n);
-  if (i < topNOf(ex)) return isTech(tv) ? (ex.variant || '') : tv;  // Top-Set: Ausführung laut Plan
-  return isTech(tv) ? tv : makeBo(ex.variant || '');
+  if (i < topNOf(ex)) return isTech(tv) ? execAt(ex, i) : tv;  // Top-Set: Ausführung laut Plan
+  return isTech(tv) ? tv : makeBo(execAt(ex, i));
 }
 // Back-off-Gewicht: möglichst nah an 82,5 % des Top-Sets, innerhalb 80–85 %, falls die Stufen das hergeben
 function boWeight(top, t) {
@@ -5467,7 +5477,7 @@ function periodCard(c, active) {
   if (!cfg && !feat('cycle-adjust') && !feat('plan-volume')) return '';
   let h = '';
   if (!ownPlan() && (cfg || feat('cycle-adjust'))) {
-    const inten = feat('tr-rir-input') ? (active.rirMode === 'table' ? ' | eigene Tank-Tabelle' : ` | Intensität ${RIR_COURSES[active.rirCourse || 'strong'].label.toLowerCase()}`) : '';
+    const inten = feat('tr-rir-input') ? (active.rirMode === 'table' ? ' | eigene Tank-Tabelle' : RIR_COURSES[active.rirCourse] && active.rirCourse !== 'strong' ? ` | Intensität ${RIR_COURSES[active.rirCourse].label.toLowerCase()}` : '') : '';  // v360
     h += `<h2>Zyklus</h2><button class="btn nav cyc-page-btn" data-action="cycle-page" data-from="plan">🔄 Zyklus, Deload und Intensität
       <small>${c.buildWeeks} Trainingswochen | Deload ${selfDeload() ? 'selbst bestimmt' : 'automatisch'}${inten}</small></button>`;
   }
@@ -5725,6 +5735,7 @@ function planReplaceExercise(day, i, name) {
   if (ex.name.trim()) ex.replacedFrom = ex.name.trim();  // für die Schnellauswahl (zurücktauschen)
   Object.assign(ex, { name, kind: null, variant: '', step: null, max10: knownMax10(name) });
   delete ex.tech;  // Intensitätstechnik gehört zur Übung (v211)
+  delete ex.vSets;  // v357: Satzauswahl der Ausführung ebenso
   // unbekannte Übung: Muskelgruppe der alten behalten, damit das Wochenvolumen stimmt
   ex.group = EXERCISE_GROUPS.has(nameKey(name)) ? null : oldGroup;
   planSwap = null;
@@ -5740,6 +5751,22 @@ function planReplaceExercise(day, i, name) {
 const planDelBtn = i => `<button class="plan-del-x" data-action="ex-del" data-i="${i}" aria-label="Übung entfernen" title="Übung entfernen">✕</button>`;
 const amrapRowHtml = (ex, i) => ex.amrap ? `<div class="variants plan amrap-row"><span>AMRAP: so viele Wdh. wie möglich (Tank 0)</span>
   <button class="vchip" data-action="plan-amrap" data-i="${i}">AMRAP ausschalten</button></div>` : '';
+
+// Plan: Zeile „Ausführung“, ab Standard darunter „Gilt für alle / bestimmte Sätze“ (v357); max = meiste Sätze im Zyklus
+const EXEC_HOW = { pause: 'mit Pause', slow: 'langsam', pslow: 'mit Pause und langsam' };
+function execPlanHtml(ex, i, max) {
+  const h = `<div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
+    `<button class="vchip ${variantChipOn(ex.variant || '', v) ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
+    </div>`;
+  if (!EXEC_HOW[ex.variant] || !feat('tr-variants') || !(max > 1)) return h;
+  const s = vSetsOf(ex);
+  const chip = (act, v, label, on) => `<button class="vchip ${on ? 'on' : ''}" data-action="${act}" data-i="${i}" data-v="${v}">${label}</button>`;
+  return h + `<div class="variants plan vsets-row"><span>Gilt für</span>${chip('plan-vsets', 'all', 'Alle Sätze', !s)}${chip('plan-vsets', 'some', 'Bestimmte Sätze', !!s)}</div>
+    ${s ? `<div class="variants plan vsets-nums"><span>Satz</span>${Array.from({ length: max }, (_, k) => chip('plan-vset', k + 1, String(k + 1), s.includes(k + 1))).join('')}</div>
+    <p class="hint kind-hint">Die markierten Sätze machst du ${EXEC_HOW[ex.variant]}, die übrigen normal. Kommen im Lauf des Zyklus Sätze dazu, sind sie normal.
+      Gibt es einen markierten Satz in einem Training nicht, z. B. im Deload, fällt er weg.</p>` : ''}`;
+}
+const setsMaxOf = ex => { const bw = data.cycle.buildWeeks; return Math.max(...Array.from({ length: bw }, (_, w) => setsForWeek(ex, w + 1, bw))); };
 
 // Übung im Trainingstag eines eigenen Plans: nur Sätze × Wdh., Startgewicht und Ausführung
 function ownExerciseCard(ex, i) {
@@ -5759,9 +5786,7 @@ function ownExerciseCard(ex, i) {
     ${isBodyweight(ex) ? '' : `<label class="row"><span>Startgewicht<br><small class="hint">nur fürs erste Training</small></span>
       <input class="inp kg" type="text" inputmode="decimal" autocomplete="off" data-field="ex-start" data-i="${i}"
         placeholder="kg" value="${ex.startWeight == null ? '' : fmtNum(ex.startWeight)}"></label>`}
-    <div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
-      `<button class="vchip ${variantChipOn(ex.variant || '', v) ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
-    </div>
+    ${execPlanHtml(ex, i, ex.sets)}
     ${amrapRowHtml(ex, i)}
   </div>`;
 }
@@ -5867,9 +5892,7 @@ function renderDay({ id }) {
              ? `<p class="auto-info">Wdh.: ${repRangeText(day, ex)} (Start bei ${repsFor(day, ex)}) | Muskelgruppe ohne Volumen-Vorgabe, Sätze von Hand</p>`
              : stepperRow('Wdh. pro Satz', 'reps', i, ex.reps)}`}
       ${feat('tr-tank-target') ? `<p class="hint kind-hint">Ziel im Tank diese Woche: <b>${weekRirText(kindOf(ex), groupOf(ex))}</b></p>` : ''}
-      ${feat('tr-variants') ? `${`<div class="variants plan"><span>Ausführung</span>${Object.entries(EXEC_VARIANTS).map(([v, label]) =>
-        `<button class="vchip ${variantChipOn(ex.variant || '', v) ? 'on' : ''}" data-action="plan-variant" data-i="${i}" data-v="${v}">${label}</button>`).join('')}
-      </div>`}${ex.name.trim() ? techPlanHtml(ex, i) : ''}` : ''}
+      ${feat('tr-variants') ? `${execPlanHtml(ex, i, isAuto ? Math.max(...autoWeeks.map(m => m.get(ex.id) || 0)) : setsMaxOf(ex))}${ex.name.trim() ? techPlanHtml(ex, i) : ''}` : ''}
       ${feat('tr-topset') && ex.name.trim() && !isBodyweight(ex) ? schemeRowHtml(ex, i) : ''}
       ${amrapRowHtml(ex, i)}
       ${bodyweightRow(ex, i)}
@@ -6806,6 +6829,36 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 363, date: '2026-11-23', items: [
+    ['Optimale Ergebnisse für deinen Zeitaufwand: Auch die kleinen Übungen wechseln jetzt immer zwischen denselben zwei Übungen. So kommt jede öfter dran, und gerade neue Übungen lernt man schneller.'],
+  ] },
+  { v: 362, date: '2026-11-23', items: [
+    ['Optimale Ergebnisse für deinen Zeitaufwand: mehr Abwechslung zwischen den Trainingstagen. Die Grundübungen wechseln sich mit einer Alternative ab, z. B. Kniebeugen und Beinpresse oder Flachbank und Schrägbank, und kommen für die Steigerung trotzdem 2× pro Woche dran. Kleine Übungen wechseln an jedem Tag.'],
+    ['Kein Training dieses Plans ist kürzer als etwa 30 Minuten.'],
+  ] },
+  { v: 361, date: '2026-11-23', items: [
+    ['Optimale Ergebnisse für deinen Zeitaufwand: Übungen mit Aufwärmsätzen bekommen jetzt immer mindestens 2 Sätze. Dafür steht nicht mehr jede Muskelgruppe in jedem Training, über die Woche bekommt aber jede genug ab.'],
+    ['Unterarme, vordere Schulter, Adduktoren und Abduktoren haben in diesem Plan keine eigenen Übungen mehr, sie arbeiten bei den großen Übungen mit. Kleine Muskelgruppen bekommen Übungen ohne Aufwärmsätze, die Trainingstage sind ungefähr gleich lang.'],
+    ['Bei der Frage nach der Trainingsdauer gibt die App keine Empfehlung mehr.'],
+  ] },
+  { v: 360, date: '2026-11-23', items: [
+    ['Plan-Assistent: Beim automatisch erstellten Plan fragt die App zuerst nach deinem Ziel: bestmöglicher Muskelaufbau oder optimale Ergebnisse für deinen Zeitaufwand.'],
+    ['Optimale Ergebnisse für deinen Zeitaufwand: nur wenige Fragen (Tage pro Woche, Zeit pro Training, Supersätze, Mobility). Die App wählt Aufteilung und Übungen, mit weniger Sätzen, die dafür näher ans Muskelversagen gehen. 30 Minuten pro Training sind jetzt auch möglich.'],
+    ['Bestmöglicher Muskelaufbau: Zur Steigerung gibt es nur noch eine Frage: normal, mehr Volumen, weniger Volumen oder keine automatische Steigerung.'],
+    ['Die Frage, wie stark die Intensität im Zyklus steigen soll, gibt es nicht mehr. Neue Pläne werden von Woche zu Woche deutlich intensiver, wie bisher voreingestellt.', 'tr-rir-input'],
+  ] },
+  { v: 359, date: '2026-11-23', items: [
+    ['Mobility-Vorschlag: Die App richtet sich jetzt vor allem nach den ersten ein bis zwei Übungen des Tages, besonders nach Grundübungen. Vor Kniebeugen kommen z. B. zuerst Sprunggelenk und Hüfte, vor Kreuzheben die Hüfte, vor Bank- und Schulterdrücken Schulter und Brustwirbelsäule.'],
+    ['Tage, deren Mobility du nicht selbst geändert hast, bekommen den neuen Vorschlag automatisch. Bei den anderen holt ihn „✨ Neu vorschlagen“.'],
+  ] },
+  { v: 358, date: '2026-11-23', items: [
+    ['Mobility: Statt ja oder nein stellst du im Plan-Assistenten mit einem Regler von 0 bis 3 ein, wie viel die App vorschlägt: keine, wenig (2 Übungen), mittel (4) oder viel (6) je Trainingstag.'],
+    ['Die Stufe lässt sich im Plan bei jedem Trainingstag im Bereich Mobility umstellen und gilt für alle Tage des Plans. Bisherige Pläne mit Vorschlag stehen auf mittel.'],
+  ] },
+  { v: 357, date: '2026-11-23', items: [
+    ['Plan: Die Ausführung „mit Pause“ oder „langsam“ kannst du jetzt auch nur für bestimmte Sätze einer Übung festlegen, z. B. nur Satz 1 mit Pause. Trainingstag im Plan antippen, Ausführung wählen und bei „Gilt für“ auf „Bestimmte Sätze“ tippen.', 'tr-variants'],
+    ['Der Plan-Assistent weist darauf hin, dass du die Trainingstage im fertigen Plan noch genauer einstellen kannst.', 'tr-variants'],
+  ] },
   { v: 356, date: '2026-11-23', items: [
     ['Ernährungstagebuch: Unter jeder Mahlzeit stehen jetzt klein ihre Kalorien und Makros.'],
   ] },
@@ -9387,6 +9440,21 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
   'plan-variant': el => {
     const ex = findDay(current.params.id).exercises[el.dataset.i];
     ex.variant = variantToggle(ex.variant || '', el.dataset.v);
+    if (!ex.variant) delete ex.vSets;
+    saveData(); render();
+  },
+  // v357: Ausführung für alle oder nur bestimmte Sätze (Satznummern von vorne)
+  'plan-vsets': el => {
+    const ex = findDay(current.params.id).exercises[el.dataset.i];
+    if (el.dataset.v === 'some') ex.vSets = vSetsOf(ex) || [1]; else delete ex.vSets;
+    saveData(); render();
+  },
+  'plan-vset': el => {
+    const ex = findDay(current.params.id).exercises[el.dataset.i], n = +el.dataset.v;
+    const s = vSetsOf(ex) || [];
+    const next = s.includes(n) ? s.filter(x => x !== n) : [...s, n].sort((a, b) => a - b);
+    if (!next.length) { toast('Mindestens ein Satz bleibt markiert. Soll kein Satz anders sein, wähle bei Ausführung „Normal“.'); return; }
+    ex.vSets = next;
     saveData(); render();
   },
   // Ganze Übung: alle noch offenen Sätze auf die Variante stellen

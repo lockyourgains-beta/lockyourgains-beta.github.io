@@ -1,8 +1,8 @@
 /* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Mobility (v355, User-Wunsch 2026-11-23) ----------
    Bibliothek mit Mobility-Übungen (MOB_EX, nach Körperregion) zum Aufwärmen vor dem Krafttraining.
-   Plan: plan.mob = 'auto' (die App schlägt je Trainingstag passende Übungen vor, Frage im Plan-Assistenten) oder 'self'/fehlt
-   (nur selbst hinzugefügt). Trainingstag: day.mob = [{ id, sets }]. Fehlt day.mob bei 'auto', gilt der Vorschlag (mobSuggest,
+   Plan: plan.mob = Stufe 0–3 (v358, User-Wunsch: Regler statt ja/nein; Frage im Plan-Assistenten, im Plan je Trainingstag änderbar):
+   0 = nur selbst hinzugefügt, 1/2/3 = die App schlägt je Trainingstag 2/4/6 passende Übungen vor. Ältere Pläne: 'auto' = 2, 'self'/fehlt = 0. Trainingstag: day.mob = [{ id, sets }]. Fehlt day.mob bei 'auto', gilt der Vorschlag (mobSuggest,
    passt sich an geänderte Übungen an); erst beim Ändern wird die Liste fest im Tag gespeichert.
    Zeit (User): MOB_MIN Minute je Satz, zählt zur geschätzten Dauer; bei „Wenig Zeit?“ fällt Mobility zuerst weg (mobFit).
    Training: draft.mob = [{ id, sets, done }], abhakbarer Block oben; gespeichert als session.mob = [{ id, done }].
@@ -127,25 +127,73 @@ const MOB_BY_ID = new Map(MOB_EX.map(m => [m.id, m]));
 const mobDose = m => `${m.n} ${m.u === 'r' ? 'Wdh.' : 's'}${m.side ? ' je Seite' : ''}`;
 const mobMeta = m => [MOB_TYPES[m.type], mobDose(m), m.eq ? MOB_EQ[m.eq] : ''].filter(Boolean).join(' | ');
 const mobMinutes = list => (list || []).reduce((a, m) => a + (m.sets || 1), 0) * MOB_MIN;
+// Stufen des Mobility-Vorschlags (v358): [Name, Übungen je Trainingstag]
+const MOB_LEVELS = [['Keine', 0], ['Wenig', 2], ['Mittel', 4], ['Viel', 6]];
+const mobLevel = (plan = activePlan()) => { const v = plan && plan.mob; return typeof v === 'number' ? Math.min(3, Math.max(0, Math.round(v))) : v === 'auto' ? 2 : 0; };
+const mobLevelText = l => l ? `Die App wählt je Trainingstag ${MOB_LEVELS[l][1]} Übungen, passend zu den Muskeln und Übungen des Tages, das sind etwa ${MOB_LEVELS[l][1] * MOB_MIN} Minuten.`
+  : 'Die App schlägt keine Übungen vor. Bei Bedarf wählst du für jeden Trainingstag selbst Mobility-Übungen aus.';
 const mobSearchStr = m => [m.de, m.good, m.use, MOB_TYPES[m.type]].join(' ').toLowerCase();
 
 /* ----- Vorschlag je Trainingstag ----- */
-// Gewicht je Muskelgruppe des Tages (Grundübungen zählen mehr); Übungen, die vor diesen Gruppen helfen (m.pre), bekommen Punkte.
-// Nur dynamische Übungen und Aktivierung ohne besondere Hilfsmittel (Wand geht), je Körperregion zuerst höchstens eine.
-const MOB_KIND_W = { compound: 3, normal: 2, assist: 1 };
+/* v359 (User-Wunsch 2026-11-23): bevorzugt, was die ersten 1–2 Übungen des Tages brauchen, vor allem Grundübungen (Kniebeugen →
+   Hüfte und Sprunggelenk). Jede Übung des Tages zählt nach Platz (MOB_POS_W) und Art (MOB_KIND_W). Welche Körperregionen sie
+   braucht, steht in MOB_PAT (nach Name) bzw. MOB_GRP_REG (nach Muskelgruppe). Eine Mobility-Übung bekommt Punkte, wenn ihre
+   Region gebraucht wird: doppelt, wenn die Übung unter „Passt vor“ (m.use) steht (an erster Stelle etwas mehr), einfach, wenn
+   sie dieselbe Muskelgruppe vorbereitet (m.pre), sonst wenig. Nur dynamische Übungen und Aktivierung ohne besondere Hilfsmittel
+   (Wand geht), je Körperregion zuerst höchstens eine. Bewährte Standardübungen (MOB_TOP) bekommen etwas Vorrang. */
+const MOB_TOP = new Set(['worldsgreatest', 'squattostand', 'kneetowall', 'ankleRock', 'ninetyninety', 'hipcars', 'cossack', 'hamsweep', 'bwgoodmorning',
+  'glutebridge', 'catcow', 'birddog', 'openbook', 'threadneedle', 'wallangel', 'scappushup', 'shouldercars', 'armcircles']), MOB_TOP_W = 1.3;
+const MOB_ACT_W = 0.85;  // Mobilisation vor Aktivierung (User: z. B. Hüfte öffnen, Sprunggelenk mobilisieren)
+const MOB_KIND_W = { compound: 1.5, normal: 1, assist: 0.7 };
+const MOB_POS_W = [5, 3], MOB_POS_REST = 0.5;
+const MOB_PAT = [
+  [/kniebeug|squat|hackenschmidt|hack-?squat/, { ankle: 1, hip: 1, full: 0.5, tspine: 0.3, knee: 0.3 }],
+  [/ausfallschritt|split|lunge|step-?up|kreuzheben sumo|sumo/, { hip: 1, ankle: 0.8, knee: 0.6, full: 0.5 }],
+  [/kreuzheb|deadlift|good ?morning|rdl/, { hip: 1, spine: 0.6, full: 0.5, ankle: 0.2 }],
+  [/beinpresse/, { hip: 1, ankle: 0.6, knee: 0.6, full: 0.3 }],
+  [/hip ?thrust|beckenheb|glute/, { hip: 1, spine: 0.4, full: 0.3 }],
+  [/wadenheb/, { ankle: 1 }],
+  [/schulterdr|uberkopf|military|arnold|nackendr/, { shoulder: 1, tspine: 0.9, arm: 0.3, full: 0.3 }],
+  [/bankdr|brustdr|liegest|dips|butterfly|fliegende/, { shoulder: 1, tspine: 0.8, arm: 0.3, full: 0.3 }],
+  [/klimmz|latzieh|pull-?down|pull-?up|chin/, { shoulder: 1, tspine: 0.8, arm: 0.3, full: 0.3 }],
+  [/rudern|row|face ?pull|reverse butterfly/, { tspine: 1, shoulder: 0.8, spine: 0.3 }],
+];
+const MOB_GRP_REG = { quadrizeps: { knee: 0.6, hip: 0.6, ankle: 0.5 }, beinbeuger: { hip: 1, knee: 0.3 }, gesaess: { hip: 1 }, adduktoren: { hip: 1 },
+  abduktoren: { hip: 1 }, waden: { ankle: 1 }, brust: { shoulder: 1, tspine: 0.6 }, lat: { shoulder: 0.8, tspine: 0.8 }, trapez: { neck: 0.6, tspine: 0.6 },
+  schulter_vorne: { shoulder: 1, tspine: 0.5 }, schulter_seite: { shoulder: 1 }, schulter_hinten: { shoulder: 1, tspine: 0.6 }, bizeps: { arm: 1, shoulder: 0.3 },
+  trizeps: { arm: 1, shoulder: 0.3 }, unterarme: { arm: 1 }, bauch: { spine: 1, hip: 0.3 }, ruecken_unten: { spine: 1, hip: 0.5 } };
+const mobNorm = x => String(x || '').toLowerCase().replace(/ß/g, 'ss').normalize('NFD').replace(/[̀-ͯ]/g, '');
+const mobRegNeed = (n, g) => { const p = MOB_PAT.find(([rx]) => rx.test(n)); return p ? p[1] : MOB_GRP_REG[g] || {}; };
+// „Passt vor“-Eintrag t passt zur Übung mit Namen n: steht ganz im Namen oder jedes Wort (Anfang) kommt vor
+function mobUseHit(t, n) {
+  t = mobNorm(t).trim();
+  if (!t) return false;
+  if (n.includes(t)) return true;
+  const ws = n.split(/[\s\-(),\/]+/);
+  return t.split(/[\s\-]+/).every(x => x.length >= 3 && ws.some(w => w.startsWith(x.slice(0, Math.min(6, x.length)))));
+}
 function mobSuggest(day, n = 4) {
-  const w = {};
-  for (const ex of day.exercises || []) {
-    if (!(ex.name || '').trim()) continue;
-    const g = groupOf(ex);
-    if (g) w[g] = (w[g] || 0) + (MOB_KIND_W[kindOf(ex)] || 1);
-  }
-  if (!Object.keys(w).length) return [];
+  const exs = (day.exercises || []).filter(ex => (ex.name || '').trim()).map((ex, j) => {
+    const nn = mobNorm(ex.name), g = groupOf(ex);
+    return { n: nn, g, need: mobRegNeed(nn, g), w: (MOB_POS_W[j] || MOB_POS_REST) * (MOB_KIND_W[kindOf(ex)] || 1) };
+  });
+  if (!exs.length) return [];
   const seed = [...String(day.id || day.name || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
   const tie = id => [...id].reduce((a, c) => (a * 33 + c.charCodeAt(0)) >>> 0, seed) % 1000;
+  const score = m => {
+    const use = String(m.use || '').split(',');
+    let s = 0;
+    for (const ex of exs) {
+      const r = ex.need[m.reg] || 0;
+      if (!r) continue;
+      const k = use.findIndex(t => mobUseHit(t, ex.n));
+      s += ex.w * r * (k === 0 ? 2.3 : k > 0 ? 2 : ex.g && m.pre.includes(ex.g) ? 1 : 0.3);
+    }
+    return s * (MOB_TOP.has(m.id) ? MOB_TOP_W : 1) * (m.type === 'act' ? MOB_ACT_W : 1);
+  };
   const cand = MOB_EX.filter(m => m.type !== 'hold' && (!m.eq || m.eq === 'wall'))
-    .map(m => ({ m, s: m.pre.reduce((a, g) => a + (w[g] || 0), 0) + tie(m.id) / 10000 }))
-    .filter(x => x.s >= 1).sort((a, b) => b.s - a.s);
+    .map(m => ({ m, s: score(m) + tie(m.id) / 100000 }))
+    .filter(x => x.s >= 0.5).sort((a, b) => b.s - a.s);
   const out = [], regs = new Set();
   for (const pass of [0, 1]) for (const { m } of cand) {
     if (out.length >= n) break;
@@ -159,8 +207,8 @@ function mobSuggest(day, n = 4) {
 function mobDay(day, plan = activePlan()) {
   if (!day) return [];
   if (Array.isArray(day.mob)) return day.mob.filter(m => MOB_BY_ID.has(m.id));
-  if (!plan || plan.mob !== 'auto' || !(day.exercises || []).some(e => (e.name || '').trim())) return [];
-  return mobSuggest(day);
+  if (!plan || !mobLevel(plan) || !(day.exercises || []).some(e => (e.name || '').trim())) return [];
+  return mobSuggest(day, MOB_LEVELS[mobLevel(plan)][1]);
 }
 // Liste fest im Tag speichern (vor jeder Änderung)
 const mobEdit = day => { if (!Array.isArray(day.mob)) day.mob = mobDay(day).map(m => ({ ...m })); return day.mob; };
@@ -236,10 +284,19 @@ function mobRowHtml(m, i, k, tools) {
       <button class="mob-name" data-action="mob-info" data-k="${k}|${m.id}" aria-expanded="${det}"><b>${esc(x.de)}</b><small>${esc(mobMeta(x))}</small></button>
       ${tools}</div>${det ? mobDetail(x) : ''}</li>`;
 }
+// v358: Stufe des Vorschlags für den ganzen Plan (0–3)
+function mobLevelHtml(plan) {
+  const l = mobLevel(plan);
+  return `<div class="variants plan mob-lvl"><span>Vorschlag der App</span>${MOB_LEVELS.map(([label], k) =>
+      `<button class="vchip ${l === k ? 'on' : ''}" data-action="mob-level" data-l="${k}"><b>${k}</b><small>${label}</small></button>`).join('')}</div>
+    <p class="hint nut-small">${mobLevelText(l)} Gilt für alle Trainingstage des Plans. Tage, an denen du die Mobility selbst geändert hast, behalten ihre Auswahl.</p>`;
+}
 function mobPlanHtml(day) {
   const plan = activePlan(), list = mobDay(day, plan), fixed = Array.isArray(day.mob);
-  if (!list.length && !fixed && plan.mob !== 'auto') {
-    return `<button class="btn outline mob-add-first" data-action="mob-pick" data-day="${day.id}">🤸 Mobility vor dem Training hinzufügen</button>`;
+  if (!list.length && !fixed && !mobLevel(plan)) {
+    return `<div class="card mob-plan mob-plan-off"><div class="mob-plan-head"><h2>🤸 Mobility vor dem Training</h2></div>
+      <button class="btn outline mob-add-first" data-action="mob-pick" data-day="${day.id}">＋ Übungen selbst auswählen</button>
+      ${mobLevelHtml(plan)}</div>`;
   }
   const rows = list.map((m, i) => mobRowHtml(m, i, 'plan', `<div class="mob-sets">
       <button class="icon-btn" data-action="mob-sets" data-day="${day.id}" data-i="${i}" data-d="-1" ${m.sets <= 1 ? 'disabled' : ''} aria-label="Ein Satz weniger">−</button>
@@ -249,9 +306,10 @@ function mobPlanHtml(day) {
   return `<div class="card mob-plan"><div class="mob-plan-head"><h2>🤸 Mobility vor dem Training</h2>${list.length ? `<span class="hint">ca. ${mobMinutes(list)} min</span>` : ''}</div>
       ${!fixed && list.length ? '<p class="hint nut-small">Vorschlag der App, passend zu den Übungen dieses Tages. Tippe auf eine Übung für die Beschreibung.</p>' : ''}
       ${list.length ? `<ul class="mob-list">${rows}</ul>` : '<p class="hint nut-small">Keine Mobility-Übungen an diesem Tag.</p>'}
-      <div class="mob-btns"><button class="btn small" data-action="mob-pick" data-day="${day.id}">＋ Übungen auswählen</button>
-        <button class="btn small" data-action="mob-suggest" data-day="${day.id}">✨ Vorschlag der App</button></div>
-      <p class="hint nut-small">Je Satz rechnet die App etwa ${MOB_MIN} Minute.</p></div>`;
+      <div class="mob-btns"><button class="btn small" data-action="mob-pick" data-day="${day.id}">＋ Auswählen</button>
+        <button class="btn small" data-action="mob-suggest" data-day="${day.id}">✨ Neu vorschlagen</button></div>
+      <p class="hint nut-small">Je Satz rechnet die App etwa ${MOB_MIN} Minute.</p>
+      ${mobLevelHtml(plan)}</div>`;
 }
 
 /* ----- Training: abhakbarer Block oben ----- */
@@ -308,12 +366,18 @@ Object.assign(actions, {
   'mob-suggest': el => {
     const day = findDay(el.dataset.day);
     if (!day) return;
-    const sug = mobSuggest(day);
+    const sug = mobSuggest(day, MOB_LEVELS[mobLevel() || 2][1]);  // Stufe des Plans, bei 0 wie „Mittel“
     if (!sug.length) { toast('Für einen Vorschlag braucht der Tag erst Übungen.'); return; }
     if (Array.isArray(day.mob) && day.mob.length && !askOk('Die Mobility dieses Tages durch den Vorschlag der App ersetzen?')) return;
     day.mob = sug;
     saveData(); render();
     toast('🤸 Vorschlag übernommen');
+  },
+  'mob-level': el => {
+    const plan = activePlan(), l = Math.min(3, Math.max(0, +el.dataset.l || 0));
+    if (!plan || mobLevel(plan) === l) return;
+    plan.mob = l;
+    saveData(); render();
   },
   'mob-tr-toggle': () => {
     const list = draft.mob || [], all = list.every(m => (m.done || 0) >= m.sets);
