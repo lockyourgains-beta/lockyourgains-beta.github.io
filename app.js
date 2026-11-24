@@ -6918,7 +6918,7 @@ function prefatHelpHtml() {
 const SIZES = { '': 'Normal', l: 'Groß', xl: 'Sehr groß' };
 const OPT_SECS = {
   look: { icon: '🎨', title: 'Aussehen', render: () => appearanceCard(),
-    sub: () => { const p = data.profile || {}; return [LOOKS[currentLook()], PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || '']].join(' | '); } },
+    sub: () => { const p = data.profile || {}; return lookSpecial() ? LOOKS[currentLook()] : [LOOKS[currentLook()], PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || '']].join(' | '); } },
   train: { icon: '🏋️', title: 'Training', render: () => motivCard() + restCard() + platesCard() + (feat('cycle-adjust') ? cycleModeCard() : '') + (typeof tourCard === 'function' ? tourCard() : '') + explainCard() + hintOffCard(),
     sub: () => `Motivation ${MOTIV_OPTS[motivMode()][1].toLowerCase()} | Pausen-Timer ${restCfg().off ? 'aus' : 'an'} | Langhantel ${barKg()} kg` },
   me: { icon: '👤', title: 'Profil & Ernährung', render: () => profileCard() + (typeof nutHintsCard === 'function' ? nutHintsCard() : '') + (typeof mealCfgCard === 'function' ? mealCfgCard() : '') + (typeof mcOptionsCard === 'function' ? mcOptionsCard() : ''),
@@ -6977,6 +6977,10 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 378, date: '2026-11-24', items: [
+    ['Zwei neue Spezial-Stile: „Golden Era“ im Stil des Bodybuildings der 70er am Muscle Beach, mit Sonnenfarben, Palmen und Schriften wie auf alten Magazin-Titeln, und „Cyberpunk“ mit Neon in Gelb und Cyan vor einer nächtlichen Skyline. Zu finden unter Optionen → Aussehen.'],
+    ['Aussehen: „80er“, „Golden Era“ und „Cyberpunk“ stehen jetzt in einer eigenen Kategorie „Spezial“. Da sie feste Farben haben, sind Farbwelt und Hell oder Dunkel dort ausgeblendet.'],
+  ] },
   { v: 377, date: '2026-11-24', items: [
     ['Cardio, Yoga und Mobility lassen sich regelmäßig planen: feste Wochentage, x-mal pro Woche oder alle paar Tage, auf Wunsch mit Dauer. Die Karte „📅 Regelmäßig planen“ steht im jeweiligen Bereich.'],
     ['Startseite: „📅 Heute geplant“ zeigt, was heute dran ist, mit Start oder „Morgen“. Verpasste Tage kannst du heute nachholen oder auslassen. Darunter steht, wie viel du diese Woche schon geschafft hast. Im Kalender sind geplante Tage markiert.'],
@@ -10320,13 +10324,13 @@ function applyTheme() {
   const root = document.documentElement;
   root.dataset.accent = profileColor();
   // v370: Stil „80er“ ist immer dunkel und hat eigene Farben (style.css, data-look="retro")
-  const mode = currentLook() === 'retro' ? 'dark' : (data.profile && data.profile.theme) || '';
+  const mode = LOOK_SPECIAL[currentLook()] || (data.profile && data.profile.theme) || '';  // v378: alle Spezial-Stile mit fester Darstellung
   if (mode) root.dataset.theme = mode; else delete root.dataset.theme;
   delete root.dataset.size;  // v255 (User 2026-11-14): Textgröße immer „Normal“, nicht mehr einstellbar
   plainSync();
   iconSync();
   // Statusleiste des Handys in der Hintergrundfarbe der Farbwelt einfärben
-  const LOOK_BG = { retro: ['#12042a', '#12042a'], plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], sheet: ['#f8f9fa', '#1f1f1f'] };
+  const LOOK_BG = { retro: ['#12042a', '#12042a'], golden: ['#f3e6c8', '#f3e6c8'], cyber: ['#07080d', '#07080d'], plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], sheet: ['#f8f9fa', '#1f1f1f'] };
   let [light, dark] = LOOK_BG[currentLook()] || PROFILE_COLORS[profileColor()].bg;  // Schlicht und die neuen Designs (v234): neutral
   // v289: Kraftraum und Logbuch hell in der Farbwelt getönt (außer Blau und Beere), wie im Stylesheet
   if ((currentLook() === 'kraft' || currentLook() === 'log') && !['blue', 'berry'].includes(profileColor())) [light, dark] = PROFILE_COLORS[profileColor()].bg;  // v306: auch dunkel
@@ -10402,7 +10406,10 @@ for (const k of ['alert', 'confirm', 'prompt']) {
 }
 // Stile (v234): drei neue Designs, dazu die bisherigen „Standard“ und „Schlicht“. Ohne Angabe im Profil (neue Nutzer, seit v292): Standard.
 // v290 (User-Wunsch): „Schwarzweiß“ (bw) gestrichen, damit alle Stile in eine Zeile passen; gespeichertes bw wird über currentLook zu Kraftraum
-const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht', retro: '80er' };  // v370: 80er (Synthwave, immer dunkel)  // v248: Puristen = Tabellen-Optik
+const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht', retro: '80er', golden: 'Golden Era', cyber: 'Cyberpunk' };
+// v378 (User-Wunsch 2026-11-24): Spezial-Stile mit festen Farben und fester Darstellung, eigene Kategorie in den Optionen; Farbwelt und Darstellung entfallen dort
+const LOOK_SPECIAL = { retro: 'dark', golden: 'light', cyber: 'dark' };
+const lookSpecial = (l = currentLook()) => l in LOOK_SPECIAL;  // v370: 80er (Synthwave, immer dunkel)  // v248: Puristen = Tabellen-Optik
 const currentLook = () => {
   const p = data.profile;
   const l = p && p.look !== undefined ? p.look || '' : '';  // v292: ohne Wahl „Standard“
@@ -10430,6 +10437,8 @@ const sexButtons = (cur, action) => [['m', 'Männlich'], ['f', 'Weiblich']].map(
 function appearanceCard() {
   const p = data.profile || {};
   const cur = profileColor();
+  const special = lookSpecial();
+  const look = ([k, l]) => `<button class="vchip ${currentLook() === k ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`;
   const tile = (k, c) => `<button class="color-opt ${cur === k ? 'on' : ''}" data-action="profile-color" data-k="${k}"
       style="--sw-bg-l:${c.bg[0]};--sw-bg-d:${c.bg[1]};--sw-a:${c.a[0]};--sw-b:${c.a[1]}"><span class="sw"><i></i></span>${c.label}</button>`;
   return `<div class="card profile-card">
@@ -10438,14 +10447,17 @@ function appearanceCard() {
       <p class="lbl">Einheit</p>${unitPickHtml()}
       <p class="hint nut-small" data-nounit>Gewichte in kg oder lb. Bei lb sind auch Körpergröße und Maße in Zoll und Lebensmittel-Mengen in Unzen (oz). Deine Daten bleiben erhalten, du kannst jederzeit wechseln.</p>
       <p class="lbl">Stil</p>
-      <div class="variants look-pick">${Object.entries(LOOKS).map(([k, l]) =>
-        `<button class="vchip ${currentLook() === k ? 'on' : ''}" data-action="profile-look" data-k="${k}">${l}</button>`).join('')}</div>
+      <div class="variants look-pick">${Object.entries(LOOKS).filter(([k]) => !lookSpecial(k)).map(look).join('')}</div>
       <p class="hint explain">„Kraftraum“: sportlich mit kräftigen, schmalen Überschriften und großen Zahlen. „Logbuch“: wie ein Trainingsbuch,
         Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Puristen“: so einfach wie eine Tabelle in Excel oder Google Sheets, ohne Emojis.
         Kraftraum, Logbuch und Puristen übernehmen deine Farbwelt. Ohne eigene Wahl ist Kraftraum orange, Logbuch und Puristen grün.
-        „Standard“ und „Schlicht“ sind die bisherigen Stile. „80er“: Synthwave mit Neonfarben und Gitter-Horizont, immer dunkel und mit eigenen
-        Farben, Farbwelt und Darstellung gelten dort nicht.</p>
-      <p class="lbl">Farbwelt</p>
+        „Standard“ und „Schlicht“ sind die bisherigen Stile.</p>
+      <p class="lbl">Spezial</p>
+      <div class="variants look-pick look-special">${Object.entries(LOOKS).filter(([k]) => lookSpecial(k)).map(look).join('')}</div>
+      <p class="hint explain">„80er“: Synthwave mit Neonfarben und Gitter-Horizont. „Golden Era“: Bodybuilding der 70er wie am Muscle Beach in Venice,
+        mit warmen Sonnenfarben, Palmen und Schriften wie auf alten Magazin-Titeln. „Cyberpunk“: Neon in Gelb und Cyan vor einer nächtlichen Skyline,
+        mit HUD-Ecken und Scanlines. Spezial-Stile haben eigene Farben und eine feste Darstellung.</p>
+      ${special ? `<p class="hint look-special-note">Im Stil „${LOOKS[currentLook()]}“ sind Farben und Darstellung fest vorgegeben. Farbwelt und Hell oder Dunkel kannst du wieder wählen, sobald du oben einen anderen Stil nimmst.</p>` : `<p class="lbl">Farbwelt</p>
       <div class="color-grid">${Object.entries(PROFILE_COLORS).map(([k, c]) => tile(k, c)).join('')}</div>
       <p class="lbl">Darstellung</p>
       <div class="seg three">${Object.entries(THEME_MODES).map(([k, l]) =>
@@ -10453,7 +10465,7 @@ function appearanceCard() {
       </div>
       <p class="hint explain">Im Stil Standard färben die meisten Farbwelten auch den Hintergrund ein, in allen anderen Stilen bleibt er neutral.
         „Automatisch“ folgt der Einstellung deines Handys (hell/dunkel),
-        „Hell“ und „Dunkel“ gelten immer. Jede Farbwelt gibt es in beiden Varianten.</p>
+        „Hell“ und „Dunkel“ gelten immer. Jede Farbwelt gibt es in beiden Varianten.</p>`}
       <p class="lbl">Übungen im Training</p>
       <div class="seg two tr-viewmode"><button class="${trSwipeOn() ? '' : 'on'}" data-action="tr-swipe" data-v="0">↕ Untereinander</button>
         <button class="${trSwipeOn() ? 'on' : ''}" data-action="tr-swipe" data-v="1">↔ Wischen</button></div>
@@ -10478,7 +10490,7 @@ function profileCard() {
 
 // Einmaliger Hinweis auf der Startseite: Farbwelten unter „Optionen“ (danach profile.colorHint)
 function colorHintCard() {
-  if (!data.profile || !data.profile.name || data.profile.colorHint) return '';
+  if (!data.profile || !data.profile.name || data.profile.colorHint || lookSpecial()) return '';
   return `<div class="card color-hint">
       <h2>🎨 Mach die App zu deiner</h2>
       <p>Unter „Optionen“ kannst du Farbwelt und Stil der App wählen und zwischen hell und dunkel wechseln.
