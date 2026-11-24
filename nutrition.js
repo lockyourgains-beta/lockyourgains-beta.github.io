@@ -14,8 +14,8 @@ const NUT_PHASES = {
     long: [
       ['Worum geht es?', 'Du isst etwas mehr, als du verbrauchst. Der Überschuss liefert Energie und Baumaterial, damit aus deinem Training möglichst viel Muskulatur wird. Ein wenig Fett kommt dabei immer mit. Ein kleiner Überschuss („Lean Bulk“) hält das gering.'],
       ['Für wen?', 'Wenn du eher schlank bist (Männer bis ca. 15–18 % Körperfett, Frauen bis ca. 25–28 %) und vor allem Muskeln und Kraft zulegen willst. Während des Aufbaus sollten es bei Männern nicht mehr als ca. 25 % Körperfett werden, bei Frauen nicht mehr als ca. 33 %.'],
-      ['Kalorien', 'Standard: ca. +150 kcal über deinem Erhaltungsbedarf. Ambitioniert, für Einsteiger mit viel Aufbaupotenzial: ca. +300 kcal. Mehr bringt keine zusätzlichen Muskeln, das Mehr landet vor allem auf den Hüften.'],
-      ['Tempo', 'Standard: Peile 0,6 bis 0,8 % deines Körpergewichts pro Monat an (bei 80 kg also ca. 0,5 bis 0,6 kg). Ambitioniert: höchstens 1 % pro Monat (bei 80 kg ca. 0,8 kg). Gemeint ist immer der Wochenschnitt deines Gewichts, nicht der einzelne Tag. So kannst du den Aufbau lange durchziehen und musst hinterher nicht wieder so viel abnehmen. Am Anfang geht es meist etwas schneller. Nach einigen Wochen flacht die Zunahme ab, weil sich der Körper an den Überschuss gewöhnt und mehr verbraucht. Bleibt dein Wochenschnitt dann vier Wochen lang stehen, schlägt die App 100 kcal mehr vor. Weil die Zunahme so klein ist, schaut die App im Aufbau immer auf vier Wochen.'],
+      ['Kalorien', 'Standard: +150 bis +200 kcal über deinem Erhaltungsbedarf. Ambitioniert, für Einsteiger mit viel Aufbaupotenzial oder wenn du schon sehr schlank bist: +300 bis +400 kcal. Mehr bringt keine zusätzlichen Muskeln, das Mehr landet vor allem auf den Hüften.'],
+      ['Tempo', 'Standard: Peile 0,5 bis 0,8 % deines Körpergewichts pro Monat an (bei 80 kg also ca. 0,4 bis 0,6 kg). Ambitioniert: 1 bis 1,5 % pro Monat (bei 80 kg ca. 0,8 bis 1,2 kg). Gemeint ist immer der Wochenschnitt deines Gewichts, nicht der einzelne Tag. So kannst du den Aufbau lange durchziehen und musst hinterher nicht wieder so viel abnehmen. Am Anfang geht es meist etwas schneller. Nach einigen Wochen flacht die Zunahme ab, weil sich der Körper an den Überschuss gewöhnt und mehr verbraucht. Bleibt dein Wochenschnitt dann vier Wochen lang stehen, schlägt die App 100 kcal mehr vor. Weil die Zunahme so klein ist, schaut die App im Aufbau immer auf vier Wochen.'],
       ['Dauer', 'Meist mehrere Monate (4–12). Fühlst du dich zu „weich“, folgt ein Minicut oder eine Diät.'],
       ['Training', 'Die beste Zeit für Kraftsteigerungen. Die Steigerungslogik der App läuft voll.'],
       ['Fortschritt erkennst du an', 'langsam steigendem Gewicht, steigenden Trainingsgewichten und einem Bauchumfang, der kaum zunimmt.'],
@@ -53,7 +53,7 @@ const NUT_PHASES = {
       ['Kalorien', 'Ca. 800 kcal unter deinem Erhaltungsbedarf, bei mehr Körperfett ca. 1.000 kcal.'],
       ['Tempo', 'In den ersten Tagen fällt das Gewicht schnell (vor allem Wasser), danach geht es zügig, aber gleichmäßig weiter.'],
       ['Dauer', 'Höchstens 4 Wochen am Stück. Danach 1 Woche auf Erhaltungskalorien essen, am besten kombiniert mit einer Deload-Woche im Training. Bist du dann noch nicht zufrieden, höchstens noch einen weiteren Durchgang mit diesem Defizit, danach in den Aufbau oder auf Erhaltung.'],
-      ['Training', 'Gewichte halten, eher ein paar Sätze weniger. Mit wenig Energie erholst du dich schlechter. Kein guter Zeitpunkt für Rekordversuche. Versuche dich trotzdem so lange wie möglich noch zu steigern oder deine Leistung zu halten.'],
+      ['Training', 'Gewichte halten, eher ein paar Sätze weniger. Mit wenig Energie erholst du dich nicht mehr ganz so gut. Kein guter Zeitpunkt für Rekordversuche. Versuche dich trotzdem so lange wie möglich noch zu steigern oder deine Leistung zu halten.'],
       ['Fortschritt erkennst du an', 'deutlich sinkendem Gewicht und Bauchumfang bei gehaltener Kraft.'],
     ],
   },
@@ -63,10 +63,11 @@ const NUT_PHASES = {
 const NUT_PACES = {
   bulk: [
     // v258 (User 2026-11-14): keine Spannen mehr, Richtwert Zunahme in % des Körpergewichts pro Monat (Wochenschnitt)
-    { k: 'normal', label: 'Standard', kcal: 150, rate: [0.6, 0.8],  // v266 (User 2026-11-14): 150 statt 250
-      text: 'Für die meisten. Peile 0,6 bis 0,8 % deines Körpergewichts pro Monat an, gemessen am Wochenschnitt. So kannst du den Aufbau lange durchziehen und musst hinterher nicht wieder so viel abnehmen.' },
-    { k: 'ambitious', label: 'Ambitioniert', kcal: 300, rate: [null, 1],  // v266: 300 statt 400
-      text: 'Für sehr ambitionierte Einsteiger mit viel Aufbaupotenzial. Höchstens 1 % deines Körpergewichts pro Monat, gemessen am Wochenschnitt. Es kommt etwas mehr Fett mit.' },
+    // v380 (User 2026-11-24): wieder Spannen, gerechnet wird mit der Mitte (kcal)
+    { k: 'normal', label: 'Standard', kcal: 175, range: [150, 200], rate: [0.5, 0.8],
+      text: 'Für die meisten. Peile 0,5 bis 0,8 % deines Körpergewichts pro Monat an, gemessen am Wochenschnitt. So kannst du den Aufbau lange durchziehen und musst hinterher nicht wieder so viel abnehmen.' },
+    { k: 'ambitious', label: 'Ambitioniert', kcal: 350, range: [300, 400], rate: [1, 1.5],
+      text: 'Für ambitionierte Einsteiger mit viel Aufbaupotenzial oder wenn du schon sehr schlank bist (niedriger Körperfettanteil). Peile 1 bis 1,5 % deines Körpergewichts pro Monat an, gemessen am Wochenschnitt. Es kommt etwas mehr Fett mit.' },
   ],
   recomp: [
     { k: 'maint', label: 'Erhaltung', kcal: 0, text: 'Wenn du schon recht schlank bist.' },
@@ -176,7 +177,7 @@ function nutTrainQuestion(d, action = 'nut-train-pick') {
   const own = data.plans.length && hasActivePlan() && ownPlan();
   return `<div class="card wiz-q">
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🏋️</span><h2>Trainingsplan an ${d.phase === 'minicut' ? 'den Minicut' : 'die Diät'} anpassen?</h2></div>
-      <p class="hint wiz-q-explain">Im Kaloriendefizit erholst du dich schlechter. Angepasst heißt: ${NUT_ADAPT_TEXT}
+      <p class="hint wiz-q-explain">Im Kaloriendefizit erholst du dich nicht mehr ganz so gut. Angepasst heißt: ${NUT_ADAPT_TEXT}
         ${own ? '<br><b>Hinweis:</b> Dein aktiver Plan ist ein eigener Plan ohne Steigerung, dort ändert sich nichts.' : ''}</p>
       ${opt(true, 'Ja, Training anpassen', 'Gilt, solange dieses Ernährungsziel läuft, danach wieder wie gewohnt.')}
       ${opt(false, 'Nein, Plan läuft unverändert', 'Volumen und Tank bleiben wie im Plan.')}
@@ -437,7 +438,7 @@ function nutOffTrack(n, c, b) {
   const corr = Math.max(-200, Math.min(200, raw)) || (wrongUp || (flat && c.planned < 0) ? -100 : 100);
   return { dir: wrongUp ? 1 : wrongDown ? -1 : 0, diff: b.diff, corr };
 }
-// Aufbau: Stillstand 2 Wochen → +100 kcal; schneller als 0,8 % (Standard) bzw. 1 % (Ambitioniert) pro Monat → −100 kcal.
+// Aufbau: Stillstand 2 Wochen → +100 kcal; schneller als 0,8 % (Standard) bzw. 1,5 % (Ambitioniert, v380) pro Monat → −100 kcal.
 // Diät: Wochenschnitt sinkt in 2 Wochen nicht → Senkung wie bisher berechnet (halbe Differenz, höchstens 200 kcal).
 function nutOffTrackWeekly(n, c) {
   const W = nutWeekAvgs(n);
@@ -764,7 +765,7 @@ function renderNutBody() {
     guess.avg != null ? `Ø ${deNum(Math.round(guess.avg / 100) * 100)} Schritte am Tag` : null].filter(Boolean).join(' und ') : '';
   // Gerade Diät/Minicut gewählt: kurzer Hinweis, dass sich das Defizit aufs Training auswirkt (User-Wunsch 2026-11-03)
   const cut = d.flow === 'nutphase' && (d.phase === 'diet' || d.phase === 'minicut');
-  const cutNote = !cut ? '' : `<p class="deload-note">🏋️ <b>Gut zu wissen:</b> Im Kaloriendefizit erholst du dich schlechter.
+  const cutNote = !cut ? '' : `<p class="deload-note">🏋️ <b>Gut zu wissen:</b> Im Kaloriendefizit erholst du dich nicht mehr ganz so gut.
       Kraft und Wiederholungen können eine Zeit lang stagnieren oder leicht sinken, und ein Satz geht öfter mal knapp
       daneben. Das ist normal und kein Rückschritt. Versuche dich trotzdem so lange wie möglich noch zu steigern oder deine Leistung zu halten. ${feat('nut-train-q')
         ? 'Im letzten Schritt kannst du festlegen, ob die App dein Training daran anpasst.'
@@ -825,7 +826,7 @@ function renderNutGoal() {
   const c = nutCalc(n, n.kg);
   const paces = nutPaces(d.phase, nutBodyType(n, n.kg)).map(p => {  // v374: Tempo je Körpertyp
     const kgWeek = p.kcal * 7 / NUT_KCAL_KG;
-    const kcal = p.rate ? `ca. ${nutSigned(p.kcal, 'kcal')}` : nutSigned(p.kcal, 'kcal');
+    const kcal = p.range ? `${nutSigned(p.range[0], '').trim()} bis ${nutSigned(p.range[1], 'kcal')}` : p.rate ? `ca. ${nutSigned(p.kcal, 'kcal')}` : nutSigned(p.kcal, 'kcal');  // v380: Spanne
     // Aufbau: Richtwert in % des Körpergewichts pro Monat (v258), sonst pro Woche
     const kgMon = pct => n.kg ? fmtNum(round1(n.kg * pct / 100)) : null;
     const rateTxt = r => kgMon(r[1]) ? `Ziel ${r[0] ? `+${kgMon(r[0])} bis +${kgMon(r[1])}` : `höchstens +${kgMon(r[1])}`} kg im Monat`

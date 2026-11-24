@@ -13,7 +13,7 @@
    Einfach: nur eine Phase, Tempo wählt die App, kein Minicut. */
 
 const PP_DIET_MAX_W = 16, PP_BREAK_W = 2, PP_MIN_DAYS = 7, PP_MIN_LEAD = 14, PP_MAX_DAYS = 3 * 365;
-const PP_BULK_RATE = { good: 0.7, max: 1 };  // Aufbau: % des Körpergewichts pro Monat (Standard-Mitte, Obergrenze)
+const PP_BULK_RATE = { good: 0.65, amb: 1.25, max: 1.5 };  // Aufbau: % des Körpergewichts pro Monat (Mitte Standard, Mitte Ambitioniert, Obergrenze; v380)
 const PP_ICON = { bulk: '💪', recomp: '⚖️', diet: '🔥', minicut: '⚡', brk: '🧘' };
 const ppD = iso => new Date(iso + 'T12:00:00').toLocaleDateString(LOCALE(), { day: '2-digit', month: '2-digit', year: '2-digit' });
 const ppDays = (a, b) => Math.round((Date.parse(b + 'T12:00:00') - Date.parse(a + 'T12:00:00')) / DAY);
@@ -78,9 +78,9 @@ function ppSimulate(n, segs, until, opt = {}) {
     if (kcal < floor) { if (delta < 0) floorHit = true; kcal = floor; }
     kcal = Math.round(kcal / 10) * 10;
     days.push({ d, si, key: s ? ppKey(s) : 'after', kcal, kg, maint });
-    // Aufbau: Zunahme nach der Regel der App (Standard ca. 0,7 %, Ambitioniert höchstens 1 % des Körpergewichts pro Monat);
+    // Aufbau: Zunahme nach der Regel der App (Standard ca. 0,65 %, Ambitioniert ca. 1,25 %, höchstens 1,5 % des Körpergewichts pro Monat);
     // die Kalorien dafür passt die App unterwegs über den Wochenschnitt an
-    if (phase === 'bulk' && s) kg += kg * (s.pace === 'ambitious' ? PP_BULK_RATE.max : PP_BULK_RATE.good) / 100 / 30.44;
+    if (phase === 'bulk' && s) kg += kg * (s.pace === 'ambitious' ? PP_BULK_RATE.amb : PP_BULK_RATE.good) / 100 / 30.44;
     else kg += (kcal - tdee) / NUT_KCAL_KG;
   }
   return { days, endKg: kg, floorHit };
@@ -165,7 +165,7 @@ function ppVariants(n, kg, goal, end) {
       if (mini) variants.push(mini);
     }
   } else {
-    // Aufbau: höchstens 1 % des Körpergewichts pro Monat (Regel der App)
+    // Aufbau: höchstens 1,5 % des Körpergewichts pro Monat (Regel der App, v380)
     const months = ppDays(T, end) / 30.44;
     if (diff / kg * 100 / months <= PP_BULK_RATE.max) {
       const v = ['normal', 'ambitious'].reduce((x, p) => x || mk('gain', [{ phase: 'bulk', pace: p, to: end }]), null);

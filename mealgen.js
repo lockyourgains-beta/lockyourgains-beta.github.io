@@ -520,7 +520,7 @@ const mgApplyAlt = (its, alt, x = mgX()) => its.map(i => { const a = alt && alt[
 // gerechnete Mengen eines Gerichts als Zeilen
 const mgSlotLines = sl => sl.its.map(i => mgLine(i.n, mgRound(i.g * (i.role === 'X' ? sl.xs : sl.f[i.role] != null ? sl.f[i.role] : 1), i.unit),
   { unit: i.unit || null, sub: i.sub, dayAlt: i.dayAlt || false })).filter(i => i.g >= 2);
-// v341: Gericht nur für ein Datum eingeplant (aus „Was hab ich zu Hause?“): plan.over[datum][mahlzeit] = Rezept-ID
+// v341: Gericht nur für ein Datum eingeplant (aus „Was hast du zu Hause?“): plan.over[datum][mahlzeit] = Rezept-ID
 const mgOver = (date, k) => { const p = mgPlanObj(), id = p && p.over && p.over[date] && p.over[date][k]; return id ? mgValid(id, k) : null; };
 const mgPickD = (picks, date, k) => mgOver(date, k) || mgPick(picks, mgWd(date), k);
 
@@ -780,7 +780,7 @@ function renderMealShop() {
       <div class="variants">${[3, 5, 7].map(n => `<button class="vchip ${shop.n === n ? 'on' : ''}" data-action="mg-shop-n" data-n="${n}">${n} Tage</button>`).join('')}</div>
       <p class="mg-shop-range"><span>${mgDateShort(days[0])}</span> <span>bis</span> <span>${mgDateShort(days[days.length - 1])}</span></p>
       <p class="hint nut-small">Mengen zusammengerechnet und leicht aufgerundet, roh bzw. abgetropft wie im Plan. Was heute schon eingetragen ist, fehlt.
-        Antippen hakt ab. Abgehakte Zutaten kommen in deinen Vorrat bei „Was hab ich zu Hause?“.</p></div>`;
+        Antippen hakt ab. Abgehakte Zutaten kommen in deinen Vorrat bei „Was hast du zu Hause?“.</p></div>`;
   if (!groups.length) return h + '<div class="card"><p class="hint">Für diese Tage ist nichts geplant.</p></div>';
   for (const gr of groups) {
     h += `<div class="card mg-shop"><h3>${gr.label}</h3>${gr.items.map(a => {
@@ -947,7 +947,7 @@ Object.assign(actions, {
   },
 });
 
-/* ----- v341: „Was hab ich zu Hause?“ – Vorrat angeben, passende Gerichte finden ----------
+/* ----- v341: „Was hast du zu Hause?“ – Vorrat angeben, passende Gerichte finden ----------
    data.pantry = { items: [Zutaten der Grundliste], at: Datum } (bleibt gespeichert; abgehakte Zutaten der Einkaufsliste kommen dazu).
    Die App vergleicht jedes Gericht (nach den Vorlieben) mit dem Vorrat: Alternativen aus MG_ALT zählen als da (sie werden dann
    eingesetzt), Öl und Gewürze immer. Fehlende Zutaten wiegen je nach Rolle (Eiweiß und Beilage schwer, Gemüse leicht). */
@@ -1019,7 +1019,7 @@ function ptDefaultCat() {
 function renderPantry() {
   const items = ptItems(), choices = ptChoices(), q = ptQ.trim().toLowerCase();
   if (!ptCat) ptCat = ptDefaultCat();
-  let h = `<div class="card"><h2>🧺 Was hab ich zu Hause?</h2>
+  let h = `<div class="card"><h2>🧺 Was hast du zu Hause?</h2>
       <p class="hint">Tipp an, was du zu Hause hast. Die App zeigt dir Gerichte, die du damit kochen kannst, und rechnet die Mengen passend zu deinem Tagesziel.
         Öl und Gewürze zählen immer als da. Ähnliche Zutaten zählen mit, z. B. Putenbrust statt Hähnchenbrust.</p></div>
     <div class="card pt-have"><h3>Dein Vorrat</h3>
@@ -1081,8 +1081,8 @@ function ptDetail(m) {
     </div>`;
 }
 
-views.pantry = { title: 'Was hab ich zu Hause?', tab: 'nutrition', render: renderPantry, back: p => p.from === 'mealplan' ? ['mealplan', {}] : ['nutrition', {}] };
-const ptOpenBtn = () => '<button class="btn nav pt-open-btn" data-action="pt-open-view">🧺 Was hab ich zu Hause?<small>Gib an, was du zu Hause hast, und die App zeigt dir passende Gerichte</small></button>';
+views.pantry = { title: 'Was hast du zu Hause?', tab: 'nutrition', render: renderPantry, back: p => p.from === 'mealplan' ? ['mealplan', {}] : ['nutrition', {}] };
+const ptOpenBtn = () => '<button class="btn nav pt-open-btn" data-action="pt-open-view">🧺 Was hast du zu Hause?<small>Gib an, was du zu Hause hast, und die App zeigt dir passende Gerichte</small></button>';
 
 // Suche: nur ein- und ausblenden, damit das Eingabefeld den Fokus behält
 fields['pt-search'] = el => {

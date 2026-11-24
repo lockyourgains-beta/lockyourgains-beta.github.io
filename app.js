@@ -187,7 +187,7 @@ function upgradeData(d) {
   if (d.waterGoal === undefined) d.waterGoal = null;  // eigenes Wasserziel in ml, sonst aus dem Gewicht
   if (d.mealPlan === undefined) d.mealPlan = null;  // v337: von der App erstellter Ernährungsplan (mealgen.js)
   if (d.mealPrefs === undefined) d.mealPrefs = null;  // v338: Vorlieben dafür (vegetarisch, ohne Gluten …)
-  if (d.pantry === undefined) d.pantry = null;  // v341: Vorrat („Was hab ich zu Hause?“)
+  if (d.pantry === undefined) d.pantry = null;  // v341: Vorrat („Was hast du zu Hause?“, v381)
   if (!Array.isArray(d.cardio)) d.cardio = [];  // Cardio-Einheiten (cardio.js)  // gespeicherte Mahlzeiten (Schnellauswahl)
   if (!Array.isArray(d.yoga)) d.yoga = [];  // v344: Yoga-Einheiten (yoga.js)
   if (!Array.isArray(d.mobility)) d.mobility = [];  // v375: Mobility-Einheiten (mobility.js)
@@ -6977,6 +6977,17 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 381, date: '2026-11-24', items: [
+    ['Ernährung: „Was hab ich zu Hause?“ heißt jetzt „Was hast du zu Hause?“.'],
+  ] },
+  { v: 380, date: '2026-11-24', items: [
+    ['Ernährung, Aufbau: wieder mit Spannen. Standard +150 bis +200 kcal (Ziel 0,5 bis 0,8 % des Körpergewichts pro Monat), Ambitioniert +300 bis +400 kcal (Ziel 1 bis 1,5 %), empfohlen für ambitionierte Einsteiger oder wenn du schon sehr schlank bist. Gerechnet wird mit der Mitte der Spanne.'],
+    ['Ernährung, Diät: Der Hinweis zum Training heißt jetzt „Du erholst dich nicht mehr ganz so gut“ statt „schlechter“.'],
+  ] },
+  { v: 379, date: '2026-11-24', items: [
+    ['Golden Era: Am Strand vor der Sonne steht jetzt ein Bodybuilder in der klassischen Doppelbizeps-Pose.'],
+    ['Cyberpunk: Cyan ist jetzt die Hauptfarbe, Gelb die zweite Farbe. Die Skyline im Hintergrund ist neu, mit mehreren Ebenen, Dunst, Warnlichtern, Werbetafeln und Lichtspuren.'],
+  ] },
   { v: 378, date: '2026-11-24', items: [
     ['Zwei neue Spezial-Stile: „Golden Era“ im Stil des Bodybuildings der 70er am Muscle Beach, mit Sonnenfarben, Palmen und Schriften wie auf alten Magazin-Titeln, und „Cyberpunk“ mit Neon in Gelb und Cyan vor einer nächtlichen Skyline. Zu finden unter Optionen → Aussehen.'],
     ['Aussehen: „80er“, „Golden Era“ und „Cyberpunk“ stehen jetzt in einer eigenen Kategorie „Spezial“. Da sie feste Farben haben, sind Farbwelt und Hell oder Dunkel dort ausgeblendet.'],
@@ -10455,7 +10466,7 @@ function appearanceCard() {
       <p class="lbl">Spezial</p>
       <div class="variants look-pick look-special">${Object.entries(LOOKS).filter(([k]) => lookSpecial(k)).map(look).join('')}</div>
       <p class="hint explain">„80er“: Synthwave mit Neonfarben und Gitter-Horizont. „Golden Era“: Bodybuilding der 70er wie am Muscle Beach in Venice,
-        mit warmen Sonnenfarben, Palmen und Schriften wie auf alten Magazin-Titeln. „Cyberpunk“: Neon in Gelb und Cyan vor einer nächtlichen Skyline,
+        mit warmen Sonnenfarben, Palmen und Schriften wie auf alten Magazin-Titeln. „Cyberpunk“: Neon in Cyan und Gelb vor einer nächtlichen Skyline,
         mit HUD-Ecken und Scanlines. Spezial-Stile haben eigene Farben und eine feste Darstellung.</p>
       ${special ? `<p class="hint look-special-note">Im Stil „${LOOKS[currentLook()]}“ sind Farben und Darstellung fest vorgegeben. Farbwelt und Hell oder Dunkel kannst du wieder wählen, sobald du oben einen anderen Stil nimmst.</p>` : `<p class="lbl">Farbwelt</p>
       <div class="color-grid">${Object.entries(PROFILE_COLORS).map(([k, c]) => tile(k, c)).join('')}</div>
