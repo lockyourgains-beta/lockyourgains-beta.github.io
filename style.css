@@ -4243,3 +4243,15 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .rest-next { font-weight: 600; }
 .rest-next small { display: block; margin-top: 4px; font-weight: 500; color: var(--muted); }
 .pill.rest { white-space: nowrap; }
+/* v369: Trainingstag-Plus klein unten im Reiter Ernährung und im Tagebuch, Verlauf als eigene Karte */
+.nut-td.small { padding-top: 12px; padding-bottom: 12px; }
+.nut-td-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.nut-td-line > span { min-width: 0; font-weight: 600; }
+.nut-td-line .seg { flex: none; width: auto; margin: 0; }
+.nut-td-line .seg button { padding: 6px 14px; min-height: 0; }
+.nut-td.small .nut-td-row { margin-top: 8px; }
+.nut-td.small .hint { margin: 6px 0 0; }
+.nut-td.in-panel { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.nut-td-q .nut-td-row { margin: 0 0 10px; }
+.nut-progress > .nut-prog > .nut-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.nut-td-line .seg button { white-space: nowrap; }

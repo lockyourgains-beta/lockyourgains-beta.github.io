@@ -208,8 +208,9 @@ function i18nUnit(el) {
 function i18nEl(el) {
   if (el.nodeType !== 1 || el.closest('[data-i18n="no"]')) return;
   const tag = el.tagName;
-  if (tag === 'TEXTAREA' || tag === 'SCRIPT' || tag === 'STYLE') return;
+  if (tag === 'SCRIPT' || tag === 'STYLE') return;
   i18nAttrs(el);
+  if (tag === 'TEXTAREA') return;  // v368: Inhalt ist Nutzertext, aber der Platzhalter wird übersetzt
   if (tag === 'INPUT') return;
   if (el.children.length && i18nUnit(el)) {
     const html = el.innerHTML;

@@ -1312,7 +1312,65 @@ function roundOpen(start, week) {
 // Neue Zykluskennung: heutiges Datum, aber immer später als alle bisherigen
 function newCycleId(after = data.cycle.start) {
   const today = todayISO();
-  return today > after ? today : after + 'a';
+  // v367: eindeutig über alle Pläne (Trainings und gemerkte Zyklen anderer Pläne), sonst vermischen sich Wochen zweier Pläne
+  const used = [after, ...data.sessions.map(s => s.cycleStart), ...(data.plans || []).map(p => p.cyc && p.cyc.start)].filter(Boolean).sort().pop() || after;
+  return today > used ? today : used + 'a';
+}
+
+/* v367 (User-Wunsch 2026-11-24): Zyklen beim Planwechsel. data.profile.cycleMode = 'plan' | 'all' (einmal gefragt beim ersten
+   Planwechsel mit Trainings, änderbar unter Optionen → Training).
+   'plan' (Standard): Jeder Plan merkt sich seinen Zyklus (plan.cyc = Kopie von data.cycle beim Wegwechseln). Zurück geht es dort
+     weiter, wo man aufgehört hat; ein neuer Plan beginnt bei Zyklus 1. Ältere Daten ohne gemerkten Stand: letzter Trainingsstand des Plans.
+   'all': fortlaufende Zählung seit Beginn der App-Nutzung; jeder Planwechsel startet einen neuen Zyklus (Intro) mit der nächsten Nummer. */
+const cycleMode = () => (data.profile && data.profile.cycleMode) || 'plan';
+// Zyklusnummer eines gespeicherten Trainings: gespeichert (ab v367), sonst Zahl der verschiedenen Zyklen bis dahin (in list)
+const cycNoOf = (s, list = data.sessions) => s.cycleNo || new Set(list.filter(x => x.cycleStart && x.cycleStart <= s.cycleStart).map(x => x.cycleStart)).size || 1;
+// nächste Nummer bei fortlaufender Zählung: höher als alles bisher (laufender Zyklus, gemerkte Stände, Trainings)
+const cycleNextNo = () => Math.max(data.cycle.no || 1, ...(data.plans || []).map(p => (p.cyc && p.cyc.no) || 0),
+  ...data.sessions.map(s => s.cycleNo || 0), new Set(data.sessions.map(s => s.cycleStart).filter(Boolean)).size) + 1;
+// Stand des aktiven Plans merken (vor jedem Wechsel)
+function cycleLeave() { if (hasActivePlan()) activePlan().cyc = JSON.parse(JSON.stringify(data.cycle)); }
+// neuer Plan: Zyklus 1 bzw. die nächste Nummer
+function cycleStartNew() {
+  const next = cycleNextNo(), had = data.sessions.length > 0;
+  setRound(newCycleId(), 1, cycleMode() === 'all' ? next : 1);
+  data.cycle.noRest = data.cycle.start;
+  if (had && !(data.profile && data.profile.cycleMode)) setTimeout(async () => {  // einmalige Frage, danach Nummer anpassen
+    const m = await cycleModeAsk();
+    if (m === 'all' && !roundSessions(data.cycle.start, 1).length) data.cycle.no = next;
+    saveData(); render();
+  }, 400);
+}
+// vorhandenen Plan aktivieren
+function cycleEnter(p) {
+  if (cycleMode() === 'all') { setRound(newCycleId(), 1, cycleNextNo()); data.cycle.noRest = data.cycle.start; return; }
+  if (p.cyc && p.cyc.start) {
+    data.cycle = { ...p.cyc, lens: { ...(data.cycle.lens || {}), ...(p.cyc.lens || {}) } };
+    return;
+  }
+  const ids = new Set(p.days.map(d => d.id)), own = data.sessions.filter(s => ids.has(s.dayId) && s.cycleStart);
+  const last = sessionsNewestFirst().find(s => ids.has(s.dayId) && s.cycleStart);
+  if (last) setRound(last.cycleStart, last.week || 1, cycNoOf(last, own));
+  else { setRound(newCycleId(), 1, 1); data.cycle.noRest = data.cycle.start; }
+}
+const CYCLE_MODES = {
+  plan: ['Jeder Plan hat eigene Zyklen', 'Jeder Plan merkt sich seinen Stand. Wechselst du zurück, geht es dort weiter, wo du aufgehört hast. Ein neuer Plan beginnt bei Zyklus 1.'],
+  all: ['Durchgehend zählen', 'Die Zyklen zählen seit Beginn deiner App-Nutzung fortlaufend weiter. Jeder Planwechsel startet einen neuen Zyklus mit der Intro-Woche.'],
+};
+async function cycleModeAsk() {
+  if (data.profile && data.profile.cycleMode) return data.profile.cycleMode;
+  const v = await uiDialog({ title: 'Zyklen beim Planwechsel', msg: `${CYCLE_MODES.plan[0]}: ${CYCLE_MODES.plan[1]}\n\n${CYCLE_MODES.all[0]}: ${CYCLE_MODES.all[1]}\n\nDu kannst das später unter Optionen → Training ändern.`,
+    cancel: false, choices: [{ label: 'Durchgehend zählen', value: 'all' }, { label: 'Je Plan', value: 'plan', primary: true }] });
+  data.profile = data.profile || {};
+  data.profile.cycleMode = v === 'all' ? 'all' : 'plan';
+  return data.profile.cycleMode;
+}
+function cycleModeCard() {
+  const m = cycleMode();
+  return `<div class="card cyc-mode-card"><h2>Zyklen beim Planwechsel</h2>
+      <div class="seg two"><button class="${m === 'plan' ? 'on' : ''}" data-action="cycle-mode" data-v="plan">Je Plan</button>
+        <button class="${m === 'all' ? 'on' : ''}" data-action="cycle-mode" data-v="all">Durchgehend</button></div>
+      <p class="hint explain">${CYCLE_MODES[m][1]}</p></div>`;
 }
 
 // Deload „selbst bestimmen“ (plan.deload = 'self'): kein automatischer Deload. Nach der letzten Aufbauwoche geht es
@@ -1365,7 +1423,10 @@ function roundAfter(ci) {
   const last = roundSessions(ci.cycleStart, ci.week).map(s => new Date(s.date).toLocaleDateString('sv-SE')).sort().pop();
   // Zyklus, der mit dem Deload begonnen hat (nach Pause/Krankheit): die Intro-Woche danach gehört noch zum selben Zyklus
   const lead = data.cycle.leadDl && data.cycle.leadDl === ci.cycleStart;
-  return { start: last && last > ci.cycleStart ? last : newCycleId(ci.cycleStart), week: 1, no: ci.cycle + (lead ? 0 : 1) };
+  // v367: Kennung schon von einem anderen Plan belegt (Zyklen je Plan) → eigene, eindeutige
+  const mine = new Set(activeDays().map(d => d.id));
+  const taken = last && data.sessions.some(s => s.cycleStart === last && !mine.has(s.dayId));
+  return { start: last && last > ci.cycleStart && !taken ? last : newCycleId(ci.cycleStart), week: 1, no: ci.cycle + (lead ? 0 : 1) };
 }
 
 function toCycleInfo(start, week, no, bw) {
@@ -6819,7 +6880,7 @@ const SIZES = { '': 'Normal', l: 'Groß', xl: 'Sehr groß' };
 const OPT_SECS = {
   look: { icon: '🎨', title: 'Aussehen', render: () => appearanceCard(),
     sub: () => { const p = data.profile || {}; return [LOOKS[currentLook()], PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || '']].join(' | '); } },
-  train: { icon: '🏋️', title: 'Training', render: () => motivCard() + restCard() + platesCard() + (typeof tourCard === 'function' ? tourCard() : '') + explainCard() + hintOffCard(),
+  train: { icon: '🏋️', title: 'Training', render: () => motivCard() + restCard() + platesCard() + (feat('cycle-adjust') ? cycleModeCard() : '') + (typeof tourCard === 'function' ? tourCard() : '') + explainCard() + hintOffCard(),
     sub: () => `Motivation ${MOTIV_OPTS[motivMode()][1].toLowerCase()} | Pausen-Timer ${restCfg().off ? 'aus' : 'an'} | Langhantel ${barKg()} kg` },
   me: { icon: '👤', title: 'Profil & Ernährung', render: () => profileCard() + (typeof nutHintsCard === 'function' ? nutHintsCard() : '') + (typeof mealCfgCard === 'function' ? mealCfgCard() : '') + (typeof mcOptionsCard === 'function' ? mcOptionsCard() : ''),
     sub: () => [(data.profile || {}).name || 'Name, Geschlecht', 'Hinweise zur Ernährung', typeof mealOn === 'function' && mealOn() ? 'Mahlzeiten' : '', typeof mcAvailable === 'function' && mcAvailable() ? 'Zykluskalender' : ''].filter(Boolean).join(' | ') },
@@ -6877,6 +6938,20 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 369, date: '2026-11-24', items: [
+    ['Ernährung: Ob du an Trainingstagen mehr Kalorien bekommst, fragt die App jetzt direkt beim Einrichten deines Ernährungsziels. Im Reiter Ernährung steht dazu unten nur noch eine kleine Einstellung.'],
+    ['Ernährung: Dein Körpergewicht trägst du jetzt direkt unter „Essen eintragen“ ein, ohne nach unten zu scrollen. Dein Verlauf steht in einer eigenen Karte weiter unten.'],
+  ] },
+  { v: 368, date: '2026-11-24', items: [
+    ['Englisch: Viele Seiten, die noch teilweise deutsch waren, sind jetzt vollständig übersetzt, darunter Heim-Ausrüstung, eigene Übung anlegen, Zyklus und Training, Plan übernehmen, die Rückkehr nach einer Pause und die Zyklus-Seite.'],
+  ] },
+  { v: 367, date: '2026-11-24', items: [
+    ['Planwechsel: Jeder Plan merkt sich jetzt seinen Zyklus. Wechselst du zu einem früheren Plan zurück, geht es dort weiter, wo du aufgehört hast, statt wieder bei Zyklus 1.'],
+    ['Beim ersten Planwechsel fragt die App, ob die Zyklen je Plan laufen oder seit Beginn durchgehend weitergezählt werden sollen. Ändern kannst du das unter Optionen → Training.', 'cycle-adjust'],
+  ] },
+  { v: 366, date: '2026-11-23', items: [
+    ['Sicherung wiederherstellen: Selbst geänderte Übungsarten (Bibliothek), die Mahlzeiten-Einstellung im Ernährungstagebuch und ausgeblendete Hinweise gingen dabei verloren. Jetzt bleibt alles erhalten.'],
+  ] },
   { v: 365, date: '2026-11-23', items: [
     ['Neue Deload-Variante „Pause statt Deload“: Nach den Trainingswochen hast du 4 bis 5 Tage komplett frei, danach beginnt der nächste Zyklus direkt mit der Intro-Woche. Die Startseite zeigt die Pause und ab wann es weitergeht.', 'wiz-deload'],
     ['Auswählbar im Plan-Assistenten bei der Frage zum Deload, im Modus Experte auch später im Plan unter „Zyklus, Deload und Intensität“.', 'wiz-deload'],
@@ -8325,7 +8400,7 @@ function saveTraining() {
       sk.splice(sk.indexOf(draft.dayId), 1);
       if (!sk.length) delete data.roundSkips[roundKey(draft.cycleStart, draft.week)];
     }
-    Object.assign(session, { cycleStart: draft.cycleStart, week: draft.week });
+    Object.assign(session, { cycleStart: draft.cycleStart, week: draft.week, ...(draft.cycleNo ? { cycleNo: draft.cycleNo } : {}) });  // v367: Nummer mitspeichern
     setRound(draft.cycleStart, draft.week, draft.cycleNo || data.cycle.no);  // ab jetzt gilt dieser Durchlauf
   }
   // Trainingsdauer in Minuten (über 10 Stunden = vermutlich vergessen zu speichern -> nicht werten)
@@ -8462,6 +8537,12 @@ function importData(file) {
       complaints: d.complaints, hintsDismissed: d.hintsDismissed, dayTemplates: d.dayTemplates,
       cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, yoga: d.yoga, nutPlan: d.nutPlan, mealPlan: d.mealPlan, mealPrefs: d.mealPrefs, pantry: d.pantry,
       customExercises: d.customExercises, profile: d.profile, prefatV: d.prefatV, rirV: d.rirV,
+      // v366 (Fehler im Gesamttest): gingen beim Wiederherstellen verloren – Übungsart aus der Bibliothek, Mahlzeiten-Einstellung,
+      // gesehene Version, ausgeblendete Hinweise und die Kennzeichen der einmaligen Umstellungen (sonst laufen sie erneut)
+      exKinds: d.exKinds && typeof d.exKinds === 'object' && !Array.isArray(d.exKinds) ? d.exKinds : {},
+      mealCfg: d.mealCfg && typeof d.mealCfg === 'object' ? d.mealCfg : undefined,
+      seenV: d.seenV, reviewHidden: d.reviewHidden, holdHintSeen: d.holdHintSeen, foldHintSeen: d.foldHintSeen, moveHintSeen: d.moveHintSeen,
+      lookV: d.lookV, lookV2: d.lookV2, unitV: d.unitV, renamedInt: d.renamedInt,
       measures: Array.isArray(d.measures) ? d.measures : [],
       painLog: Array.isArray(d.painLog) ? d.painLog : [],
       photoCfg: d.photoCfg && typeof d.photoCfg === 'object' ? d.photoCfg : undefined,  // nur Einstellungen – Fotos selbst haben eine eigene Sicherung
@@ -9277,20 +9358,26 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
   'pday-down': el => planDayMove(Number(el.dataset.i), 1),
   'ex-up': el => { moveExercise(findDay(current.params.id), +el.dataset.i, -1); saveData(); render(); },
   'ex-down': el => { moveExercise(findDay(current.params.id), +el.dataset.i, 1); saveData(); render(); },
-  'plan-activate': el => {
+  'plan-activate': async el => {
     if (data.activePlanId === el.dataset.id) return;
     if (draft && !askOk(`Es läuft noch ein Training (${draft.dayName}). Trotzdem den Plan wechseln?`)) return;
+    if (data.sessions.length) await cycleModeAsk();  // v367: einmal fragen, wie Zyklen beim Planwechsel laufen
+    cycleLeave();
     data.activePlanId = el.dataset.id;
     const wasEnded = !!activePlan().endedAt;
     delete activePlan().endedAt;
+    if (!ownPlan()) cycleEnter(activePlan());
     saveData(); render();
-    toast(`„${activePlan().name}“ ist ${wasEnded ? 'wieder' : 'jetzt'} aktiv`);
+    const ci = cycleInfo();
+    toast(`„${activePlan().name}“ ist ${wasEnded ? 'wieder' : 'jetzt'} aktiv${ownPlan() ? '' : ` | Zyklus ${ci.cycle}, ${ciLabel(ci)}`}`);
   },
+  'cycle-mode': el => { data.profile = data.profile || {}; data.profile.cycleMode = el.dataset.v === 'all' ? 'all' : 'plan'; saveData(); render(); },
   // Plan beenden: bleibt in der Liste (beendet am …), danach ist kein Plan aktiv
   'plan-end': () => {
     const p = activePlan();
     if (draft) { alert(`Es läuft noch ein Training (${draft.dayName}). Bitte erst speichern oder verwerfen.`); return; }
     if (!askOk(`Plan „${p.name}“ beenden?\n\nEr bleibt in der Liste und kann jederzeit wieder aktiviert werden. Trainings, Verlauf und Erfolge bleiben erhalten.`)) return;
+    cycleLeave();  // v367
     p.endedAt = todayISO();
     data.activePlanId = null;
     saveData(); render();

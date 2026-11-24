@@ -289,8 +289,9 @@ Object.assign(actions, {
     const plan = newPlan(`Calisthenics (${CALI_PRIOS[f.prio].label})`, days);
     Object.assign(plan, { own: true, progression: { volume: false, load: false }, cali: { prio: f.prio, range: [...f.range], skills: f.skills }, equip: 'cali' });
     data.plans.push(plan);
+    cycleLeave();  // v367: Stand des bisherigen Plans merken
     data.activePlanId = plan.id;
-    setRound(newCycleId(), 1, 1);
+    cycleStartNew();  // v367: Zyklus 1 bzw. fortlaufend
     saveData();
     caliForm = null;
     toast(`„${plan.name}“ erstellt und aktiv ✔`);

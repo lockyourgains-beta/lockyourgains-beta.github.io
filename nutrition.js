@@ -300,24 +300,35 @@ function nutForDay(c, date = todayISO()) {
   return x || t ? { ...c, kcal: c.kcal + x + t, carbs: c.carbs + Math.round((x + t) / 4 / 5) * 5, cardio: x, train: t } : c;
 }
 
-// Einstellung „Mehr Kalorien an Trainingstagen“ (Reiter Ernährung und Tagebuch → Kalorien und Makros anpassen)
+// v369 (User-Wunsch 2026-11-24): Frage samt Erklärung beim Einrichten des Ernährungsziels (Schritt „Ziel & Tempo“),
+// im Reiter Ernährung und im Tagebuch nur noch eine kleine Einstellung ohne Erklärung
+const nutTdStepper = (k, action) => `<div class="stepper"><button data-action="${action}" data-d="-1" ${k <= NUT_TD_MIN ? 'disabled' : ''} aria-label="Weniger">−</button>
+          <b>+${k} kcal</b>
+          <button data-action="${action}" data-d="1" ${k >= NUT_TD_MAX ? 'disabled' : ''} aria-label="Mehr">+</button></div>`;
+function nutTrainDayQuestion(d) {
+  const on = d.trainDay, k = d.trainDayKcal || NUT_TD_KCAL;
+  const opt = (v, title, text) => `<button class="split-opt ${on === v ? 'on' : ''}" data-action="nut-td-pick" data-v="${v ? 1 : 0}">
+      <b>${title}</b><small>${text}</small></button>`;
+  return `<div class="card wiz-q nut-td-q">
+      <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🏋️</span><h2>Mehr Kalorien an Trainingstagen?</h2></div>
+      <p class="hint wiz-q-explain">An Tagen, an denen du ein Training beginnst, erhöht die App dein Tagesziel automatisch um einen festen Betrag,
+        vor allem als Kohlenhydrate. Die liefern Energie fürs Training und helfen bei der Erholung. An Tagen ohne Training gilt dein normales
+        Tagesziel. 200 kcal sind ein guter Ausgangswert, das sind etwa 50 g Kohlenhydrate, z. B. zwei Bananen oder eine Portion Reis.
+        In einer Diät wird das Defizit an Trainingstagen etwas kleiner, im Aufbau der Überschuss etwas größer.</p>
+      ${opt(true, 'Ja, an Trainingstagen mehr', 'Den Betrag kannst du hier und später im Reiter Ernährung ändern.')}
+      ${on === true ? `<div class="row nut-td-row"><span>Plus an Trainingstagen</span>${nutTdStepper(k, 'nut-td-dstep')}</div>` : ''}
+      ${opt(false, 'Nein, jeden Tag gleich', 'Ein Tagesziel für alle Tage.')}
+    </div>`;
+}
+// Kleine Einstellung (Reiter Ernährung unten, Tagebuch → Kalorien und Makros anpassen)
 function nutTrainDayHtml(n, inPanel = false) {
   const on = !!n.trainDay, k = nutTdKcal() || n.trainDayKcal || NUT_TD_KCAL;
-  const today = on && nutTrainedOn(todayISO());
-  const body = `<div class="seg two"><button class="${on ? 'on' : ''}" data-action="nut-trainday" data-v="1">Ja</button>
-        <button class="${on ? '' : 'on'}" data-action="nut-trainday" data-v="0">Nein</button></div>
-      ${on ? `<div class="row nut-td-row"><span>Plus an Trainingstagen</span>
-        <div class="stepper"><button data-action="nut-trainday-step" data-d="-1" ${k <= NUT_TD_MIN ? 'disabled' : ''} aria-label="Weniger">−</button>
-          <b>+${k} kcal</b>
-          <button data-action="nut-trainday-step" data-d="1" ${k >= NUT_TD_MAX ? 'disabled' : ''} aria-label="Mehr">+</button></div></div>
-        <p class="nut-cardio">${today ? `🏋️ Heute ist Trainingstag: +${k} kcal sind schon im Tagesziel.` : `🏋️ Startest du heute ein Training, kommen automatisch ${k} kcal dazu.`}</p>` : ''}
-      <p class="hint nut-small">An Tagen, an denen du ein Training beginnst, erhöht die App dein Tagesziel automatisch um diesen Betrag,
-        vor allem als Kohlenhydrate. Die liefern Energie fürs Training und helfen bei der Erholung. An Tagen ohne Training gilt dein normales
-        Tagesziel. 200 kcal sind ein guter Ausgangswert, das sind etwa 50 g Kohlenhydrate, z. B. zwei Bananen oder eine Portion Reis.</p>
-      ${on ? `<p class="hint nut-small">In einer Diät wird das Defizit an Trainingstagen etwas kleiner, im Aufbau der Überschuss etwas größer. Passt dein
-        Gewicht über die Wochen nicht zu deinem Ziel, schlägt die App wie gewohnt eine Anpassung vor.</p>` : ''}`;
-  return inPanel ? `<h3 class="fe-goal-h">Mehr Kalorien an Trainingstagen</h3>${body}`
-    : `<div class="card nut-td"><h2>🏋️ Mehr Kalorien an Trainingstagen?</h2>${body}</div>`;
+  const body = `<div class="nut-td-line"><span>${inPanel ? 'Mehr Kalorien an Trainingstagen' : '🏋️ Mehr Kalorien an Trainingstagen'}</span>
+        <div class="seg two"><button class="${on ? 'on' : ''}" data-action="nut-trainday" data-v="1">Ja</button>
+        <button class="${on ? '' : 'on'}" data-action="nut-trainday" data-v="0">Nein</button></div></div>
+      ${on ? `<div class="row nut-td-row">${nutTdStepper(k, 'nut-trainday-step')}</div>
+        ${nutTrainedOn(todayISO()) ? `<p class="hint nut-small">Heute ist Trainingstag: +${k} kcal sind im Tagesziel.</p>` : ''}` : ''}`;
+  return inPanel ? `<div class="nut-td small in-panel">${body}</div>` : `<div class="card nut-td small">${body}</div>`;
 }
 actions['nut-trainday'] = el => {
   const n = data.nutrition;
@@ -795,6 +806,7 @@ function renderNutGoal() {
       ${goal}
     </div>
     ${nutTrainQuestion(d)}
+    ${nutTrainDayQuestion(d)}
     ${nutTargetCard(n, c)}
     <div class="row"><button class="btn" data-action="back">Zurück</button>
       <button class="btn primary" data-action="nut-save">Speichern</button></div>`;
@@ -1509,6 +1521,7 @@ function renderNutrition() {
   // v340 (User): Ernährungspläne (erstellen lassen, eigenen übernehmen) direkt unter „Essen eintragen“
   const plans = (typeof mgOpenBtn === 'function' ? mgOpenBtn() : '') + (typeof ptOpenBtn === 'function' ? ptOpenBtn() : '') + (planOn ? '' : NP_OPEN_BTN);
   let h = (typeof foodTopCard === 'function' ? foodTopCard() : '')
+    + '{{BW}}'  // v369 (User): Körpergewicht direkt unter „Essen eintragen“
     + (plans ? `<div class="card nut-plans"><h2>Ernährungspläne</h2>${plans}</div>` : '')
     + (nutIntakeForm ? `<div class="card nut-intake-edit">${nutIntakeFormHtml()}</div>` : '')  // v243: „Von Hand“ aus „Die letzten Tage“
     + (typeof foodOpenCard === 'function' ? foodOpenCard() : '') + (typeof mcCard === 'function' ? mcCard() : '');
@@ -1522,7 +1535,6 @@ function renderNutrition() {
   // v310: eine Karte – Überschrift, Eingabe, Link und darunter der frühere „Dein Verlauf“ (extra)
   const bwBlock = (extra = '') => `<div class="card nut-progress nut-bw"><h2>Körpergewicht</h2>${intakeShown ? '<p class="hint nut-small">Wiege dich 3–4× pro Woche, am besten morgens nach dem Aufstehen. Die App braucht das für ihre Kalorienvorschläge.</p>' : ''}${bwCard(true)}
     ${data.bodyweight.length ? '<button class="link-btn bw-hist-link" data-action="bw-hist">Verlauf, Veränderung und alle Einträge ansehen ›</button>' : ''}${extra}</div>`;
-  let bwDone = false;
   if (n && nutPaused(n)) {
     h += nutLowCard(n, null) + nutPauseCard(n);
   } else if (planOn && !(n && nutReady(n) && kg != null)) {
@@ -1553,13 +1565,13 @@ function renderNutrition() {
     h += `${typeof nutPlanActive === 'function' && nutPlanActive() ? nutPlanCard() : ''}
       ${typeof ppNoteHtml === 'function' ? ppNoteHtml(n) : ''}
       ${nutGoalCard2(n, c, ph, weekText)}
-      ${nutTrainDayHtml(n)}
       ${nutPauseCard(n)}
       ${typeof ppCardHtml === 'function' ? ppCardHtml(n) : ''}
       ${nutLowCard(n, nutForDay(c))}
       ${nutPhaseHint(n)}
-      ${(bwDone = true) && bwBlock(nutProgressCard(n, c, kg))}
+      ${(prog => prog ? `<div class="card nut-progress"><h2>Dein Verlauf</h2>${prog}</div>` : '')(nutProgressCard(n, c, kg))}
       ${nutTrainCard(n)}
+      ${nutTrainDayHtml(n)}
       ${(more => more.trim() ? `<div class="card nut-more-list"><h2>Mehr</h2>${more}</div>` : '')(
         (typeof mcAvailable === 'function' && mcAvailable() && !mcOn()
           ? '<button class="btn nav" data-action="mc-onoff" data-v="1">🌸 Zykluskalender einschalten<small>Freiwillig: Periode eintragen, Phasen sehen, Wassertage beim Gewicht herausrechnen</small></button>' : '')
@@ -1570,7 +1582,7 @@ function renderNutrition() {
   // Ernährungstagebuch (und darunter Plan-Import) auch ohne fertig eingerichtete Phase erreichbar
   // v340: der Knopf „Eigenen Ernährungsplan übernehmen“ steht immer oben in „Ernährungspläne“
   // Nur ein Health-Knopf: steht in „Heute gegessen“; ohne diese Karte (Ernährung nicht eingerichtet) hier beim Gewicht
-  if (!bwDone) h += bwBlock();
+  h = h.replace('{{BW}}', () => bwBlock());
   if (typeof photoBtnHtml === 'function') h += photoBtnHtml();  // Fortschrittsfotos (v213, media.js)
   if (typeof measBtnHtml === 'function') h += measBtnHtml();  // Körpermaße nur beiläufig (v207, User-Wunsch)
   h += nutBasicsCard(dayKcal, kg != null ? kg : currentBodyweight());
@@ -1704,6 +1716,11 @@ Object.assign(actions, {
   'nut-pace': el => { nutDraft.pace = el.dataset.k; render(); },
   'nut-weeks': el => { nutDraft.weeks = Number(el.dataset.w); render(); },
   'nut-train-pick': el => { nutDraft.trainAdapt = el.dataset.v === '1'; render(); },
+  'nut-td-pick': el => { nutDraft.trainDay = el.dataset.v === '1'; if (nutDraft.trainDay && !nutDraft.trainDayKcal) nutDraft.trainDayKcal = NUT_TD_KCAL; render(); },
+  'nut-td-dstep': el => {
+    nutDraft.trainDayKcal = Math.min(NUT_TD_MAX, Math.max(NUT_TD_MIN, (nutDraft.trainDayKcal || NUT_TD_KCAL) + Number(el.dataset.d) * NUT_TD_STEP));
+    render();
+  },
   'nut-train-toggle': () => {
     const n = data.nutrition;
     n.trainAdapt = !n.trainAdapt;
@@ -1718,6 +1735,7 @@ Object.assign(actions, {
       alert('Bitte noch auswählen, ob dein Trainingsplan an dein Ernährungsziel angepasst werden soll.');
       return;
     }
+    if (nutDraft.trainDay == null) { alert('Bitte noch auswählen, ob du an Trainingstagen mehr Kalorien bekommen möchtest.'); return; }
     if (d.goalKg != null && (d.goalKg < 30 || d.goalKg > 300)) { alert('Bitte ein gültiges Zielgewicht eintragen oder das Feld leer lassen.'); return; }
     if (d.goalKg != null && d.phase === 'bulk' && d.goalKg <= d.kg) { alert('Im Aufbau sollte das Zielgewicht über deinem aktuellen Gewicht liegen.'); return; }
     if (d.goalKg != null && (d.phase === 'diet' || d.phase === 'minicut') && d.goalKg >= d.kg) { alert('In der Diät sollte das Zielgewicht unter deinem aktuellen Gewicht liegen.'); return; }
@@ -1733,6 +1751,7 @@ Object.assign(actions, {
       bfRef: d.bodyFat == null ? null : data.nutrition && data.nutrition.bfRef && data.nutrition.bodyFat === d.bodyFat ? data.nutrition.bfRef
         : { bf: d.bodyFat, kg: d.kg, date: todayISO() },
       trainAdapt: d.trainAdapt == null ? null : d.trainAdapt,
+      trainDay: !!nutDraft.trainDay, trainDayKcal: nutDraft.trainDayKcal || NUT_TD_KCAL,  // v369
     };
     const prev = data.nutrition;
     // v315: anderes Ernährungsziel beendet einen Phasenplan (Rückfrage); gleiches Ziel: der Plan übernimmt das neue Tempo

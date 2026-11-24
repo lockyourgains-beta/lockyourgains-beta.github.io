@@ -321,8 +321,9 @@ Object.assign(actions, {
     if (im.prog === 'app') Object.assign(plan, { level: im.level, rirMode: 'auto', rirCourse: 'strong', rirStyle: 0 });
     else Object.assign(plan, { own: true, progression: { volume: false, load: false } });
     data.plans.push(plan);
+    cycleLeave();  // v367: Stand des bisherigen Plans merken
     data.activePlanId = plan.id;
-    setRound(newCycleId(), 1, 1);  // wie im Assistenten: neuer Plan = Zyklus 1
+    cycleStartNew();  // v367: Zyklus 1 bzw. fortlaufend  // wie im Assistenten: neuer Plan = Zyklus 1
     saveData();
     tpImport = null;
     toast(`„${plan.name}“ übernommen und aktiv ✔`);

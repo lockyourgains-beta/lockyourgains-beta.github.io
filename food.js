@@ -1977,7 +1977,7 @@ views.foodstats = { title: 'Woche & Monat', tab: 'nutrition', back: p => [p.from
 const foodFrom = () => (current.view === 'nutrition' ? 'nutrition' : current.view === 'foodcal' || current.view === 'foodstats' ? current.params.from || 'food' : 'food');
 actions['food-cal'] = () => { const d = current.params.date || todayISO(); go('foodcal', { month: d.slice(0, 7), from: foodFrom(), date: d }); };
 actions['food-cal-month'] = el => {
-  const [y, m] = current.params.month.split('-').map(Number), x = new Date(y, m - 1 + Number(el.dataset.d), 1);
+  const [y, m] = (current.params.month || todayISO().slice(0, 7)).split('-').map(Number), x = new Date(y, m - 1 + Number(el.dataset.d), 1);  // v366: ohne Monat (z. B. nach Neustart) wie renderFoodCal
   go('foodcal', { ...current.params, month: `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}` });
 };
 actions['food-cal-day'] = el => go('food', { date: el.dataset.d });

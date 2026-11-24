@@ -2210,8 +2210,9 @@ Object.assign(actions, {
     if (wizMachines()) plan.equip = 'machine';  // Ersetzen: passende Übungen zuerst
     if (wizHome()) plan.equip = 'home';
     data.plans.push(plan);
+    cycleLeave();  // v367: Stand des bisherigen Plans merken
     data.activePlanId = plan.id;
-    setRound(newCycleId(), 1, 1);
+    cycleStartNew();  // v367: Zyklus 1 bzw. fortlaufend
     saveData();
     wiz = null;
     const open = openDays(plan).length;
@@ -2350,6 +2351,7 @@ Object.assign(actions, {
     if (wizMachines()) plan.equip = 'machine';  // Ersetzen schlägt dann zuerst Maschinen vor
     if (wizHome()) plan.equip = 'home';          // nur vorhandene Gewichte, Ersetzen zuerst passende Heim-Übungen
     data.plans.push(plan);
+    cycleLeave();  // v367: Stand des bisherigen Plans merken
     data.activePlanId = plan.id;
     // eingetippte Wochenzahlen jetzt mit den echten Tagen genau verteilen (ggf. 1 Satz mehr an einzelnen Tagen)
     for (const [g, list] of Object.entries(wiz.weekWanted)) {
@@ -2360,7 +2362,7 @@ Object.assign(actions, {
     data.cycle.buildWeeks = wiz.weeks;
     if (wiz.deload === 'self' || wiz.deload === 'rest') plan.deload = wiz.deload;  // v365: auch Pause statt Deload
     // neuer Zyklus 1 – mit welcher Woche er beginnt, fragt die App beim ersten Training (siehe entryweek in app.js)
-    setRound(newCycleId(), 1, 1);
+    cycleStartNew();  // v367: Zyklus 1 bzw. fortlaufend
     plan.askEntry = true;
     saveData();
     wiz = null;
