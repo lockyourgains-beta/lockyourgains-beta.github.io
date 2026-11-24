@@ -143,8 +143,11 @@ function aboutRights() {
     <p><b>ZXing</b> (@zxing/library): Barcode-Erkennung, unter der
       <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache License 2.0</a>.</p>
     <p><b>Schriften</b> Barlow (© The Barlow Project Authors), IBM Plex Sans und IBM Plex Mono (© IBM Corp.), Schibsted Grotesk
-      (© The Schibsted-Grotesk Project Authors) und Arimo (© The Arimo Project Authors), unter der
+      (© The Schibsted-Grotesk Project Authors), Arimo (© The Arimo Project Authors), Orbitron, Share Tech Mono, Alfa Slab One, Oswald,
+      Chakra Petch, Michroma, Space Mono, Shippori Mincho, Black Ops One, Nunito und Cinzel (jeweils © die Autoren des Projekts), unter der
       <a href="https://openfontlicense.org" target="_blank" rel="noopener">SIL Open Font License 1.1</a>. Die Lizenztexte liegen im Ordner fonts.</p>
+    <p><b>Hintergrundfoto</b> im Stil Cyberpunk: „Victoria Harbour skyscrapers“ von Wilfredor, Wikimedia Commons, gemeinfrei
+      (<a href="https://creativecommons.org/publicdomain/zero/1.0/deed.de" target="_blank" rel="noopener">CC0</a>), eingefärbt.</p>
   </div>`;
 }
 

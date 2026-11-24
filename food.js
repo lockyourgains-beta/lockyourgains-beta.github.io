@@ -943,6 +943,7 @@ function renderFood(p) {
           ${!items.length && planMeals[k] ? `<button class="btn primary" data-action="food-plan-meal" data-meal="${k}">✔ Wie geplant</button>` : ''}
           <button class="btn" data-action="food-add" data-meal="${k}">＋ Hinzufügen</button>
           ${!items.length && prev.length ? `<button class="btn" data-action="food-copy" data-meal="${k}">↺ Wie gestern</button>` : ''}
+          ${!items.length && typeof renderInspo === 'function' ? `<button class="btn" data-action="food-inspo" data-meal="${k}" data-date="${date}">💡 Inspiration</button>` : ''}
           ${items.length ? `<button class="btn food-save-btn" data-action="food-meal-save" data-meal="${k}">💾 Mahlzeit speichern</button>` : ''}
         </div>
       </div>`;

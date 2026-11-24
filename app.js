@@ -6977,6 +6977,20 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 387, date: '2026-11-24', items: [
+    ['Über die App: Die Lizenzangaben nennen jetzt auch die Schriften der Spezial-Stile und das Hintergrundfoto im Stil Cyberpunk.'],
+  ] },
+  { v: 386, date: '2026-11-24', items: [
+    ['Ernährung: Die Erklärung, wie das Training an Diät oder Minicut angepasst wird, steht jetzt hinter „ⓘ Was ändert sich?“.'],
+  ] },
+  { v: 385, date: '2026-11-24', items: [
+    ['Golden Era: Der Bodybuilder hat jetzt natürlichere Proportionen, mit schlankerem Oberkörper und einer eleganteren Doppelbizeps-Pose.'],
+    ['Dojo: Im Hintergrund steht jetzt ein Kirschblütenwald mit einer Pagode am See statt der Welle.'],
+    ['Raumfahrt: ohne Mond. Wikinger: Das Segel ist vom Wind aufgebläht, die Farben sind gedämpfter.'],
+  ] },
+  { v: 384, date: '2026-11-24', items: [
+    ['Ernährungstagebuch: Bei jeder noch leeren Mahlzeit gibt es jetzt „💡 Inspiration“. Die App zeigt Gerichte aus dem Fundus des Ernährungsplans, die Mengen passend zu dem, was vom Tagesziel für diese Mahlzeit noch übrig ist, sortiert danach, wie gut sie deine Makros treffen. Eintragen geht mit einem Tipp.'],
+  ] },
   { v: 383, date: '2026-11-24', items: [
     ['Cyberpunk: Die Skyline im Hintergrund ist jetzt ein echtes Nachtfoto einer Großstadt, eingefärbt in Cyan und Magenta.'],
     ['Golden Era: schönere Palmen mit gefiederten Wedeln und ein Bodybuilder mit besseren Proportionen.'],
