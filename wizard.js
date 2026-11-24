@@ -1259,6 +1259,14 @@ function renderWizSplit() {
 
 // v355 (User): Mobility vor dem Training. v358 (User-Wunsch): Regler 0–3 statt ja/nein (0 = selbst hinzufügen, 1–3 = 2/4/6 Übungen je Tag)
 const wizMobL = () => mobLevel({ mob: wiz.mob });
+// v375 (User-Wunsch 2026-11-24): Hilfsmittel für Mobility, vorausgewählt nach Studio oder Heim-Ausrüstung
+function wizMobEqHtml() {
+  if (!wiz.mobEq) wiz.mobEq = [...(mobEqSet() || mobEqDefault(wiz.equip))];
+  return `<div class="wiz-mob-eq"><p class="lbl">Welche Hilfsmittel hast du dafür?</p>
+      <p class="hint">Dann nutzt die App auch Übungen mit Band, Rolle oder Stab, im Training und in einer eigenen Mobility-Einheit.</p>
+      ${mobEqChips(wiz.mobEq, 'wiz-mob-eq')}</div>`;
+}
+const wizMobEqSave = () => { if (wiz && Array.isArray(wiz.mobEq)) data.mobEq = [...wiz.mobEq]; };
 function renderWizMob() {
   const l = wizMobL();
   return wizCard('🤸', 'Mobility vor dem Training?',
@@ -1271,6 +1279,7 @@ function renderWizMob() {
         <div class="wiz-range-scale" aria-hidden="true">${MOB_LEVELS.map(([label], k) => `<span>${k}<small>${label}</small></span>`).join('')}</div>
       </div>
       <p class="hint" id="wiz-mob-info">${mobLevelText(l)}</p>
+      ${wizMobEqHtml()}
       <p class="hint">Im Plan kannst du die Übungen jedes Tages ändern, selbst welche aus der Bibliothek auswählen, mit Erklärung und wofür sie gut sind,
         und die Stufe jederzeit umstellen.</p>${wizTimePath() ? `<p class="hint">Mit „Plan erstellen“ wählt die App eine passende Aufteilung und die Übungen.
         Danach siehst du deinen Plan und kannst einzelne Übungen ersetzen.</p>` : ''}`, wizTimePath() ? { action: 'wiz-time-go', label: 'Plan erstellen' } : true);
@@ -2021,6 +2030,7 @@ views.wizard = { title: () => wiz && wiz.resume ? 'Plan weiter erstellen' : 'Neu
 
 Object.assign(actions, {
   'wiz-start': () => wizStart(),
+  'wiz-mob-eq': el => { mobEqToggle(wiz.mobEq, el.dataset.k); render(); },
   'wiz-cancel': () => actions.cancel(),
   // Vorschau: Übung an einem Tag ersetzen
   'wiz-swap-open': el => {
@@ -2063,7 +2073,7 @@ Object.assign(actions, {
   },
   // Geräte: freie Gewichte + Maschinen oder nur Maschinen -> Übungen werden danach neu gewählt
   'wiz-equip': el => {
-    if (wiz.equip !== el.dataset.k) { wiz.equip = el.dataset.k; wiz.picks = {}; wiz.swaps = {}; }
+    if (wiz.equip !== el.dataset.k) { wiz.equip = el.dataset.k; wiz.picks = {}; wiz.swaps = {}; wiz.mobEq = null; }
     if (wiz.equip === 'home') homeData();
     const f = wizFlow();
     wiz.step = f[f.indexOf('equip') + 1];
@@ -2232,6 +2242,7 @@ Object.assign(actions, {
     const plan = newPlan(wiz.name.trim() || 'Mein Plan', days);
     plan.byHand = true;  // selbst eingetragen: offene Tage werden mit demselben Formular weiter erstellt
     plan.mob = wizMobL();  // v355, v358: Stufe 0–3
+    wizMobEqSave();  // v375
     if (app) Object.assign(plan, { level: wiz.level, rirMode: 'auto', rirCourse: 'strong', rirStyle: 0 });
     else Object.assign(plan, { own: true, progression: { volume: false, load: false } });
     if (wizMachines()) plan.equip = 'machine';  // Ersetzen: passende Übungen zuerst
@@ -2378,6 +2389,7 @@ Object.assign(actions, {
     plan.timeMax = wiz.timeMax || null;  // gewählte Höchstdauer (nur zur Info, null = ohne Grenze)
     plan.timeMin = wizTimeMin() || null;  // v371: Untergrenze des Zeitrahmens
     plan.mob = wizMobL();  // v355, v358: Stufe 0–3
+    wizMobEqSave();  // v375
     if (wizMachines()) plan.equip = 'machine';  // Ersetzen schlägt dann zuerst Maschinen vor
     if (wizHome()) plan.equip = 'home';          // nur vorhandene Gewichte, Ersetzen zuerst passende Heim-Übungen
     data.plans.push(plan);

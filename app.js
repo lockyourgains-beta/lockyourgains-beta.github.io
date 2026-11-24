@@ -190,6 +190,11 @@ function upgradeData(d) {
   if (d.pantry === undefined) d.pantry = null;  // v341: Vorrat („Was hab ich zu Hause?“)
   if (!Array.isArray(d.cardio)) d.cardio = [];  // Cardio-Einheiten (cardio.js)  // gespeicherte Mahlzeiten (Schnellauswahl)
   if (!Array.isArray(d.yoga)) d.yoga = [];  // v344: Yoga-Einheiten (yoga.js)
+  if (!Array.isArray(d.mobility)) d.mobility = [];  // v375: Mobility-Einheiten (mobility.js)
+  if (d.mobDraft === undefined) d.mobDraft = null;  // v375: laufende Mobility-Einheit
+  if (d.mobEq !== undefined && !Array.isArray(d.mobEq)) d.mobEq = null;
+  if (!d.mobPref || typeof d.mobPref !== 'object' || Array.isArray(d.mobPref)) d.mobPref = {};
+  if (!d.sched || typeof d.sched !== 'object' || Array.isArray(d.sched)) d.sched = {};  // v377: Wochenplaner Cardio/Yoga/Mobility (cardio.js)  // v376: 👍 1 / 👎 -1 je Mobility-Übung  // v375: Hilfsmittel für Mobility (null = noch nicht gefragt)
   if (!d.foodClosed || typeof d.foodClosed !== 'object') {
     // abgeschlossene Tagebuch-Tage; beim Einführen gelten alle bisherigen Tage vor heute als abgeschlossen
     d.foodClosed = {};
@@ -4883,7 +4888,7 @@ function renderStart() {
     if (skipPick) h += (tb ? `<div class="start-mini">${tb}</div>` : '') + sk;
     else if (tb || sk) h += `<div class="start-mini">${tb}${sk}</div>`;
   }
-  if (typeof cardioStartHtml === 'function') h += `<h2>Cardio und Yoga</h2>${cardioStartHtml()}${typeof yogaStartHtml === 'function' ? yogaStartHtml() : ''}`;
+  if (typeof cardioStartHtml === 'function') h += `<h2>Cardio, Yoga und Mobility</h2>${typeof schedStartHtml === 'function' ? schedStartHtml() : ''}${cardioStartHtml()}${typeof yogaStartHtml === 'function' ? yogaStartHtml() : ''}${typeof mobStartHtml === 'function' ? mobStartHtml() : ''}`;
   // v240: Plan beenden steht hier statt im Plan-Reiter
   if (!planNew) h += `<button class="btn outline center plan-end-btn" data-action="plan-end">⏹ Aktuell laufenden Plan beenden</button>`;
   return h;
@@ -6066,7 +6071,7 @@ const calGet = key => calState[key] || (calState[key] = { month: todayISO().slic
 const localDay = iso => new Date(iso).toLocaleDateString('sv-SE');
 
 // Monatskalender, Woche ab Montag. marks(tag) -> { cls, sub } | null (cls z. B. 'tr' Training, 'cd' nur Cardio)
-function calendarHtml(key, marks) {
+function calendarHtml(key, marks, plan = null) {  // v377: plan(iso) markiert geplante Tage (heute und Zukunft), einen Monat vorblättern
   const st = calGet(key);
   const [y, m] = st.month.split('-').map(Number);
   const lead = (new Date(y, m - 1, 1, 12).getDay() + 6) % 7;
@@ -6075,7 +6080,7 @@ function calendarHtml(key, marks) {
   let cells = '<span class="cal-cell empty"></span>'.repeat(lead);
   for (let d = 1; d <= days; d++) {
     const iso = `${st.month}-${String(d).padStart(2, '0')}`;
-    const mk = iso <= today ? marks(iso) : null;
+    const mk = (iso <= today ? marks(iso) : null) || (plan && iso >= today ? plan(iso) : null);
     const cls = ['cal-cell', mk && mk.cls, iso === today && 'today', iso === st.sel && 'sel', iso > today && 'future'].filter(Boolean).join(' ');
     cells += `<button class="${cls}" data-action="cal-pick" data-k="${key}" data-d="${iso}" ${iso > today ? 'disabled' : ''}
       aria-label="${fmtDate(iso + 'T12:00:00', true)}"><b>${d}</b><small>${mk && mk.sub ? mk.sub : ''}</small></button>`;
@@ -6084,7 +6089,7 @@ function calendarHtml(key, marks) {
       <div class="cal-head">
         <button class="icon-btn" data-action="cal-nav" data-k="${key}" data-d="-1" aria-label="Voriger Monat">‹</button>
         <b>${MONTHS_DE[m - 1]} ${y}</b>
-        <button class="icon-btn" data-action="cal-nav" data-k="${key}" data-d="1" ${st.month >= today.slice(0, 7) ? 'disabled' : ''} aria-label="Nächster Monat">›</button>
+        <button class="icon-btn" data-action="cal-nav" data-k="${key}" data-d="1" ${st.month >= (plan && typeof schedAny === 'function' && schedAny() ? addDaysISO(today.slice(0, 7) + '-15', 31).slice(0, 7) : today.slice(0, 7)) ? 'disabled' : ''} aria-label="Nächster Monat">›</button>
       </div>
       <div class="cal-grid">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(w => `<span class="cal-wd">${w}</span>`).join('')}${cells}</div>
     </div>`;
@@ -6096,11 +6101,13 @@ const sessionBtn = s => `<button class="btn nav" data-action="open-session" data
 
 // Verlauf: Kalender mit Trainings (und Cardio), angetippter Tag, Trainings des Monats, Übungen
 function renderHistory() {
-  const cardio = (typeof cardioStartHtml === 'function' ? cardioStartHtml() : '') + (typeof yogaStartHtml === 'function' ? yogaStartHtml() : '');
+  const cardio = (typeof cardioStartHtml === 'function' ? cardioStartHtml() : '') + (typeof yogaStartHtml === 'function' ? yogaStartHtml() : '') + (typeof mobStartHtml === 'function' ? mobStartHtml() : '');
   const cardioList = typeof data.cardio !== 'undefined' ? data.cardio : [];
   const yogaList = Array.isArray(data.yoga) ? data.yoga : [];  // v344
+  const mobList = Array.isArray(data.mobility) ? data.mobility : [];  // v375
+  const mobRow = x => typeof mobEntryRowHtml === 'function' ? mobEntryRowHtml(x) : '';
   const seg = typeof histSegHtml === 'function' ? histSegHtml('cal') : '';  // v203: Kalender | Übungen | Statistik | Erfolge
-  if (!data.sessions.length && !cardioList.length && !yogaList.length) {
+  if (!data.sessions.length && !cardioList.length && !yogaList.length && !mobList.length) {
     return seg + cardio + '<p class="hint">Noch keine Trainings gespeichert.</p>';
   }
   const byDay = new Map();
@@ -6112,26 +6119,26 @@ function renderHistory() {
   const icon = c => (typeof CARDIO_TYPES !== 'undefined' && (CARDIO_TYPES[c.type] || CARDIO_TYPES.other).icon) || '🏃';
   const st = calGet('hist');
   let h = seg + calendarHtml('hist', iso => {
-    const ss = byDay.get(iso) || [], cs = cardioList.filter(c => c.date === iso), ys = yogaList.filter(y => y.date === iso);
-    if (!ss.length && !cs.length && !ys.length) return null;
-    return { cls: ss.length ? (ss.every(s => s.deload) ? 'tr dl' : 'tr') : 'cd', sub: cs.length ? icon(cs[0]) : ys.length ? '🧘' : '' };
-  });
+    const ss = byDay.get(iso) || [], cs = cardioList.filter(c => c.date === iso), ys = yogaList.filter(y => y.date === iso), ms = mobList.filter(x => x.date === iso);
+    if (!ss.length && !cs.length && !ys.length && !ms.length) return null;
+    return { cls: ss.length ? (ss.every(s => s.deload) ? 'tr dl' : 'tr') : 'cd', sub: cs.length ? icon(cs[0]) : ys.length ? '🧘' : ms.length ? '🤸' : '' };
+  }, typeof schedCalMark === 'function' ? iso => schedCalMark(iso) : null);
   h += `<p class="cal-legend"><span class="cal-key tr"></span>Training <span class="cal-key dl"></span>Deload
-    <span class="cal-key cd"></span>nur Cardio oder Yoga</p>`;
+    <span class="cal-key cd"></span>nur Cardio, Yoga oder Mobility${typeof schedAny === 'function' && schedAny() ? ' <span class="cal-key pl"></span>geplant' : ''}</p>`;
   // angetippter Tag
   if (st.sel) {
-    const ss = byDay.get(st.sel) || [], cs = cardioList.filter(c => c.date === st.sel), ys = yogaList.filter(y => y.date === st.sel);
+    const ss = byDay.get(st.sel) || [], cs = cardioList.filter(c => c.date === st.sel), ys = yogaList.filter(y => y.date === st.sel), ms = mobList.filter(x => x.date === st.sel);
     h += `<div class="card cal-day"><p class="cal-day-head"><b>${fmtDate(st.sel + 'T12:00:00', true)}</b></p>
-      ${ss.map(sessionBtn).join('')}${cs.map(c => typeof cardioRowHtml === 'function' ? cardioRowHtml(c) : '').join('')}${ys.map(y => typeof yogaRowHtml === 'function' ? yogaRowHtml(y) : '').join('')}
-      ${ss.length || cs.length || ys.length ? '' : '<p class="hint">An diesem Tag hast du nichts eingetragen.</p>'}</div>`;
+      ${ss.map(sessionBtn).join('')}${cs.map(c => typeof cardioRowHtml === 'function' ? cardioRowHtml(c) : '').join('')}${ys.map(y => typeof yogaRowHtml === 'function' ? yogaRowHtml(y) : '').join('')}${ms.map(mobRow).join('')}
+      ${ss.length || cs.length || ys.length || ms.length ? '' : '<p class="hint">An diesem Tag hast du nichts eingetragen.</p>'}</div>`;
   }
   // Trainings des angezeigten Monats
   const inMonth = sessionsNewestFirst().filter(s => localDay(s.date).slice(0, 7) === st.month);
-  const cdMonth = cardioList.filter(c => c.date.slice(0, 7) === st.month), ygMonth = yogaList.filter(y => y.date.slice(0, 7) === st.month);
+  const cdMonth = cardioList.filter(c => c.date.slice(0, 7) === st.month), ygMonth = yogaList.filter(y => y.date.slice(0, 7) === st.month), mbMonth = mobList.filter(x => x.date.slice(0, 7) === st.month);
   const [y, m] = st.month.split('-').map(Number);
-  h += `<h2>${MONTHS_DE[m - 1]}: ${inMonth.length} Training${inMonth.length === 1 ? '' : 's'}${cdMonth.length ? ` | ${cdMonth.length}× Cardio` : ''}${ygMonth.length ? ` | ${ygMonth.length}× Yoga` : ''}</h2>`;
+  h += `<h2>${MONTHS_DE[m - 1]}: ${inMonth.length} Training${inMonth.length === 1 ? '' : 's'}${cdMonth.length ? ` | ${cdMonth.length}× Cardio` : ''}${ygMonth.length ? ` | ${ygMonth.length}× Yoga` : ''}${mbMonth.length ? ` | ${mbMonth.length}× Mobility` : ''}</h2>`;
   h += inMonth.length ? inMonth.map(sessionBtn).join('') : '<p class="hint">In diesem Monat keine Trainings.</p>';
-  h += `<h2>Cardio und Yoga</h2>${cardio}`;
+  h += `<h2>Cardio, Yoga und Mobility</h2>${cardio}`;
   h += typeof reviewHistoryHtml === 'function' ? reviewHistoryHtml() : '';  // Zyklus-Rückblicke (charts.js)
   h += complaintsHistBtn();  // Beschwerden-Verlauf (v208)
   // die Übungsliste steht seit v203 im Bereich „Übungen“ (charts.js, histExListHtml)
@@ -6970,6 +6977,18 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 377, date: '2026-11-24', items: [
+    ['Cardio, Yoga und Mobility lassen sich regelmäßig planen: feste Wochentage, x-mal pro Woche oder alle paar Tage, auf Wunsch mit Dauer. Die Karte „📅 Regelmäßig planen“ steht im jeweiligen Bereich.'],
+    ['Startseite: „📅 Heute geplant“ zeigt, was heute dran ist, mit Start oder „Morgen“. Verpasste Tage kannst du heute nachholen oder auslassen. Darunter steht, wie viel du diese Woche schon geschafft hast. Im Kalender sind geplante Tage markiert.'],
+  ] },
+  { v: 376, date: '2026-11-24', items: [
+    ['Mobility: In der Beschreibung jeder Übung gibt es jetzt „👍 Gefällt mir“ und „👎 Nicht nochmal vorschlagen“. Was dir nicht gefällt, schlägt die App nicht mehr vor, weder vor dem Training noch in der Mobility-Einheit. Was dir gefällt, kommt bevorzugt. Selbst auswählen kannst du alles weiterhin.'],
+  ] },
+  { v: 375, date: '2026-11-24', items: [
+    ['Mobility als eigene Einheit: Auf der Startseite unter „Cardio, Yoga und Mobility“ startest du sie jederzeit. Du wählst Dauer und Schwerpunkt (passend zu deinem nächsten Training, Ganzkörper oder bestimmte Regionen), die App stellt die Übungen zusammen. Abhaken, tauschen, eigene hinzufügen, Halte-Übungen mit Timer. Gespeichert wird sie im Verlauf.'],
+    ['Mobility: Neue Frage nach deinen Hilfsmitteln (Band, Stab, Faszienrolle, Bank, Klimmzugstange, leichtes Gewicht). Die App nutzt dann auch Übungen damit, vor dem Training und in der Mobility-Einheit. Ändern kannst du das in der Mobility-Karte jedes Trainingstags.'],
+    ['Mobility: Hast du Beschwerden eingetragen, sind die Übungen für diese Stellen in der Mobility-Einheit markiert, mit dem Hinweis, sie nur schmerzfrei zu machen.'],
+  ] },
   { v: 374, date: '2026-11-24', items: [
     ['Ernährung: Eiweiß und Fett richten sich jetzt nach deiner fettfreien Masse, also deinem Gewicht ohne Körperfett. In Diät und Minicut sind es mindestens 2 g Eiweiß je kg Körpergewicht, sonst mindestens 1,6 g, außer bei starkem Übergewicht. Die Warnung „Sehr wenig Fett“ rechnet genauso.'],
     ['Ernährung: Neue optionale Frage „Wie schätzt du dich ein?“ mit untergewichtig, normal oder übergewichtig. Ohne Körperfettanteil nimmt die App daraus einen an. So bekommen z. B. muskulöse Menschen mit hohem BMI keine zu niedrigen Werte mehr.'],
@@ -8590,7 +8609,7 @@ function importData(file) {
       days: d.days, volume: d.volume, rirPlan: d.rirPlan,  // ältere Sicherungen mit nur einem Plan
       sessions: d.sessions, bodyweight: d.bodyweight, cycle: d.cycle, steps: d.steps,
       complaints: d.complaints, hintsDismissed: d.hintsDismissed, dayTemplates: d.dayTemplates,
-      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, yoga: d.yoga, nutPlan: d.nutPlan, mealPlan: d.mealPlan, mealPrefs: d.mealPrefs, pantry: d.pantry,
+      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, yoga: d.yoga, mobility: d.mobility, mobDraft: d.mobDraft, mobEq: d.mobEq, mobPref: d.mobPref, sched: d.sched, nutPlan: d.nutPlan, mealPlan: d.mealPlan, mealPrefs: d.mealPrefs, pantry: d.pantry,
       customExercises: d.customExercises, profile: d.profile, prefatV: d.prefatV, rirV: d.rirV,
       // v366 (Fehler im Gesamttest): gingen beim Wiederherstellen verloren – Übungsart aus der Bibliothek, Mahlzeiten-Einstellung,
       // gesehene Version, ausgeblendete Hinweise und die Kennzeichen der einmaligen Umstellungen (sonst laufen sie erneut)
@@ -9870,7 +9889,7 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
   'reset-trainings': () => {
     if (!askOk(`Alle ${data.sessions.length} Trainings, Körpergewicht, Schritte und Ernährungseinträge löschen?\n\nDie Trainingstage mit ihren Übungen bleiben erhalten.`)) return;
     if (!askOk('Wirklich löschen? Das lässt sich nicht rückgängig machen.')) return;
-    Object.assign(data, { sessions: [], bodyweight: [], steps: [], measures: [], intake: [], foodLog: [], foodClosed: {}, water: {}, cardio: [], complaints: [], painLog: [], hintsDismissed: {}, cycleShift: {}, roundSkips: {} });
+    Object.assign(data, { sessions: [], bodyweight: [], steps: [], measures: [], intake: [], foodLog: [], foodClosed: {}, water: {}, cardio: [], yoga: [], mobility: [], mobDraft: null, complaints: [], painLog: [], hintsDismissed: {}, cycleShift: {}, roundSkips: {} });
     // Max.-Werte stammen aus den gelöschten Trainings -> neu eintragen lassen
     data.plans.forEach(p => p.days.forEach(d => d.exercises.forEach(e => { e.max10 = null; })));
     setRound(todayISO(), 1, 1);

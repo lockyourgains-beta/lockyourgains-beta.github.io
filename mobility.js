@@ -12,6 +12,42 @@ const MOB_REGIONS = [['full', 'Ganzkörper'], ['ankle', 'Sprunggelenk und Fuß']
   ['tspine', 'Brustwirbelsäule'], ['shoulder', 'Schulter'], ['arm', 'Ellbogen und Handgelenk'], ['neck', 'Nacken']];
 const MOB_TYPES = { dyn: 'Dynamisch', hold: 'Halten', act: 'Aktivierung' };
 const MOB_EQ = { band: 'Band', stick: 'Stab', roll: 'Faszienrolle', wall: 'Wand', bench: 'Bank', bar: 'Klimmzugstange', weight: 'leichtes Gewicht' };
+/* v375 (User-Wunsch 2026-11-24): Welche Hilfsmittel hast du? data.mobEq = [Schlüssel] (null = noch nie gefragt: nur ohne Gerät oder Wand).
+   Gilt für den Vorschlag vor dem Training und für die Mobility-Einheit. Wand und Türrahmen gehen immer. */
+const MOB_EQ_ASK = [['band', 'Widerstandsband oder Miniband'], ['stick', 'Stab oder Besenstiel'], ['roll', 'Faszienrolle'], ['bench', 'Bank'],
+  ['bar', 'Klimmzugstange'], ['weight', 'Leichtes Gewicht']];
+const mobEqSet = () => Array.isArray(data.mobEq) ? data.mobEq : null;
+const mobEqOk = (m, eq) => !m.eq || m.eq === 'wall' || (eq || []).includes(m.eq);
+// Vorauswahl: im Studio ist meist alles da, zu Hause das, was im Plan unter „Ausrüstung“ steht
+function mobEqDefault(equip = (activePlan() || {}).equip) {
+  if (equip !== 'home') return MOB_EQ_ASK.map(([k]) => k);
+  const h = data.home || {}, out = [];
+  if ((h.bands || []).length) out.push('band');
+  if (h.bar) out.push('bar');
+  if (h.bench) out.push('bench');
+  if ((h.db || []).length || (h.kb || []).length) out.push('weight');
+  return out;
+}
+const mobEqText = eq => eq && eq.length ? MOB_EQ_ASK.filter(([k]) => eq.includes(k)).map(([, l]) => l).join(', ') : 'keine';
+const mobEqChips = (eq, act) => `<div class="variants mob-eq">${MOB_EQ_ASK.map(([k, l]) =>
+    `<button class="vchip ${eq.includes(k) ? 'on' : ''}" data-action="${act}" data-k="${k}" aria-pressed="${eq.includes(k)}">${l}</button>`).join('')}</div>
+  <p class="hint nut-small">Wand und Türrahmen gehen immer.</p>`;
+/* v376 (User-Wunsch 2026-11-24): Gefällt mir / Nicht vorschlagen. data.mobPref = { id: 1 | -1 }.
+   -1: wird nie vorgeschlagen (vor dem Training, Einheit, Tauschen), selbst auswählen geht weiter. 1: bevorzugt (MOB_LIKE_W). */
+const MOB_LIKE_W = 1.5;
+const mobPref = id => (data.mobPref && data.mobPref[id]) || 0;
+const mobSugOk = m => mobPref(m.id) >= 0;
+const mobPrefMark = id => mobPref(id) > 0 ? ' <span class="mob-pref-mark" aria-label="Gefällt mir">👍</span>' : mobPref(id) < 0 ? ' <span class="mob-pref-mark" aria-label="Nicht nochmal vorschlagen">👎</span>' : '';
+const mobEqToggle = (list, k) => { const i = list.indexOf(k); if (i >= 0) list.splice(i, 1); else list.push(k); return list; };
+let mobEqOpen = false;  // Auswahl der Hilfsmittel aufgeklappt (Plan, Einheit)
+// Kurzfassung mit „Ändern“ (Mobility-Karte im Plan und Mobility-Einheit)
+function mobEqLineHtml() {
+  const eq = mobEqSet(), open = mobEqOpen || !eq;
+  return `<div class="mob-eq-box"><div class="mob-eq-line"><span><span class="lbl">Hilfsmittel</span>
+      <small class="hint">${eq ? esc(mobEqText(eq)) : 'Noch nicht ausgewählt. Bis dahin schlägt die App nur Übungen ohne Gerät vor.'}</small></span>
+      ${eq ? `<button class="btn small" data-action="mob-eq-open" aria-expanded="${open}">${open ? 'Fertig' : 'Ändern'}</button>` : ''}</div>
+    ${open ? `<p class="hint nut-small">Was hast du für Mobility zur Verfügung? Die App nutzt dann auch Übungen mit diesen Hilfsmitteln.</p>${mobEqChips(eq || [], 'mob-eq')}` : ''}</div>`;
+}
 // <<MOBILITY
 const MOB_EX = [
   {"id": "worldsgreatest", "reg": "full", "de": "World's Greatest Stretch", "type": "dyn", "eq": "", "u": "r", "n": 5, "side": true, "pre": ["quadrizeps", "gesaess", "beinbeuger", "adduktoren", "ruecken_unten", "brust", "lat"], "good": "Öffnet Hüftbeuger, Leiste, Beinrückseite und Brustwirbelsäule in einem einzigen Ablauf und bringt den ganzen Körper auf Temperatur. Ideal, wenn wenig Zeit ist.", "use": "Kniebeugen, Kreuzheben, Ausfallschritte, Ganzkörpertraining", "s": ["Aus dem Stand einen großen Ausfallschritt nach vorn machen, das hintere Bein bleibt lang.", "Die Hand auf der Seite des vorderen Beins innen neben den Fuß setzen und den anderen Ellbogen Richtung Knöchel absenken.", "Den Arm auf der Seite des vorderen Beins zur Decke aufdrehen, der Blick folgt der Hand.", "Beide Hände neben den vorderen Fuß setzen, die Hüfte nach hinten schieben und das vordere Bein strecken.", "Zurück in den Stand kommen und die Seite wechseln."], "f": ["Das hintere Knie sackt ab, dadurch bleibt der Hüftbeuger ungedehnt.", "Nur der Arm dreht auf, der Brustkorb bleibt nach unten gerichtet.", "Zu schnell durch die Positionen hetzen."], "l": "Das hintere Knie ablegen und den Ellbogen nur bis zur Höhe des Knies senken.", "h": "Jede Position 2 Sekunden halten und am Ende eine tiefe Hocke anhängen.", "v": "Bei Leistenschmerzen den Schritt kürzer machen."},
@@ -140,9 +176,10 @@ const mobSearchStr = m => [m.de, m.good, m.use, MOB_TYPES[m.type]].join(' ').toL
    braucht, steht in MOB_PAT (nach Name) bzw. MOB_GRP_REG (nach Muskelgruppe). Eine Mobility-Übung bekommt Punkte, wenn ihre
    Region gebraucht wird: doppelt, wenn die Übung unter „Passt vor“ (m.use) steht (an erster Stelle etwas mehr), einfach, wenn
    sie dieselbe Muskelgruppe vorbereitet (m.pre), sonst wenig. Nur dynamische Übungen und Aktivierung ohne besondere Hilfsmittel
-   (Wand geht), je Körperregion zuerst höchstens eine. Bewährte Standardübungen (MOB_TOP) bekommen etwas Vorrang. */
+   (Wand geht; v375: plus die angegebenen Hilfsmittel, data.mobEq), je Körperregion zuerst höchstens eine. Bewährte Standardübungen (MOB_TOP) bekommen etwas Vorrang. */
 const MOB_TOP = new Set(['worldsgreatest', 'squattostand', 'kneetowall', 'ankleRock', 'ninetyninety', 'hipcars', 'cossack', 'hamsweep', 'bwgoodmorning',
   'glutebridge', 'catcow', 'birddog', 'openbook', 'threadneedle', 'wallangel', 'scappushup', 'shouldercars', 'armcircles']), MOB_TOP_W = 1.3;
+const MOB_EQ_W = 1.2;    // v375: angegebene Hilfsmittel sollen auch vorkommen (nur Übungen, deren Gerät du hast, stehen überhaupt zur Wahl)
 const MOB_ACT_W = 0.85;  // Mobilisation vor Aktivierung (User: z. B. Hüfte öffnen, Sprunggelenk mobilisieren)
 const MOB_KIND_W = { compound: 1.5, normal: 1, assist: 0.7 };
 const MOB_POS_W = [5, 3], MOB_POS_REST = 0.5;
@@ -172,26 +209,31 @@ function mobUseHit(t, n) {
   const ws = n.split(/[\s\-(),\/]+/);
   return t.split(/[\s\-]+/).every(x => x.length >= 3 && ws.some(w => w.startsWith(x.slice(0, Math.min(6, x.length)))));
 }
+// Übungen eines Trainingstags mit Gewicht (Platz, Art) und gebrauchten Körperregionen
+const mobDayExs = day => (day.exercises || []).filter(ex => (ex.name || '').trim()).map((ex, j) => {
+  const nn = mobNorm(ex.name), g = groupOf(ex);
+  return { n: nn, g, need: mobRegNeed(nn, g), w: (MOB_POS_W[j] || MOB_POS_REST) * (MOB_KIND_W[kindOf(ex)] || 1) };
+});
+// Punkte einer Mobility-Übung für diese Übungen (ohne Zufall)
+function mobScoreFor(exs, m) {
+  const use = String(m.use || '').split(',');
+  let s = 0;
+  for (const ex of exs) {
+    const r = ex.need[m.reg] || 0;
+    if (!r) continue;
+    const k = use.findIndex(t => mobUseHit(t, ex.n));
+    s += ex.w * r * (k === 0 ? 2.3 : k > 0 ? 2 : ex.g && m.pre.includes(ex.g) ? 1 : 0.3);
+  }
+  return s * (MOB_TOP.has(m.id) ? MOB_TOP_W : 1) * (m.type === 'act' ? MOB_ACT_W : 1) * (m.eq && m.eq !== 'wall' ? MOB_EQ_W : 1) * (mobPref(m.id) > 0 ? MOB_LIKE_W : 1);
+}
 function mobSuggest(day, n = 4) {
-  const exs = (day.exercises || []).filter(ex => (ex.name || '').trim()).map((ex, j) => {
-    const nn = mobNorm(ex.name), g = groupOf(ex);
-    return { n: nn, g, need: mobRegNeed(nn, g), w: (MOB_POS_W[j] || MOB_POS_REST) * (MOB_KIND_W[kindOf(ex)] || 1) };
-  });
+  const exs = mobDayExs(day);
   if (!exs.length) return [];
   const seed = [...String(day.id || day.name || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
   const tie = id => [...id].reduce((a, c) => (a * 33 + c.charCodeAt(0)) >>> 0, seed) % 1000;
-  const score = m => {
-    const use = String(m.use || '').split(',');
-    let s = 0;
-    for (const ex of exs) {
-      const r = ex.need[m.reg] || 0;
-      if (!r) continue;
-      const k = use.findIndex(t => mobUseHit(t, ex.n));
-      s += ex.w * r * (k === 0 ? 2.3 : k > 0 ? 2 : ex.g && m.pre.includes(ex.g) ? 1 : 0.3);
-    }
-    return s * (MOB_TOP.has(m.id) ? MOB_TOP_W : 1) * (m.type === 'act' ? MOB_ACT_W : 1);
-  };
-  const cand = MOB_EX.filter(m => m.type !== 'hold' && (!m.eq || m.eq === 'wall'))
+  const score = m => mobScoreFor(exs, m);
+  const eq = mobEqSet() || [];  // v375: Hilfsmittel, die du angegeben hast (vorher nur ohne Gerät oder Wand)
+  const cand = MOB_EX.filter(m => m.type !== 'hold' && mobEqOk(m, eq) && mobSugOk(m))
     .map(m => ({ m, s: score(m) + tie(m.id) / 100000 }))
     .filter(x => x.s >= 0.5).sort((a, b) => b.s - a.s);
   const out = [], regs = new Set();
@@ -225,7 +267,11 @@ let mobOpenEx = null;   // aufgeklappte Übung: 'ort|id' (ort = lib, pick, plan,
 let mobOpenReg = null;  // aufgeklappte Region in der Bibliothek
 let mobQ = '';          // Suche
 function mobDetail(m) {
+  const p = mobPref(m.id);
   return `<div class="yg-detail mob-detail">
+      <div class="mob-pref"><button class="vchip ${p > 0 ? 'on' : ''}" data-action="mob-pref" data-id="${m.id}" data-v="1" aria-pressed="${p > 0}">👍 Gefällt mir</button>
+        <button class="vchip ${p < 0 ? 'on' : ''}" data-action="mob-pref" data-id="${m.id}" data-v="-1" aria-pressed="${p < 0}">👎 Nicht nochmal vorschlagen</button></div>
+      ${p ? `<p class="hint nut-small">${p > 0 ? 'Die App schlägt diese Übung bevorzugt vor.' : 'Die App schlägt diese Übung nicht mehr vor. Selbst auswählen kannst du sie weiterhin.'}</p>` : ''}
       <p class="hint nut-small">${esc(mobMeta(m))}</p>
       <p class="yg-sec">Wofür gut</p><p class="mob-good">${esc(m.good)}</p>
       ${m.use ? `<p class="yg-var"><span class="yg-var-l">Passt vor:</span> <span>${esc(m.use)}</span></p>` : ''}
@@ -253,7 +299,7 @@ function mobListHtml(pick) {
         const on = chosen && chosen.has(m.id), det = mobOpenEx === `${ort}|${m.id}`;
         return `<div class="yg-pose ${det ? 'open' : ''}" data-s="${esc(mobSearchStr(m))}" ${q && !mobSearchStr(m).includes(q) ? 'hidden' : ''}>
           <div class="mob-pose-row"><button class="yg-pose-btn" data-action="mob-info" data-k="${ort}|${m.id}" aria-expanded="${det}">
-            <span><b>${esc(m.de)}</b><small>${esc(mobMeta(m))}</small></span><span class="yg-pose-r" aria-hidden="true">${det ? '▴' : '▾'}</span></button>
+            <span><b>${esc(m.de)}</b>${mobPrefMark(m.id)}<small>${esc(mobMeta(m))}</small></span><span class="yg-pose-r" aria-hidden="true">${det ? '▴' : '▾'}</span></button>
             ${pick ? `<button class="icon-btn mob-pick-btn ${on ? 'on' : ''}" data-action="mob-toggle" data-id="${m.id}" aria-pressed="${!!on}"
               aria-label="${on ? 'Abwählen' : 'Hinzufügen'}">${on ? '✓' : '＋'}</button>` : ''}</div>
           ${det ? mobDetail(m) : ''}</div>`;
@@ -268,28 +314,30 @@ function renderMobLib() {
   return `<p class="hint explain">${MOB_INTRO}</p><div class="card yg-lib">${mobSearchInput()}${mobListHtml(null)}</div>
     <p class="hint nut-small explain">${MOB_CARE}</p>`;
 }
-function renderMobPick({ day: id }) {
-  const day = findDay(id);
+function renderMobPick({ day: id, sess }) {
+  // v375: auch für die Mobility-Einheit (sess) – die Liste steht dann in data.mobDraft.items
+  const day = sess ? (data.mobDraft ? { mob: data.mobDraft.items } : null) : findDay(id);
   if (!day) return '<p class="hint">Trainingstag nicht gefunden.</p>';
   const n = mobEdit(day).length;
-  return `<p class="hint explain">Antippen ＋ fügt die Übung zu „${esc(day.name)}“ hinzu. Der Pfeil zeigt, wie sie geht und wofür sie gut ist.</p>
+  return `<p class="hint explain">${sess ? 'Antippen ＋ fügt die Übung zu deiner Mobility-Einheit hinzu.' : `Antippen ＋ fügt die Übung zu „${esc(day.name)}“ hinzu.`} Der Pfeil zeigt, wie sie geht und wofür sie gut ist.</p>
     <div class="card yg-pick">${mobSearchInput()}${mobListHtml(day)}</div>
-    <button class="btn primary" data-action="mob-pick-done" data-day="${day.id}">✔ Fertig (${n} ${n === 1 ? 'Übung' : 'Übungen'})</button>`;
+    <button class="btn primary" data-action="mob-pick-done" ${sess ? 'data-sess="1"' : `data-day="${day.id}"`}>✔ Fertig (${n} ${n === 1 ? 'Übung' : 'Übungen'})</button>`;
 }
 
 /* ----- Plan: Bereich je Trainingstag ----- */
-function mobRowHtml(m, i, k, tools) {
+function mobRowHtml(m, i, k, tools, extra = '') {
   const x = MOB_BY_ID.get(m.id), det = mobOpenEx === `${k}|${m.id}`;
   return `<li class="mob-row ${det ? 'open' : ''}"><div class="mob-row-top">
-      <button class="mob-name" data-action="mob-info" data-k="${k}|${m.id}" aria-expanded="${det}"><b>${esc(x.de)}</b><small>${esc(mobMeta(x))}</small></button>
-      ${tools}</div>${det ? mobDetail(x) : ''}</li>`;
+      <button class="mob-name" data-action="mob-info" data-k="${k}|${m.id}" aria-expanded="${det}"><span class="mob-name-t"><b>${esc(x.de)}</b>${mobPrefMark(x.id)}</span><small>${esc(mobMeta(x))}</small></button>
+      ${tools}</div>${extra}${det ? mobDetail(x) : ''}</li>`;
 }
 // v358: Stufe des Vorschlags für den ganzen Plan (0–3)
 function mobLevelHtml(plan) {
   const l = mobLevel(plan);
   return `<div class="variants plan mob-lvl"><span>Vorschlag der App</span>${MOB_LEVELS.map(([label], k) =>
       `<button class="vchip ${l === k ? 'on' : ''}" data-action="mob-level" data-l="${k}"><b>${k}</b><small>${label}</small></button>`).join('')}</div>
-    <p class="hint nut-small">${mobLevelText(l)} Gilt für alle Trainingstage des Plans. Tage, an denen du die Mobility selbst geändert hast, behalten ihre Auswahl.</p>`;
+    <p class="hint nut-small">${mobLevelText(l)} Gilt für alle Trainingstage des Plans. Tage, an denen du die Mobility selbst geändert hast, behalten ihre Auswahl.</p>
+    ${mobEqLineHtml()}`;
 }
 function mobPlanHtml(day) {
   const plan = activePlan(), list = mobDay(day, plan), fixed = Array.isArray(day.mob);
@@ -330,21 +378,254 @@ function mobTrainingHtml() {
 // Mobility eines gespeicherten Trainings (Verlauf)
 const mobSessionText = s => (s.mob || []).map(m => MOB_BY_ID.get(m.id)).filter(Boolean).map(m => m.de).join(', ');
 
+/* ----- v375: Mobility-Einheit (User-Wunsch 2026-11-24) -----
+   Eigene Einheit außerhalb vom Krafttraining, jederzeit startbar wie Cardio (Startseite und Verlauf).
+   data.mobDraft = { date, dur: Minuten, focus: 'next'|'full'|'regs', regs: [Region], dayId?, seed, items: [{ id, sets, done }] } – läuft gerade
+   data.mobility = [{ id, date, min, focus, regs, dayName?, items: [{ id, sets, done }] }] – gespeicherte Einheiten
+   Zusammenstellung (mobSessBuild): Regionen nach Gewicht (nächstes Training wie beim Vorschlag vor dem Training, Ganzkörper fest,
+   oder selbst gewählt), je Region abwechselnd Dynamisch, Aktivierung, Halten. Etwa 1 Minute je Satz (MOB_MIN).
+   Beschwerden (User-Vorgabe 11.11.: die App dokumentiert nur und stellt nichts um): Stellen mit Beschwerden werden nur markiert,
+   mit Hinweis „nur schmerzfrei“ und Verweis auf Ärztin, Arzt oder Physiotherapie. Kalorien werden nicht gezählt (nur 20 bis 30 kcal). */
+const MOB_DURS = [10, 15, 20, 30];
+const MOB_TYPE_ORDER = ['dyn', 'act', 'hold'];
+const MOB_TYPE_SHARE = { dyn: 0.45, act: 0.25, hold: 0.3 };
+const MOB_FULL_W = { full: 1, hip: 1.2, tspine: 1, shoulder: 1, ankle: 0.8, spine: 0.8, knee: 0.4, arm: 0.4, neck: 0.4 };
+// Beschwerde-Stellen (BODY_AREAS in app.js) → Mobility-Regionen
+const MOB_COMPL_REG = { schulter: ['shoulder'], ellenbogen: ['arm'], handgelenk: ['arm'], ruecken: ['spine', 'tspine'], huefte: ['hip'], knie: ['knee'], sprunggelenk: ['ankle'] };
+const mobRegLabel = r => (MOB_REGIONS.find(([k]) => k === r) || [, r])[1];
+// Region → eingetragene Beschwerde-Stellen (dieser Zyklus und „Zwickt“ der letzten 14 Tage)
+function mobComplRegs() {
+  const areas = new Set(typeof currentComplaints === 'function' ? currentComplaints() || [] : []);
+  const from = addDaysISO(todayISO(), -14);
+  for (const z of data.painLog || []) if (z.area && localDay(z.date) >= from) areas.add(z.area);
+  const out = new Map();
+  for (const a of areas) for (const r of MOB_COMPL_REG[a] || []) out.set(r, [...(out.get(r) || []), BODY_AREAS[a].label]);
+  return out;
+}
+// nächstes Training: läuft eins, dann dieses, sonst der nächste offene Tag des Durchlaufs (wie auf der Startseite)
+function mobNextDay() {
+  try {
+    if (!activePlan() || !data.days.length) return null;
+    const has = d => d && (d.exercises || []).some(e => (e.name || '').trim());
+    if (draft && has(findDay(draft.dayId))) return findDay(draft.dayId);
+    const ci = cycleInfo(), open = new Set(roundOpen(ci.cycleStart, ci.week).map(x => x.day.id));
+    const last = sessionsNewestFirst().find(s => findDay(s.dayId)), from = last ? data.days.indexOf(findDay(last.dayId)) + 1 : 0;
+    return data.days.map((_, i) => data.days[(from + i) % data.days.length]).find(d => open.has(d.id) && has(d)) || null;
+  } catch (e) { return null; }
+}
+const mobHash = (str, seed) => [...str].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, seed >>> 0 || 7) % 1000 / 1000;
+// Gewicht je Region
+function mobSessWeights(f, exs) {
+  if (f.focus === 'regs' && f.regs.length) return Object.fromEntries(f.regs.map(r => [r, 1]));
+  if (f.focus === 'next' && exs && exs.length) {
+    const w = {};
+    for (const ex of exs) for (const [r, v] of Object.entries(ex.need)) w[r] = (w[r] || 0) + ex.w * v;
+    const max = Math.max(...Object.values(w), 0);
+    if (max > 0) { for (const r in w) w[r] /= max; return w; }
+  }
+  return { ...MOB_FULL_W };
+}
+// Einheit zusammenstellen: [{ id, sets, done: 0 }]
+function mobSessBuild(f) {
+  const day = f.focus === 'next' ? findDay(f.dayId) : null, exs = day ? mobDayExs(day) : null;
+  const W = mobSessWeights(f, exs), eq = mobEqSet() || [];
+  const pool = MOB_EX.filter(m => W[m.reg] > 0.05 && mobEqOk(m, eq) && mobSugOk(m));
+  const nEx = Math.max(3, Math.round(f.dur * 0.6));
+  const val = m => (exs ? mobScoreFor(exs, m) + 0.6 : 0.6 * (mobPref(m.id) > 0 ? MOB_LIKE_W : 1)) * (MOB_TOP.has(m.id) ? MOB_TOP_W : 1) * (0.7 + 0.6 * mobHash(m.id, f.seed));
+  const used = new Set(), cnt = {}, tCnt = { dyn: 0, act: 0, hold: 0 }, out = [];
+  while (out.length < nEx) {
+    // Region nach Höchstzahl-Verfahren (Gewicht / (Anzahl + 1)), nur solange dort noch Übungen frei sind
+    const regs = Object.keys(W).filter(r => pool.some(m => m.reg === r && !used.has(m.id)));
+    if (!regs.length) break;
+    const r = regs.reduce((a, b) => W[b] / ((cnt[b] || 0) + 1) > W[a] / ((cnt[a] || 0) + 1) ? b : a);
+    const free = pool.filter(m => m.reg === r && !used.has(m.id));
+    // Art: die am weitesten hinter ihrem Anteil liegt und in dieser Region noch frei ist
+    const types = MOB_TYPE_ORDER.filter(t => free.some(m => m.type === t))
+      .sort((a, b) => (tCnt[a] - MOB_TYPE_SHARE[a] * nEx) - (tCnt[b] - MOB_TYPE_SHARE[b] * nEx));
+    const pick = free.filter(m => m.type === types[0]).sort((a, b) => val(b) - val(a))[0];
+    used.add(pick.id); cnt[r] = (cnt[r] || 0) + 1; tCnt[pick.type]++;
+    out.push(pick);
+  }
+  // Reihenfolge: Ganzkörper zuerst, dann Dynamisch → Aktivierung → Halten, innerhalb nach Region
+  const ord = m => (m.reg === 'full' && m.type !== 'hold' ? -1 : MOB_TYPE_ORDER.indexOf(m.type)) * 100 + MOB_REGIONS.findIndex(([k]) => k === m.reg);
+  const items = out.sort((a, b) => ord(a) - ord(b)).map(m => ({ id: m.id, sets: 1, done: 0 }));
+  // übrige Minuten als zusätzliche Sätze, zuerst in den wichtigsten Regionen (höchstens 3 je Übung)
+  let rest = f.dur - items.length;
+  const byW = [...items].sort((a, b) => (W[MOB_BY_ID.get(b.id).reg] || 0) - (W[MOB_BY_ID.get(a.id).reg] || 0));
+  for (let k = 0; rest > 0 && byW.length && k < 3 * byW.length; k++) {
+    const it = byW[k % byW.length];
+    if (it.sets < 3) { it.sets++; rest--; }
+  }
+  return items;
+}
+function mobSessFresh() {
+  const next = mobNextDay();
+  const sm = typeof schedOf === 'function' && schedOf('mob'), dur = sm && sm.min ? MOB_DURS.reduce((a, b) => Math.abs(b - sm.min) < Math.abs(a - sm.min) ? b : a) : 15;  // v377: Dauer aus dem Rhythmus
+  const f = { date: todayISO(), dur, focus: next ? 'next' : 'full', regs: [], dayId: next ? next.id : null, seed: Date.now() % 100000, items: [] };
+  f.items = mobSessBuild(f);
+  return f;
+}
+// nach geänderten Einstellungen neu zusammenstellen; Abgehaktes bleibt bei Übungen, die wieder dabei sind
+function mobSessRebuild(keep = true) {
+  const f = data.mobDraft;
+  if (!f) return;
+  const old = new Map(f.items.map(m => [m.id, m.done || 0]));
+  f.items = mobSessBuild(f).map(m => ({ ...m, done: keep ? Math.min(m.sets, old.get(m.id) || 0) : 0 }));
+}
+const mobSessDone = f => f.items.reduce((a, m) => a + Math.min(m.done || 0, m.sets), 0);
+const mobSessSets = f => f.items.reduce((a, m) => a + m.sets, 0);
+function mobWeek() {
+  const d = new Date(todayISO() + 'T12:00:00'), monday = addDaysISO(todayISO(), -((d.getDay() + 6) % 7));
+  const list = (data.mobility || []).filter(x => x.date >= monday && x.date <= todayISO());
+  return { n: list.length, min: list.reduce((a, x) => a + (x.min || 0), 0) };
+}
+function mobStartHtml() {
+  const f = data.mobDraft, w = mobWeek();
+  return `<button class="btn nav mob-btn" data-action="mobs-open">🤸 Mobility-Einheit
+      <small>${f && mobSessDone(f) ? `Läuft: ${mobSessDone(f)} von ${mobSessSets(f)} Sätzen erledigt` : w.n ? `Diese Woche: ${w.n}× | ${w.min} min`
+        : 'Beweglichkeit für Hüfte, Schultern, Rücken …, passend zu deinem nächsten Training'}</small></button>`;
+}
+
+/* Timer für Halte-Übungen (nur im Speicher): Abschnitte [Sekunden, Text]; bei Übungen je Seite mit Wechsel dazwischen */
+let mobTimer = null, mobTimerIv = null;
+const MOB_SWITCH_S = 5;
+function mobTimerStart(i) {
+  const f = data.mobDraft, it = f && f.items[i], m = it && MOB_BY_ID.get(it.id);
+  if (!m || m.u !== 's') return;
+  const segs = m.side ? [[m.n, 'Erste Seite'], [MOB_SWITCH_S, 'Seite wechseln'], [m.n, 'Zweite Seite']] : [[m.n, m.type === 'hold' ? 'Halten' : 'Los']];
+  mobTimer = { i, segs, k: 0, end: Date.now() + segs[0][0] * 1000 };
+  try { if (restCfg().sound) restAudio(true); } catch (e) { /* ohne Ton */ }
+  clearInterval(mobTimerIv);
+  mobTimerIv = setInterval(mobTimerTick, 250);
+  render();
+}
+function mobTimerStop() { mobTimer = null; clearInterval(mobTimerIv); mobTimerIv = null; }
+function mobTimerTick() {
+  const t = mobTimer;
+  if (!t || current.view !== 'mobsess' || !data.mobDraft) { mobTimerStop(); return; }
+  const left = t.end - Date.now();
+  if (left <= 0) {
+    try { restSignal(); } catch (e) { /* ohne Signal */ }
+    if (t.k + 1 < t.segs.length) { t.k++; t.end = Date.now() + t.segs[t.k][0] * 1000; render(); return; }
+    const it = data.mobDraft.items[t.i];
+    if (it && (it.done || 0) < it.sets) it.done = (it.done || 0) + 1;
+    mobTimerStop(); saveData(); render();
+    return;
+  }
+  const el = document.getElementById('ms-timer-left');
+  if (el) el.textContent = Math.ceil(left / 1000) + ' s';
+}
+
+function renderMobSess() {
+  if (!data.mobDraft) { data.mobDraft = mobSessFresh(); saveData(); }
+  const f = data.mobDraft, next = mobNextDay(), day = f.dayId && findDay(f.dayId);
+  if (f.focus === 'next' && !day) f.focus = 'full';
+  const compl = mobComplRegs();
+  const seg = (act, val, cur, label) => `<button class="${cur === val ? 'on' : ''}" data-action="${act}" data-v="${val}">${label}</button>`;
+  const focusOpts = [next || day ? ['next', 'Nächstes Training'] : null, ['full', 'Ganzkörper'], ['regs', 'Regionen wählen']].filter(Boolean);
+  let h = `<div class="card ms-setup">
+      <p class="lbl">Dauer</p>
+      <div class="seg four">${MOB_DURS.map(d => seg('ms-dur', d, f.dur, `${d} min`)).join('')}</div>
+      <p class="lbl">Schwerpunkt</p>
+      <div class="seg ${focusOpts.length === 3 ? 'three' : 'two'}">${focusOpts.map(([k, l]) => seg('ms-focus', k, f.focus, l)).join('')}</div>
+      ${f.focus === 'next' && day ? `<p class="hint nut-small"><span>Passend zu deinem nächsten Training:</span> <b>${esc(day.name)}</b></p>
+        <p class="hint nut-small">Vor allem für die Regionen, die die ersten Übungen dort brauchen.</p>` : ''}
+      ${f.focus === 'full' ? '<p class="hint nut-small">Ein bisschen von allem, mit Schwerpunkt auf Hüfte, Brustwirbelsäule und Schultern.</p>' : ''}
+      ${f.focus === 'regs' ? `<div class="variants ms-regs">${MOB_REGIONS.map(([r, l]) => `<button class="vchip ${f.regs.includes(r) ? 'on' : ''}" data-action="ms-reg" data-r="${r}"
+          aria-pressed="${f.regs.includes(r)}"><span>${l}</span>${compl.has(r) ? ' <span aria-hidden="true">🩹</span>' : ''}</button>`).join('')}</div>
+        ${f.regs.length ? '' : '<p class="hint nut-small">Tippe eine oder mehrere Regionen an.</p>'}` : ''}
+      ${mobEqLineHtml()}
+    </div>`;
+  if (compl.size) {
+    h += `<div class="card hints ms-compl"><p><span>🩹 Beschwerden eingetragen:</span> ${[...new Set([...compl.values()].flat())].map(l => `<span>${esc(l)}</span>`).join(', ')}</p>
+      <p>Die App stellt deshalb nichts von sich aus um. Übungen für diese Stellen sind markiert. Mach sie nur im schmerzfreien Bereich und kläre am besten
+      mit deiner Ärztin, deinem Arzt oder in der Physiotherapie, welche dir guttun.</p></div>`;
+  }
+  const done = mobSessDone(f), sets = mobSessSets(f);
+  const rows = f.items.map((it, i) => {
+    const m = MOB_BY_ID.get(it.id);
+    if (!m) return '';
+    const run = mobTimer && mobTimer.i === i;
+    const checks = `<div class="mob-checks">${Array.from({ length: it.sets }, (_, k) =>
+      `<button class="mob-chk ${k < (it.done || 0) ? 'on' : ''}" data-action="ms-tick" data-i="${i}" data-k="${k}" aria-pressed="${k < (it.done || 0)}"
+        aria-label="Satz ${k + 1}">${k < (it.done || 0) ? '✓' : k + 1}</button>`).join('')}</div>`;
+    const tools = `${checks}<button class="icon-btn" data-action="ms-swap" data-i="${i}" aria-label="Andere Übung">⇄</button>
+      <button class="icon-btn mob-del" data-action="ms-del" data-i="${i}" aria-label="Entfernen">✕</button>`;
+    const left = run ? Math.max(0, Math.ceil((mobTimer.end - Date.now()) / 1000)) : 0;
+    const timer = m.u === 's' && (it.done || 0) < it.sets ? `<div class="ms-timer ${run ? 'run' : ''}">${run
+      ? `<span>${mobTimer.segs[mobTimer.k][1]}</span><b id="ms-timer-left">${left} s</b><button class="btn small" data-action="ms-timer-stop">Stopp</button>`
+      : `<button class="btn small" data-action="ms-timer" data-i="${i}">▶ Timer ${m.n} s${m.side ? ' je Seite' : ''}</button>`}</div>` : '';
+    const warn = compl.has(m.reg) ? `<p class="ms-compl-row"><span>🩹 Beschwerde eingetragen, nur schmerzfrei:</span> ${compl.get(m.reg).map(l => `<span>${esc(l)}</span>`).join(', ')}</p>` : '';
+    return mobRowHtml(it, i, 'ms', tools, timer + warn);
+  }).join('');
+  h += `<div class="card ms-list"><div class="mob-plan-head"><h2>🤸 Deine Einheit</h2><span class="hint">ca. ${mobMinutes(f.items)} min</span></div>
+      ${f.items.length ? `${done ? `<p class="hint nut-small">${done} von ${sets} Sätzen erledigt</p>` : ''}<p class="hint nut-small">Reihenfolge: erst lockern, dann aktivieren, am Ende halten.
+        Tippe auf eine Übung für die Beschreibung, ⇄ tauscht sie gegen eine andere aus derselben Region.</p>
+        <ul class="mob-list">${rows}</ul>` : '<p class="hint nut-small">Noch keine Übungen. Wähle oben einen Schwerpunkt oder füge selbst welche hinzu.</p>'}
+      <div class="mob-btns"><button class="btn small" data-action="ms-pick">＋ Übung</button>
+        <button class="btn small" data-action="ms-new">✨ Neu vorschlagen</button></div>
+      <label class="row"><span>Datum</span><input class="inp date" type="date" data-field="ms-date" value="${f.date}" max="${todayISO()}"></label>
+      <div class="row"><button class="btn" data-action="ms-reset">Verwerfen</button>
+        <button class="btn primary" data-action="ms-save">✔ Speichern</button></div>
+    </div>`;
+  h += schedCardHtml('mob');  // v377: Wochenplaner
+  const list = [...(data.mobility || [])].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, 30);
+  h += list.length ? `<h2>Deine Einheiten</h2><ul class="list">${list.map(x => mobEntryRowHtml(x, true)).join('')}</ul>` : '';
+  return h + `<p class="hint nut-small explain">${MOB_CARE}</p>`;
+}
+const mobEntryText = x => (x.items || []).filter(i => i.done).map(i => MOB_BY_ID.get(i.id)).filter(Boolean).map(m => tr(m.de)).join(', ');
+const mobEntryInfo = x => `<span>${fmtDate(x.date + 'T12:00:00')}</span> | <span>${x.min} min</span> | ${(x.regs || []).map(r => `<span>${mobRegLabel(r)}</span>`).join(', ')}`;
+// gespeicherte Einheit: im Mobility-Bildschirm mit Löschen, sonst als Knopf (Kalendertag)
+function mobEntryRowHtml(x, edit = false) {
+  if (!edit) return `<button class="btn nav" data-action="mobs-open">🤸 <span>Mobility</span><small>${mobEntryInfo(x)}</small></button>`;
+  return `<li class="bw-row cardio-row"><span>🤸 <span>Mobility</span><small class="hint">${mobEntryInfo(x)}</small>
+      ${mobEntryText(x) ? `<small class="hint yoga-row-items">${esc(mobEntryText(x))}</small>` : ''}</span>
+      <button class="icon-btn danger" data-action="ms-entry-del" data-id="${x.id}" aria-label="Löschen">✕</button></li>`;
+}
+
 /* ----- Ansichten und Aktionen ----- */
 views.moblib = { title: 'Mobility-Übungen', tab: 'plan', back: p => p && p.day ? ['day', { id: p.day }] : ['library', {}], render: renderMobLib };
-views.mobpick = { title: 'Mobility auswählen', tab: 'plan', back: p => ['day', { id: p.day }], render: renderMobPick };
+views.mobsess = { title: 'Mobility', tab: 'start', back: 'start', render: renderMobSess };
+views.mobpick = { title: 'Mobility auswählen', tab: p => p.sess ? 'start' : 'plan', back: p => p.sess ? ['mobsess', {}] : ['day', { id: p.day }], render: renderMobPick };
 
 Object.assign(actions, {
   'mob-lib': () => { mobQ = ''; go('moblib', {}); },
   'mob-reg': el => { mobOpenReg = mobOpenReg === el.dataset.r ? null : el.dataset.r; render(); },
   'mob-info': el => { mobOpenEx = mobOpenEx === el.dataset.k ? null : el.dataset.k; render(); },
   'mob-pick': el => { mobQ = ''; go('mobpick', { day: el.dataset.day }); },
-  'mob-pick-done': el => go('day', { id: el.dataset.day }),
+  'mob-pick-done': el => el.dataset.sess ? go('mobsess', {}) : go('day', { id: el.dataset.day }),
   'mob-toggle': el => {
+    if (current.params.sess) {  // v375: Mobility-Einheit
+      const list = data.mobDraft && data.mobDraft.items;
+      if (!list) return;
+      const i = list.findIndex(m => m.id === el.dataset.id);
+      if (i >= 0) list.splice(i, 1); else list.push({ id: el.dataset.id, sets: 1, done: 0 });
+      saveData(); render();
+      return;
+    }
     const day = findDay(current.params.day);
     if (!day) return;
     const list = mobEdit(day), i = list.findIndex(m => m.id === el.dataset.id);
     if (i >= 0) list.splice(i, 1); else list.push({ id: el.dataset.id, sets: 1 });
+    saveData(); render();
+  },
+  'mob-pref': el => {
+    const id = el.dataset.id, v = +el.dataset.v, m = MOB_BY_ID.get(id);
+    if (!m) return;
+    if (!data.mobPref || typeof data.mobPref !== 'object') data.mobPref = {};
+    if (mobPref(id) === v) delete data.mobPref[id]; else data.mobPref[id] = v;
+    let msg = !mobPref(id) ? 'Bewertung entfernt' : v > 0 ? '👍 Wird bevorzugt vorgeschlagen' : '👎 Wird nicht mehr vorgeschlagen';
+    // in der laufenden Mobility-Einheit: noch nicht abgehakt → gleich austauschen
+    const f = data.mobDraft, i = v < 0 && f ? f.items.findIndex(x => x.id === id && !(x.done > 0)) : -1;
+    if (i >= 0 && mobSessSwap(i)) { msg = '👎 Nicht mehr vorschlagen, in deiner Einheit ausgetauscht'; if (mobOpenEx && mobOpenEx.endsWith('|' + id)) mobOpenEx = null; }
+    saveData(); render(); toast(msg);
+  },
+  'mob-eq-open': () => { mobEqOpen = !mobEqOpen; render(); },
+  'mob-eq': el => {
+    if (!Array.isArray(data.mobEq)) data.mobEq = [];
+    mobEqToggle(data.mobEq, el.dataset.k);
+    mobEqOpen = true;
+    if (current.view === 'mobsess') mobSessRebuild(true);
     saveData(); render();
   },
   'mob-sets': el => {
@@ -406,3 +687,90 @@ fields['mob-q'] = el => {  // wie die Yoga-Suche: nur ein- und ausblenden, das F
   const none = $view.querySelector('.yg-none');
   if (none) none.hidden = !q || any;
 };
+
+/* v375: Mobility-Einheit */
+// Übung i gegen eine andere aus derselben Region tauschen (gleiche Art zuerst, 👍 vorn, 👎 nie); false = keine da
+function mobSessSwap(i) {
+  const f = data.mobDraft, it = f && f.items[i], m = it && MOB_BY_ID.get(it.id);
+  if (!m) return false;
+  const inList = new Set(f.items.map(x => x.id)), eq = mobEqSet() || [];
+  const same = MOB_EX.filter(x => x.reg === m.reg && !inList.has(x.id) && mobEqOk(x, eq) && mobSugOk(x));
+  const alt = [...same.filter(x => x.type === m.type), ...same.filter(x => x.type !== m.type)]
+    .map((x, k) => [x, k]).sort((a, b) => mobPref(b[0].id) - mobPref(a[0].id) || a[1] - b[1]).map(([x]) => x);
+  if (!alt.length) return false;
+  f.swap = (f.swap || 0) + 1;
+  f.items[i] = { id: alt[f.swap % Math.min(alt.length, 3)].id, sets: it.sets, done: 0 };
+  if (mobTimer && mobTimer.i === i) mobTimerStop();
+  return true;
+}
+const mobSessDirty = () => data.mobDraft && mobSessDone(data.mobDraft) > 0;
+Object.assign(actions, {
+  'mobs-open': () => { mobEqOpen = false; go('mobsess', {}); },
+  'ms-dur': el => { data.mobDraft.dur = +el.dataset.v; mobSessRebuild(); saveData(); render(); },
+  'ms-focus': el => {
+    const f = data.mobDraft;
+    f.focus = el.dataset.v;
+    if (f.focus === 'next') { const d = mobNextDay(); f.dayId = d ? d.id : f.dayId; }
+    if (f.focus === 'regs' && !f.regs.length) { f.items = f.items.filter(m => (m.done || 0) > 0); saveData(); render(); return; }
+    mobSessRebuild(); saveData(); render();
+  },
+  'ms-reg': el => { const f = data.mobDraft; mobEqToggle(f.regs, el.dataset.r); mobSessRebuild(); saveData(); render(); },
+  'ms-new': () => {
+    const f = data.mobDraft;
+    if (mobSessDirty() && !askOk('Neu zusammenstellen? Abgehakte Übungen, die wieder dabei sind, bleiben abgehakt.')) return;
+    f.seed = (f.seed * 7 + 13) % 100000;
+    mobTimerStop(); mobSessRebuild(); saveData(); render();
+  },
+  'ms-tick': el => {
+    const it = data.mobDraft.items[+el.dataset.i], k = +el.dataset.k;
+    if (!it) return;
+    it.done = k < (it.done || 0) ? k : k + 1;
+    saveData(); render();
+  },
+  'ms-swap': el => {
+    if (!mobSessSwap(+el.dataset.i)) { toast('Für diese Region gibt es keine weitere passende Übung.'); return; }
+    saveData(); render();
+  },
+  'ms-del': el => {
+    const f = data.mobDraft, i = +el.dataset.i;
+    if (!f.items[i]) return;
+    if (mobTimer) { if (mobTimer.i === i) mobTimerStop(); else if (mobTimer.i > i) mobTimer.i--; }
+    f.items.splice(i, 1);
+    saveData(); render();
+  },
+  'ms-pick': () => { mobQ = ''; go('mobpick', { sess: 1 }); },
+  'ms-timer': el => mobTimerStart(+el.dataset.i),
+  'ms-timer-stop': () => { mobTimerStop(); render(); },
+  'ms-reset': () => {
+    if (mobSessDirty() && !askOk('Diese Einheit verwerfen? Abgehaktes geht verloren.')) return;
+    mobTimerStop(); data.mobDraft = null; saveData(); render();
+  },
+  'ms-save': () => {
+    const f = data.mobDraft;
+    if (!f || !f.items.length) { alert('Die Einheit hat noch keine Übungen.'); return; }
+    if (!mobSessDone(f)) {
+      if (!askOk('Du hast noch nichts abgehakt. Die ganze Einheit als erledigt eintragen?')) return;
+      f.items.forEach(m => { m.done = m.sets; });
+    }
+    const items = f.items.map(m => ({ id: m.id, sets: m.sets, done: Math.min(m.done || 0, m.sets) }));
+    const regs = [...new Set(items.filter(m => m.done).map(m => MOB_BY_ID.get(m.id).reg))].sort((a, b) =>
+      MOB_REGIONS.findIndex(([k]) => k === a) - MOB_REGIONS.findIndex(([k]) => k === b));
+    const min = Math.max(1, Math.round(items.reduce((a, m) => a + m.done, 0) * MOB_MIN));
+    const day = f.focus === 'next' && f.dayId && findDay(f.dayId);
+    const entry = { id: uid(), date: f.date || todayISO(), min, focus: f.focus, regs, items };
+    if (day) entry.dayName = day.name;
+    if (!Array.isArray(data.mobility)) data.mobility = [];
+    data.mobility.push(entry);
+    mobTimerStop(); data.mobDraft = null;
+    saveData();
+    toast(`🤸 Mobility eingetragen: ${min} min`);
+    render(); window.scrollTo(0, 0);
+  },
+  'ms-entry-del': el => {
+    const x = (data.mobility || []).find(e => e.id === el.dataset.id);
+    if (!x || !askOk(`Mobility-Einheit vom ${fmtDate(x.date + 'T12:00:00')} löschen?`)) return;
+    data.mobility = data.mobility.filter(e => e !== x);
+    saveData(); render();
+  },
+});
+fields['ms-date'] = el => { if (data.mobDraft && /^\d{4}-\d{2}-\d{2}$/.test(el.value)) { data.mobDraft.date = el.value; saveData(); } };

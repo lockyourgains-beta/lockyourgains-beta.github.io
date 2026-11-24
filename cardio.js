@@ -177,6 +177,7 @@ function renderCardio() {
           Fitness-Uhren schätzen oft eher zu hoch. Lieber vorsichtig eintragen.</p>
       </div>`;
   }
+  h += schedCardHtml('cardio');  // v377: Wochenplaner
   // Einträge
   const list = [...data.cardio].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, 40);
   if (list.length) {
@@ -272,7 +273,7 @@ function renderCardioStats() {
   h += '<h2>Kalender</h2>' + calendarHtml('cardio', iso => {
     const cs = all.filter(c => c.date === iso);
     return cs.length ? { cls: 'cd', sub: cardioIcon(cs[0]) + (cs.length > 1 ? '+' : '') } : null;
-  });
+  }, iso => schedCalMark(iso, ['cardio']));
   if (st.sel) {
     const cs = all.filter(c => c.date === st.sel);
     h += `<div class="card cal-day"><p class="cal-day-head"><b>${fmtDate(st.sel + 'T12:00:00', true)}</b></p>
@@ -370,3 +371,204 @@ fields['cardio-in'] = el => {
   const est = document.getElementById('cardio-est');
   if (est) est.innerHTML = cardioEstimateText();
 };
+
+/* ---------- v377: Wochenplaner für Cardio, Yoga und Mobility (User-Wunsch 2026-11-24) ----------
+   data.sched = { cardio|yoga|mob: { mode: 'days'|'times'|'every', days: [0–6, Mo = 0], times: 1–7, every: 1–7, min: Minuten|null,
+     from: 'JJJJ-MM-TT' (ab wann), moved: { geplantes Datum: neues Datum | '' (ausgelassen) }, skip?: Datum (alle n Tage: frühestens),
+     hide?: Datum (x-mal pro Woche: heute ausgeblendet) } }
+   Fällig: feste Tage = Wochentag passt oder dorthin verschoben; x-mal pro Woche = Wochensoll (Mo–So) noch offen und heute noch nichts;
+   alle n Tage = n Tage nach der letzten Einheit. Erledigt = an dem Tag eine Einheit eingetragen. Verpasst (nur feste Tage, letzte 7 Tage):
+   kein Eintrag an dem Tag und auch danach keiner an einem ungeplanten Tag (dann gilt er als nachgeholt). */
+const SCHED_KINDS = {
+  cardio: { label: 'Cardio', icon: '🏃', open: 'cardio-open', list: () => data.cardio || [] },
+  yoga: { label: 'Yoga', icon: '🧘', open: 'yoga-open', list: () => data.yoga || [] },
+  mob: { label: 'Mobility', icon: '🤸', open: 'mobs-open', list: () => data.mobility || [] },
+};
+const SCHED_WD = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const SCHED_MISS_DAYS = 7;
+const isoWd = iso => (new Date(iso + 'T12:00:00').getDay() + 6) % 7;
+const weekMonday = iso => addDaysISO(iso, -isoWd(iso));
+const schedOf = k => (data.sched && data.sched[k]) || null;
+const schedAny = () => Object.keys(SCHED_KINDS).some(schedOf);
+const schedDone = (k, iso) => SCHED_KINDS[k].list().some(x => x.date === iso);
+function schedEveryDue(k) {
+  const s = schedOf(k), done = SCHED_KINDS[k].list().map(x => x.date).filter(d => d <= todayISO()).sort();
+  let due = done.length ? addDaysISO(done[done.length - 1], s.every) : s.from;
+  if (s.skip && s.skip > due) due = s.skip;
+  return due;
+}
+// Ist am Tag iso etwas geplant? (x-mal pro Woche hat keine festen Tage)
+function schedPlannedOn(k, iso) {
+  const s = schedOf(k);
+  if (!s || iso < s.from) return false;
+  if (s.mode === 'days') {
+    const mv = s.moved || {};
+    if (Object.values(mv).includes(iso)) return true;
+    return s.days.includes(isoWd(iso)) && !(iso in mv);
+  }
+  if (s.mode === 'every') {
+    const due = schedEveryDue(k), t = todayISO();
+    if (iso < t) return false;
+    const start = due > t ? due : t;
+    return iso >= start && Math.round((new Date(iso + 'T12:00:00') - new Date(start + 'T12:00:00')) / 864e5) % s.every === 0;
+  }
+  return false;
+}
+// geplante Einheiten in der Woche von iso (Mo–So)
+function schedWeekPlanned(k, iso = todayISO()) {
+  const s = schedOf(k), mo = weekMonday(iso);
+  if (s.mode === 'times') return s.times;
+  if (s.mode === 'every') return Math.max(1, Math.round(7 / s.every));
+  let n = 0;
+  for (let i = 0; i < 7; i++) if (schedPlannedOn(k, addDaysISO(mo, i))) n++;
+  return n;
+}
+const schedWeekDone = (k, iso = todayISO()) => { const mo = weekMonday(iso), su = addDaysISO(mo, 6); return new Set(SCHED_KINDS[k].list().filter(x => x.date >= mo && x.date <= su).map(x => x.date)).size; };
+// heute fällig? null oder { left?, since? }
+function schedToday(k) {
+  const s = schedOf(k), t = todayISO();
+  if (!s || schedDone(k, t)) return null;
+  if (s.mode === 'days') return schedPlannedOn(k, t) ? {} : null;
+  if (s.mode === 'times') { if (s.hide === t) return null; const n = schedWeekDone(k); return n < s.times ? { left: s.times - n } : null; }
+  const due = schedEveryDue(k);
+  return due <= t ? { since: due < t ? due : null } : null;
+}
+// zuletzt verpasster fester Tag (letzte 7 Tage) oder null
+function schedMissed(k) {
+  const s = schedOf(k), t = todayISO();
+  if (!s || s.mode !== 'days') return null;
+  for (let i = 1; i <= SCHED_MISS_DAYS; i++) {
+    const iso = addDaysISO(t, -i);
+    if (iso < s.from || !schedPlannedOn(k, iso) || schedDone(k, iso)) continue;
+    let caught = false;
+    for (let j = i - 1; j >= 0 && !caught; j--) { const d = addDaysISO(t, -j); if (schedDone(k, d) && !schedPlannedOn(k, d)) caught = true; }
+    return caught ? null : iso;
+  }
+  return null;
+}
+// geplanten Tag iso verschieben (to = '' → auslassen); war iso selbst schon ein verschobener Tag, wird der ursprüngliche Eintrag geändert
+function schedMove(k, iso, to) {
+  const s = schedOf(k);
+  if (!s.moved) s.moved = {};
+  const from = Object.keys(s.moved).find(f => s.moved[f] === iso) || iso;
+  s.moved[from] = to;
+  // alte Einträge aufräumen
+  const old = addDaysISO(todayISO(), -40);
+  for (const f of Object.keys(s.moved)) if (f < old && (!s.moved[f] || s.moved[f] < old)) delete s.moved[f];
+}
+// Text des Rhythmus; Wochentage und Teile einzeln in <span>, damit die Übersetzung greift (Toast: plain = true)
+function schedText(s, plain = false) {
+  const sp = x => plain ? x : `<span>${x}</span>`;
+  const r = s.mode === 'days' ? s.days.map(d => sp(SCHED_WD[d])).join(', ') : sp(s.mode === 'times' ? `${s.times}× pro Woche` : s.every === 1 ? 'jeden Tag' : `alle ${s.every} Tage`);
+  return r + (s.min ? ` | ${sp(`${s.min} min`)}` : '');
+}
+const schedDateTxt = iso => fmtDate(iso + 'T12:00:00');
+
+// Startseite: „Heute geplant“ und Wochenstand
+function schedStartHtml() {
+  if (!schedAny()) return '';
+  const t = todayISO(), rows = [], prog = [];
+  for (const [k, K] of Object.entries(SCHED_KINDS)) {
+    const s = schedOf(k);
+    if (!s) continue;
+    prog.push(`<span>${K.icon} <span>${K.label}</span> <span>${schedWeekDone(k)}/${schedWeekPlanned(k)}</span></span>`);
+    const miss = schedMissed(k);
+    if (miss) rows.push(`<div class="sched-row miss"><span><b>${K.icon} <span>${K.label}</span></b><small><span>Verpasst am</span> ${schedDateTxt(miss)}</small></span>
+        <div class="sched-btns"><button class="btn small" data-action="sched-move" data-k="${k}" data-d="${miss}" data-to="${t}">Heute nachholen</button>
+        <button class="btn small" data-action="sched-move" data-k="${k}" data-d="${miss}" data-to="">Auslassen</button></div></div>`);
+    const due = schedToday(k);
+    if (due) rows.push(`<div class="sched-row"><span><b>${K.icon} <span>${K.label}</span>${s.min ? ` <span>${s.min} min</span>` : ''}</b><small>${due.left
+        ? `noch ${due.left}× diese Woche` : due.since ? `<span>Fällig seit</span> ${schedDateTxt(due.since)}` : 'Heute geplant'}</small></span>
+        <div class="sched-btns"><button class="btn small primary" data-action="sched-start" data-k="${k}">▶ Start</button>
+        <button class="btn small" data-action="sched-later" data-k="${k}">Morgen</button></div></div>`);
+  }
+  return (rows.length ? `<div class="card sched-today"><h2>📅 Heute geplant</h2>${rows.join('')}</div>` : '')
+    + `<p class="hint nut-small sched-prog"><span>Diese Woche:</span> ${prog.join(' | ')}</p>`;
+}
+// Kalender: geplante Tage (heute, solange nicht erledigt, und in der Zukunft)
+function schedCalMark(iso, kinds = Object.keys(SCHED_KINDS)) {
+  if (iso < todayISO()) return null;
+  const ks = kinds.filter(k => schedOf(k) && schedPlannedOn(k, iso) && !schedDone(k, iso));
+  return ks.length ? { cls: 'pl', sub: ks.map(k => SCHED_KINDS[k].icon).join('') } : null;
+}
+
+// Karte im Bereich (Cardio, Yoga, Mobility): Rhythmus anzeigen und bearbeiten
+let schedEdit = null;  // { k, mode, days, times, every, min }
+function schedCardHtml(k) {
+  const s = schedOf(k), e = schedEdit && schedEdit.k === k ? schedEdit : null;
+  if (!e) {
+    if (!s) return `<button class="btn outline nav sched-open" data-action="sched-edit" data-k="${k}">📅 Regelmäßig planen
+        <small>Feste Wochentage, x-mal pro Woche oder alle paar Tage</small></button>`;
+    return `<div class="card sched-card"><div class="sched-head"><span><span class="lbl">📅 Dein Rhythmus</span><small class="hint">${schedText(s)}</small></span>
+        <button class="btn small" data-action="sched-edit" data-k="${k}">Ändern</button></div>
+      <p class="hint nut-small"><span>Diese Woche:</span> ${schedWeekDone(k)} von ${schedWeekPlanned(k)}</p></div>`;
+  }
+  const seg = (v, l) => `<button class="${e.mode === v ? 'on' : ''}" data-action="sched-mode" data-v="${v}">${l}</button>`;
+  const step = (what, label) => `<div class="sched-step"><button class="icon-btn" data-action="sched-n" data-w="${what}" data-d="-1" aria-label="Weniger" ${e[what] <= 1 ? 'disabled' : ''}>−</button>
+      <b>${label}</b><button class="icon-btn" data-action="sched-n" data-w="${what}" data-d="1" aria-label="Mehr" ${e[what] >= 7 ? 'disabled' : ''}>＋</button></div>`;
+  return `<div class="card sched-card"><p class="lbl">📅 Wie oft?</p>
+      <div class="seg three">${seg('days', 'Feste Tage')}${seg('times', 'Pro Woche')}${seg('every', 'Alle paar Tage')}</div>
+      ${e.mode === 'days' ? `<div class="variants sched-days">${SCHED_WD.map((w, i) => `<button class="vchip ${e.days.includes(i) ? 'on' : ''}" data-action="sched-day" data-d="${i}" aria-pressed="${e.days.includes(i)}">${w}</button>`).join('')}</div>`
+        : e.mode === 'times' ? step('times', `${e.times}× pro Woche`) : step('every', e.every === 1 ? 'jeden Tag' : `alle ${e.every} Tage`)}
+      <p class="hint nut-small">${e.mode === 'days' ? 'An diesen Wochentagen erinnert dich die Startseite.' : e.mode === 'times'
+        ? 'Ohne feste Tage: Die Startseite erinnert dich, bis du die Einheiten der Woche (Montag bis Sonntag) geschafft hast.'
+        : 'Gezählt ab deiner letzten Einheit. Machst du sie früher oder später, verschiebt sich der nächste Termin mit.'}</p>
+      <label class="row"><span>Dauer (Minuten)<br><small class="hint">freiwillig</small></span>
+        <input class="inp kg" type="text" inputmode="numeric" autocomplete="off" data-field="sched-min" value="${esc(e.min)}" placeholder="–"></label>
+      <div class="row">${s ? '<button class="btn" data-action="sched-del">Entfernen</button>' : '<button class="btn" data-action="sched-cancel">Abbrechen</button>'}
+        <button class="btn primary" data-action="sched-save">✔ Speichern</button></div>
+      ${s ? '<button class="btn center sched-cancel" data-action="sched-cancel">Abbrechen</button>' : ''}
+      <p class="hint nut-small">An geplanten Tagen erscheint auf der Startseite „Heute geplant“, im Kalender im Verlauf sind die Tage markiert.</p>
+    </div>`;
+}
+
+Object.assign(actions, {
+  'sched-edit': el => {
+    const k = el.dataset.k, s = schedOf(k);
+    schedEdit = { k, mode: s ? s.mode : 'days', days: s && s.days ? [...s.days] : [], times: s && s.times || 2, every: s && s.every || 2, min: s && s.min ? String(s.min) : '' };
+    render();
+  },
+  'sched-cancel': () => { schedEdit = null; render(); },
+  'sched-mode': el => { schedEdit.mode = el.dataset.v; render(); },
+  'sched-day': el => { const d = +el.dataset.d, l = schedEdit.days, i = l.indexOf(d); if (i >= 0) l.splice(i, 1); else l.push(d); l.sort((a, b) => a - b); render(); },
+  'sched-n': el => { const w = el.dataset.w; schedEdit[w] = Math.min(7, Math.max(1, schedEdit[w] + Number(el.dataset.d))); render(); },
+  'sched-save': () => {
+    const e = schedEdit;
+    if (e.mode === 'days' && !e.days.length) { alert('Bitte mindestens einen Wochentag antippen.'); return; }
+    const min = String(e.min).trim() === '' ? null : parseNum(e.min);
+    if (min != null && !(min >= 1 && min <= 600)) { alert('Bitte eine Dauer zwischen 1 und 600 Minuten eintragen oder das Feld leer lassen.'); return; }
+    if (!data.sched || typeof data.sched !== 'object') data.sched = {};
+    data.sched[e.k] = { mode: e.mode, days: e.mode === 'days' ? [...e.days] : [], times: e.times, every: e.every, min: min != null ? Math.round(min) : null, from: todayISO(), moved: {} };
+    schedEdit = null;
+    saveData(); render();
+    toast('📅 Rhythmus gespeichert');
+  },
+  'sched-del': () => {
+    const k = schedEdit.k;
+    if (!askOk(`Den Rhythmus für ${SCHED_KINDS[k].label} entfernen?`)) return;
+    delete data.sched[k];
+    schedEdit = null;
+    saveData(); render();
+  },
+  'sched-start': el => {
+    const k = el.dataset.k, s = schedOf(k);
+    if (k === 'cardio' && s && s.min) { cardioForm = cardioFormFresh(); cardioForm.min = String(s.min); cardioCmpId = null; go('cardio'); return; }
+    if (k === 'yoga' && s && s.min && typeof yogaFormFresh === 'function') { yogaForm = yogaFormFresh(); yogaForm.min = String(s.min); go('yoga'); return; }
+    actions[SCHED_KINDS[k].open](el);
+  },
+  'sched-later': el => {
+    const k = el.dataset.k, s = schedOf(k), t = todayISO(), tm = addDaysISO(t, 1);
+    if (s.mode === 'days') schedMove(k, t, tm);
+    else if (s.mode === 'every') s.skip = tm;
+    else s.hide = t;
+    saveData(); render();
+    toast(s.mode === 'times' ? 'Für heute ausgeblendet' : 'Auf morgen verschoben');
+  },
+  'sched-move': el => {
+    const k = el.dataset.k;
+    schedMove(k, el.dataset.d, el.dataset.to);
+    saveData(); render();
+    toast(el.dataset.to ? 'Auf heute verschoben' : 'Ausgelassen');
+  },
+});
+fields['sched-min'] = el => { if (schedEdit) schedEdit.min = el.value; };

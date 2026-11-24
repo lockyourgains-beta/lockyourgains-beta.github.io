@@ -1224,6 +1224,7 @@ function renderYoga() {
     <div class="row">${f.id ? '<button class="btn" data-action="yoga-cancel">Abbrechen</button>' : ''}
       <button class="btn primary" data-action="yoga-save">${f.id ? '✔ Speichern' : '＋ Eintragen'}</button></div>
     <button class="btn nav" data-action="yoga-lib">📖 Yoga-Übungen und Abläufe<small>${YOGA_POSES.length} Haltungen und Atemübungen mit Anleitung, ${YOGA_FLOWS.length} Abläufe</small></button>`;
+  h += schedCardHtml('yoga');  // v377: Wochenplaner
   const list = [...data.yoga].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, 40);
   h += list.length ? `<h2>Deine Einheiten</h2><ul class="list">${list.map(y => yogaRowHtml(y, true)).join('')}</ul>` : '<p class="hint">Noch keine Yoga-Einheiten eingetragen.</p>';
   return h + `<p class="hint nut-small explain">Die Kalorien sind Schätzwerte aus Stil, Anstrengung, Dauer und Körpergewicht (MET-Werte). Gezählt wird nur,
@@ -1351,7 +1352,7 @@ function renderYogaStats() {
     </div>
     <h2>Pro Woche</h2><div class="card cardio-chart">${yogaBars()}</div>`;
   const st = calGet('yoga');
-  h += '<h2>Kalender</h2>' + calendarHtml('yoga', iso => all.some(y => y.date === iso) ? { cls: 'cd', sub: '🧘' } : null);
+  h += '<h2>Kalender</h2>' + calendarHtml('yoga', iso => all.some(y => y.date === iso) ? { cls: 'cd', sub: '🧘' } : null, iso => schedCalMark(iso, ['yoga']));
   if (st.sel) {
     const ys = all.filter(y => y.date === st.sel);
     h += `<div class="card cal-day"><p class="cal-day-head"><b>${fmtDate(st.sel + 'T12:00:00', true)}</b></p>
