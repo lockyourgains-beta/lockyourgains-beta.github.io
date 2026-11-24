@@ -6938,6 +6938,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 370, date: '2026-11-24', items: [
+    ['Neuer Stil „80er“ unter Optionen → Aussehen: Synthwave mit Neon-Pink und Cyan, Retro-Sonne und Gitter bis zum Horizont, Überschriften in 80er-Schrift und Zahlen wie auf einer Digitalanzeige. Der Stil ist immer dunkel.'],
+  ] },
   { v: 369, date: '2026-11-24', items: [
     ['Ernährung: Ob du an Trainingstagen mehr Kalorien bekommst, fragt die App jetzt direkt beim Einrichten deines Ernährungsziels. Im Reiter Ernährung steht dazu unten nur noch eine kleine Einstellung.'],
     ['Ernährung: Dein Körpergewicht trägst du jetzt direkt unter „Essen eintragen“ ein, ohne nach unten zu scrollen. Dein Verlauf steht in einer eigenen Karte weiter unten.'],
@@ -10245,13 +10248,14 @@ function iconSync() {
 function applyTheme() {
   const root = document.documentElement;
   root.dataset.accent = profileColor();
-  const mode = (data.profile && data.profile.theme) || '';
+  // v370: Stil „80er“ ist immer dunkel und hat eigene Farben (style.css, data-look="retro")
+  const mode = currentLook() === 'retro' ? 'dark' : (data.profile && data.profile.theme) || '';
   if (mode) root.dataset.theme = mode; else delete root.dataset.theme;
   delete root.dataset.size;  // v255 (User 2026-11-14): Textgröße immer „Normal“, nicht mehr einstellbar
   plainSync();
   iconSync();
   // Statusleiste des Handys in der Hintergrundfarbe der Farbwelt einfärben
-  const LOOK_BG = { plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], sheet: ['#f8f9fa', '#1f1f1f'] };
+  const LOOK_BG = { retro: ['#12042a', '#12042a'], plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], sheet: ['#f8f9fa', '#1f1f1f'] };
   let [light, dark] = LOOK_BG[currentLook()] || PROFILE_COLORS[profileColor()].bg;  // Schlicht und die neuen Designs (v234): neutral
   // v289: Kraftraum und Logbuch hell in der Farbwelt getönt (außer Blau und Beere), wie im Stylesheet
   if ((currentLook() === 'kraft' || currentLook() === 'log') && !['blue', 'berry'].includes(profileColor())) [light, dark] = PROFILE_COLORS[profileColor()].bg;  // v306: auch dunkel
@@ -10327,7 +10331,7 @@ for (const k of ['alert', 'confirm', 'prompt']) {
 }
 // Stile (v234): drei neue Designs, dazu die bisherigen „Standard“ und „Schlicht“. Ohne Angabe im Profil (neue Nutzer, seit v292): Standard.
 // v290 (User-Wunsch): „Schwarzweiß“ (bw) gestrichen, damit alle Stile in eine Zeile passen; gespeichertes bw wird über currentLook zu Kraftraum
-const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht' };  // v248: Puristen = Tabellen-Optik
+const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht', retro: '80er' };  // v370: 80er (Synthwave, immer dunkel)  // v248: Puristen = Tabellen-Optik
 const currentLook = () => {
   const p = data.profile;
   const l = p && p.look !== undefined ? p.look || '' : '';  // v292: ohne Wahl „Standard“
@@ -10368,7 +10372,8 @@ function appearanceCard() {
       <p class="hint explain">„Kraftraum“: sportlich mit kräftigen, schmalen Überschriften und großen Zahlen. „Logbuch“: wie ein Trainingsbuch,
         Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Puristen“: so einfach wie eine Tabelle in Excel oder Google Sheets, ohne Emojis.
         Kraftraum, Logbuch und Puristen übernehmen deine Farbwelt. Ohne eigene Wahl ist Kraftraum orange, Logbuch und Puristen grün.
-        „Standard“ und „Schlicht“ sind die bisherigen Stile.</p>
+        „Standard“ und „Schlicht“ sind die bisherigen Stile. „80er“: Synthwave mit Neonfarben und Gitter-Horizont, immer dunkel und mit eigenen
+        Farben, Farbwelt und Darstellung gelten dort nicht.</p>
       <p class="lbl">Farbwelt</p>
       <div class="color-grid">${Object.entries(PROFILE_COLORS).map(([k, c]) => tile(k, c)).join('')}</div>
       <p class="lbl">Darstellung</p>

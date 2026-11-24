@@ -3717,8 +3717,8 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .mic-line-chev { font-size: 22px; line-height: 1; color: var(--muted); }
 
 /* v290: alle fünf Stile in einer Zeile (ohne ✓, die Farbe zeigt die Wahl); Breite nach Text, kleine Schrift nur hier */
-.variants.look-pick { flex-wrap: nowrap; gap: 3px; }
-.variants.look-pick .vchip { flex: 1 1 auto; min-width: 0; padding: 0 3px; font-size: 12px; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.variants.look-pick { flex-wrap: wrap; gap: 3px; }  /* v370: sechs Stile, zwei Reihen */
+.variants.look-pick .vchip { flex: 1 1 30%; min-width: 0; padding: 0 3px; font-size: 12px; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .variants.look-pick .vchip.on::before { content: none; }
 [data-look="plain"] .variants.look-pick .vchip { font-size: 10.5px; letter-spacing: 0; padding: 0 2px; }
 
@@ -4255,3 +4255,96 @@ table.wiz-sum th:last-child, table.wiz-sum td:last-child { border-left: 1px soli
 .nut-td-q .nut-td-row { margin: 0 0 10px; }
 .nut-progress > .nut-prog > .nut-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .nut-td-line .seg button { white-space: nowrap; }
+
+/* ---------- v370: Stil „80er“ (User-Wunsch 2026-11-24, data-look="retro") ----------
+   Synthwave: Nachthimmel in Violett, Neon-Pink und Cyan, Sonne mit Streifen und Gitter bis zum Horizont (fest im Hintergrund).
+   Immer dunkel (applyTheme setzt data-theme="dark"), eigene Farben statt Farbwelt. Schriften im Ordner fonts/ (OFL):
+   Orbitron für Überschriften, Share Tech Mono für Zahlen. Fließtext bleibt in der Systemschrift, Leuchten nur an Akzenten. */
+@font-face { font-family: "LYG Orbitron"; src: url(fonts/orbitron.woff2) format("woff2"); font-weight: 400 900; font-display: swap; }
+@font-face { font-family: "LYG Share Mono"; src: url(fonts/sharetechmono.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+html[data-look="retro"][data-theme][data-accent] {
+  --bg: #12042a;
+  --card: #1c0a3a;
+  --fill: #2a1352;
+  --input: #22104a;
+  --text: #f7eeff;
+  --muted: #b9a5dc;
+  --line: rgba(190, 120, 255, .16);
+  --line-strong: #3f2672;
+  --accent: #ff2e97;
+  --accent-2: #ff7a3d;
+  --accent-soft: #40104a;   /* deckend (= Pink 16 % auf der Karte), damit Hinweiskarten den Hintergrund nicht durchscheinen lassen */
+  --accent-text: #ff86c4;
+  --cyan: #2de2ff;
+  --success: #2cf0b0;
+  --success-soft: #1e2c4c;
+  --warn: #ffd23f;
+  --warn-soft: #3e283b;
+  --warn-text: #ffe27a;
+  --danger: #ff4d6d;
+  --danger-soft: #401542;
+  --bar: rgba(14, 3, 34, .84);
+  --shadow: 0 0 0 1px rgba(170, 100, 255, .22);
+  --shadow-accent: 0 0 22px -4px rgba(255, 46, 151, .75);
+  --radius: 14px;
+  --f-head: "LYG Orbitron", "Arial Black", sans-serif;
+  --f-num: "LYG Share Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+  background: var(--bg);
+}
+/* Hintergrund: Himmel (html), Sonne und Gitter (body) liegen fest hinter dem Inhalt; Horizont bei 33 % von unten */
+[data-look="retro"] body { background: transparent; }
+html[data-look="retro"]::before, [data-look="retro"] body::before, [data-look="retro"] body::after {
+  content: ''; position: fixed; z-index: -1; pointer-events: none; }
+html[data-look="retro"]::before {
+  inset: 0;
+  background: radial-gradient(ellipse 70% 30% at 50% 67%, rgba(255, 46, 151, .38), rgba(255, 46, 151, 0) 70%),
+    linear-gradient(180deg, #08021c 0%, #160536 40%, #3b0c5c 66.8%, #12042a 67%, #0e0322 100%);
+}
+[data-look="retro"] body::before {
+  left: 50%; bottom: 33%; width: 230px; height: 115px; margin-left: -115px; border-radius: 115px 115px 0 0;
+  background: linear-gradient(180deg, #ffe45c 0%, #ffa23d 40%, #ff4f86 75%, #ff2e97 100%);
+  -webkit-mask: linear-gradient(180deg, #000 0 48%, transparent 48% 53%, #000 53% 64%, transparent 64% 71%, #000 71% 80%, transparent 80% 89%, #000 89% 94%, transparent 94%);
+  mask: linear-gradient(180deg, #000 0 48%, transparent 48% 53%, #000 53% 64%, transparent 64% 71%, #000 71% 80%, transparent 80% 89%, #000 89% 94%, transparent 94%);
+  opacity: .92;
+}
+[data-look="retro"] body::after {
+  left: -60%; right: -60%; bottom: 0; height: 33%;
+  background:
+    linear-gradient(180deg, rgba(255, 90, 180, 1), rgba(255, 46, 151, 0) 3px) top / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, rgba(255, 46, 151, .6) 0 2px, transparent 2px 64px),
+    repeating-linear-gradient(180deg, rgba(255, 46, 151, .6) 0 2px, transparent 2px 46px);
+  transform: perspective(260px) rotateX(58deg); transform-origin: 50% 0;
+  -webkit-mask: linear-gradient(180deg, rgba(0, 0, 0, .3), #000 70%); mask: linear-gradient(180deg, rgba(0, 0, 0, .3), #000 70%);
+}
+/* Kopf- und Fußleiste mit Neon-Kante */
+[data-look="retro"] header { box-shadow: 0 1px 0 rgba(255, 46, 151, .55), 0 8px 24px -14px rgba(255, 46, 151, .8); }
+[data-look="retro"] nav { box-shadow: 0 -1px 0 rgba(45, 226, 255, .45), 0 -8px 24px -14px rgba(45, 226, 255, .6); }
+[data-look="retro"] nav button.active { color: var(--cyan); text-shadow: 0 0 10px rgba(45, 226, 255, .7); }
+[data-look="retro"] nav button.active svg { background: rgba(45, 226, 255, .13); filter: drop-shadow(0 0 6px rgba(45, 226, 255, .8)); }
+/* Überschriften: Orbitron, Titel oben in Chrom-Verlauf, Kartentitel mit leichtem Leuchten */
+[data-look="retro"] :is(header h1, main h2, main h3, .dlg-title, .wiz-q-head h2, .welcome-card h2, .ex-head h2) {
+  font-family: var(--f-head); font-weight: 700; letter-spacing: .01em; overflow-wrap: break-word; hyphens: auto; }
+[data-look="retro"] header h1 {
+  font-size: 25px; font-weight: 800; font-style: normal; padding: 2px 0;
+  background: linear-gradient(180deg, #ffffff 0%, #b8f3ff 42%, #ff5fb2 58%, #ffb46b 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 8px rgba(255, 46, 151, .55)); }
+[data-look="retro"] #back:not([hidden]) + h1 { font-size: 17px; font-weight: 700; }
+[data-look="retro"] main :is(h2, h3) { font-size: 18px; line-height: 1.3; color: #fff; text-shadow: 0 0 12px rgba(255, 46, 151, .55); }
+[data-look="retro"] .ex-card .ex-head h2 { font-size: 21px; }
+[data-look="retro"] :is(.setgrid input, .nut-kcal, .trh-rest-t b, .stat b, .nut-goal-row b, .sessions-opt b, .fe-goal-kcal-v, .fe-mac b) {
+  font-family: var(--f-num); letter-spacing: 0; }
+/* Karten und Knöpfe */
+[data-look="retro"] .card { border: 1px solid rgba(170, 100, 255, .22); box-shadow: 0 10px 30px -18px rgba(0, 0, 0, .9); }
+[data-look="retro"] .btn { box-shadow: 0 0 0 1px rgba(170, 100, 255, .26); }
+[data-look="retro"] .btn.primary { background: linear-gradient(100deg, #ff2e97 0%, #ff5a6e 55%, #ff8a3d 100%); color: #fff; text-shadow: 0 1px 0 rgba(90, 0, 50, .35);
+  box-shadow: 0 0 0 1px rgba(255, 140, 200, .55), 0 0 22px -4px rgba(255, 46, 151, .8); }
+[data-look="retro"] .btn.outline, [data-look="retro"] .btn.center:not(.primary) { box-shadow: inset 0 0 0 1px rgba(255, 46, 151, .45); }
+[data-look="retro"] .split-opt.on { box-shadow: inset 0 0 0 1px var(--accent), 0 0 16px -6px rgba(255, 46, 151, .9); }
+[data-look="retro"] .vchip.on { background: linear-gradient(100deg, #ff2e97, #ff6a52); box-shadow: 0 0 12px -3px rgba(255, 46, 151, .85); }
+html[data-look="retro"][data-theme] .seg { background: #2a1352; }
+html[data-look="retro"][data-theme] .seg button.on { background: #48207e; color: #fff; box-shadow: inset 0 0 0 1px rgba(45, 226, 255, .55), 0 0 10px -3px rgba(45, 226, 255, .7); }
+[data-look="retro"] :is(.inp, .setgrid input):focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(45, 226, 255, .22); }
+[data-look="retro"] .variants.look-pick { flex-wrap: wrap; }
+html[data-look="retro"][data-theme] :is(.ex-card.tint-0, .ex-card.tint-1, .ex-card.tint-2, .ex-card.tint-3) { background: var(--card); }
