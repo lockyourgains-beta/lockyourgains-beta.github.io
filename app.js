@@ -6977,6 +6977,14 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 383, date: '2026-11-24', items: [
+    ['Cyberpunk: Die Skyline im Hintergrund ist jetzt ein echtes Nachtfoto einer Großstadt, eingefärbt in Cyan und Magenta.'],
+    ['Golden Era: schönere Palmen mit gefiederten Wedeln und ein Bodybuilder mit besseren Proportionen.'],
+    ['Optionen → Aussehen: Die Erklärtexte zu den Stilen sind weg, die Namen sprechen für sich.'],
+  ] },
+  { v: 382, date: '2026-11-24', items: [
+    ['Fünf neue Spezial-Stile unter Optionen → Aussehen: „Raumfahrt“ (Startrampe der 60er bei Nacht), „Dojo“ (Holzschnitt mit Wellen, roter Sonne und Torii), „Garage-Gym“ (Hardcore-Studio der 90er), „Y2K“ (Glas, Glanz und Blasen der 2000er) und „Wikinger“ (Fjord mit Polarlicht und Langschiff).'],
+  ] },
   { v: 381, date: '2026-11-24', items: [
     ['Ernährung: „Was hab ich zu Hause?“ heißt jetzt „Was hast du zu Hause?“.'],
   ] },
@@ -10341,7 +10349,7 @@ function applyTheme() {
   plainSync();
   iconSync();
   // Statusleiste des Handys in der Hintergrundfarbe der Farbwelt einfärben
-  const LOOK_BG = { retro: ['#12042a', '#12042a'], golden: ['#f3e6c8', '#f3e6c8'], cyber: ['#07080d', '#07080d'], plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], sheet: ['#f8f9fa', '#1f1f1f'] };
+  const LOOK_BG = { retro: ['#12042a', '#12042a'], golden: ['#f3e6c8', '#f3e6c8'], cyber: ['#07080d', '#07080d'], space: ['#07090f', '#07090f'], dojo: ['#f3eee3', '#f3eee3'], garage: ['#18191b', '#18191b'], aero: ['#bfe6ff', '#bfe6ff'], viking: ['#0c1216', '#0c1216'], plain: ['#f4f4f5', '#0e0e10'], kraft: ['#eceef0', '#141517'], log: ['#fbfbfa', '#121413'], sheet: ['#f8f9fa', '#1f1f1f'] };
   let [light, dark] = LOOK_BG[currentLook()] || PROFILE_COLORS[profileColor()].bg;  // Schlicht und die neuen Designs (v234): neutral
   // v289: Kraftraum und Logbuch hell in der Farbwelt getönt (außer Blau und Beere), wie im Stylesheet
   if ((currentLook() === 'kraft' || currentLook() === 'log') && !['blue', 'berry'].includes(profileColor())) [light, dark] = PROFILE_COLORS[profileColor()].bg;  // v306: auch dunkel
@@ -10417,9 +10425,9 @@ for (const k of ['alert', 'confirm', 'prompt']) {
 }
 // Stile (v234): drei neue Designs, dazu die bisherigen „Standard“ und „Schlicht“. Ohne Angabe im Profil (neue Nutzer, seit v292): Standard.
 // v290 (User-Wunsch): „Schwarzweiß“ (bw) gestrichen, damit alle Stile in eine Zeile passen; gespeichertes bw wird über currentLook zu Kraftraum
-const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht', retro: '80er', golden: 'Golden Era', cyber: 'Cyberpunk' };
+const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht', retro: '80er', golden: 'Golden Era', cyber: 'Cyberpunk', space: 'Raumfahrt', dojo: 'Dojo', garage: 'Garage-Gym', aero: 'Y2K', viking: 'Wikinger' };
 // v378 (User-Wunsch 2026-11-24): Spezial-Stile mit festen Farben und fester Darstellung, eigene Kategorie in den Optionen; Farbwelt und Darstellung entfallen dort
-const LOOK_SPECIAL = { retro: 'dark', golden: 'light', cyber: 'dark' };
+const LOOK_SPECIAL = { retro: 'dark', golden: 'light', cyber: 'dark', space: 'dark', dojo: 'light', garage: 'dark', aero: 'light', viking: 'dark' };  // v382: fünf weitere
 const lookSpecial = (l = currentLook()) => l in LOOK_SPECIAL;  // v370: 80er (Synthwave, immer dunkel)  // v248: Puristen = Tabellen-Optik
 const currentLook = () => {
   const p = data.profile;
@@ -10459,15 +10467,8 @@ function appearanceCard() {
       <p class="hint nut-small" data-nounit>Gewichte in kg oder lb. Bei lb sind auch Körpergröße und Maße in Zoll und Lebensmittel-Mengen in Unzen (oz). Deine Daten bleiben erhalten, du kannst jederzeit wechseln.</p>
       <p class="lbl">Stil</p>
       <div class="variants look-pick">${Object.entries(LOOKS).filter(([k]) => !lookSpecial(k)).map(look).join('')}</div>
-      <p class="hint explain">„Kraftraum“: sportlich mit kräftigen, schmalen Überschriften und großen Zahlen. „Logbuch“: wie ein Trainingsbuch,
-        Zeilen statt Karten, Zahlen in Schreibmaschinenschrift. „Puristen“: so einfach wie eine Tabelle in Excel oder Google Sheets, ohne Emojis.
-        Kraftraum, Logbuch und Puristen übernehmen deine Farbwelt. Ohne eigene Wahl ist Kraftraum orange, Logbuch und Puristen grün.
-        „Standard“ und „Schlicht“ sind die bisherigen Stile.</p>
       <p class="lbl">Spezial</p>
       <div class="variants look-pick look-special">${Object.entries(LOOKS).filter(([k]) => lookSpecial(k)).map(look).join('')}</div>
-      <p class="hint explain">„80er“: Synthwave mit Neonfarben und Gitter-Horizont. „Golden Era“: Bodybuilding der 70er wie am Muscle Beach in Venice,
-        mit warmen Sonnenfarben, Palmen und Schriften wie auf alten Magazin-Titeln. „Cyberpunk“: Neon in Cyan und Gelb vor einer nächtlichen Skyline,
-        mit HUD-Ecken und Scanlines. Spezial-Stile haben eigene Farben und eine feste Darstellung.</p>
       ${special ? `<p class="hint look-special-note">Im Stil „${LOOKS[currentLook()]}“ sind Farben und Darstellung fest vorgegeben. Farbwelt und Hell oder Dunkel kannst du wieder wählen, sobald du oben einen anderen Stil nimmst.</p>` : `<p class="lbl">Farbwelt</p>
       <div class="color-grid">${Object.entries(PROFILE_COLORS).map(([k, c]) => tile(k, c)).join('')}</div>
       <p class="lbl">Darstellung</p>
