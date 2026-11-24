@@ -1095,14 +1095,18 @@ const goalReps = (t, i) => Math.max(minReps(), t.reps - FATIGUE * i);
 
 // Nächste Gewichtsstufe, sobald die Leistung (cap Wdh. bis zum Versagen bei w) reicht,
 // um mit w + step noch goal Wdh. mit Ziel-Tank (nach k Sätzen Ermüdung) zu schaffen.
-// Großer Sprung (kleine Gewichte): es reicht 2 Wdh. unter dem Ziel, sonst liefen die Wdh. davon (User-Regel 2026-11-06);
+// Großer Sprung (kleine Gewichte): erst mehr Wdh. (v373), ab REP_SOFT_MAX Wdh. reicht 2 unter dem Ziel (User-Regel 2026-11-06);
 // strict = das volle Ziel muss sicher klappen (Diät: Steigerung nur, wenn der Plan wirklich erfüllt wurde)
 function stepUp(cap, w, t, k, goal, strict = false) {
   if (w == null || (!t.step && !t.weights)) return null;
   const up = wUp(w, t);
   if (up == null) return null;  // schon das schwerste vorhandene Gewicht -> weiter über die Wdh.
   const reps = Math.floor(capacityAt(cap, w, up) - t.rir - FATIGUE * k + 1e-9);
-  const need = !strict && bigStep(w, up - w) ? Math.max(minReps(), goal - 2) : goal;
+  // v373 (User 2026-11-24): bei großem Sprung erst mehr Wdh. beim jetzigen Gewicht, bis auch mit der nächsten Stufe das volle Ziel
+  // klappt (vorher reichte 2 unter dem Ziel: Seitheben 10 kg × 15 → 12,5 kg × 6). Nur wenn die Wdh. schon bei REP_SOFT_MAX
+  // angekommen sind, reicht wie bisher 2 unter dem Ziel, sonst liefen sie davon.
+  const now = Math.floor(cap - t.rir - FATIGUE * k + 1e-9);
+  const need = !strict && bigStep(w, up - w) && now >= REP_SOFT_MAX ? Math.max(minReps(), goal - 2) : goal;
   return reps >= need ? { weight: up, reps } : null;
 }
 
@@ -1972,7 +1976,8 @@ function volDurText() {
   const list = days.map((d, i) => `<b>${esc(d.name)}</b> ca. ${dur[i][0] === dur[i][1] ? fmtDur(dur[i][1]) : `${fmtDur(dur[i][0])} → ${fmtDur(dur[i][1])}`}`).join(' | ');
   let t = `⏱ So lange dauern deine Trainingstage damit etwa (Intro → Höhepunkt): ${list}.`;
   // Vergleich mit der Auswahl im Assistenten: die meint die Zeit ohne Aufwärmen
-  if (p.timeMax && Math.max(...days.map(d => estDuration(d, bw, p, false, false))) > p.timeMax * 1.1) t += ` Das ist etwas länger als die ${p.timeMax} min, die du beim Erstellen gewählt hast. Die App übernimmt deine Zahlen trotzdem so.`;
+  if (p.timeMax && Math.max(...days.map(d => estDuration(d, bw, p, false, false))) > p.timeMax * 1.1) t += p.timeMin ? ` Das ist etwas länger als die ${p.timeMin} bis ${p.timeMax} Minuten, die du beim Erstellen gewählt hast. Die App übernimmt deine Zahlen trotzdem so.`
+    : ` Das ist etwas länger als die ${p.timeMax} min, die du beim Erstellen gewählt hast. Die App übernimmt deine Zahlen trotzdem so.`;
   return t;
 }
 
@@ -2070,14 +2075,15 @@ const REST_MIN = { compound: 4, normal: 3, assist: 2 };
 const WARM_MIN = 2;
 const EST_MORE = 'Plane trotzdem etwas mehr Zeit ein, z. B. fürs Umziehen oder wenn ein Gerät gerade belegt ist.';
 const warmCache = new Map();
-function warmCount(name, en) {
+// again (v372): die Muskelgruppe ist an diesem Tag schon mit einer Langhantel-Grundübung aufgewärmt (warmedBefore) -> 1 Satz
+function warmCount(name, en, again = false) {
   if (en && en.warmup) return en.warmup.length;
   if (en && en.target && en.target.bodyweight) return 0;
   if (en && en.sets && firstWorkWeight(en)) return defaultWarmup(en).length;  // im Training: wie der Vorschlag zum heutigen Gewicht
-  const key = data.sessions.length + '|' + nameKey(name);
+  const key = data.sessions.length + '|' + nameKey(name) + (again ? '|w' : '');
   if (warmCache.has(key)) return warmCache.get(key);
   const kind = warmupKind({ name }), custom = lastWarmup(name);
-  let n = custom ? custom.length : !kind ? 0 : kind === 'normal' ? 1 : null;
+  let n = custom ? custom.length : !kind ? 0 : kind === 'normal' || again ? 1 : null;
   if (n == null) {
     const last = lastEntry(name), s0 = last && ofVariant(last.sets, '')[0], ex = planExercise(name);
     const work = (s0 && s0.weight) || (ex && ex.max10) || null;
@@ -2093,9 +2099,9 @@ function estDuration(day, week, plan = activePlan(), deload = false, warm = true
   const bw = data.cycle.buildWeeks || 4;
   const w = Math.min(Math.max(1, week), bw);
   const auto = autoSetsForDay(day, deload ? bw : w, deload, plan.volume || {});
-  const items = exs.map(ex => {
+  const items = exs.map((ex, i) => {
     const n = auto.has(ex.id) ? auto.get(ex.id) : deload ? deloadSets(setsForWeek(ex, bw, bw)) : setsForWeek(ex, w, bw);
-    return { n, rest: REST_MIN[kindOf(ex)] || 3, extra: deload ? 0 : techPlanMin(ex, n), warm: warm ? warmCount(ex.name) : 0 };  // Teil-Sätze (v211)
+    return { n, rest: REST_MIN[kindOf(ex)] || 3, extra: deload ? 0 : techPlanMin(ex, n), warm: warm ? warmCount(ex.name, null, warmedBefore(exs, i)) : 0 };  // Teil-Sätze (v211)
   });
   // v355: Mobility vor dem Training (1 min je Satz); nicht beim Vergleich mit der Zeitwahl im Assistenten (warm = false)
   const mob = warm && typeof mobDay === 'function' ? mobMinutes(mobDay(day, plan)) : 0;
@@ -3122,6 +3128,17 @@ function proposeSet(en, i, v) {
     }
   } else {
     ({ p, rule } = refProposal(t, en.prevWeek, en.compare, i, k, v));
+    // v373 (User 2026-11-24): Intro-Woche nach einem schwachen Zyklus höchstens knapp über dem letzten Training (dessen Leistung
+    // +1 Wdh., umgerechnet auf Wdh. und Tank der Intro-Woche). Sonst spränge sie aufs Niveau der letzten Intro-Woche zurück,
+    // obwohl man zuletzt deutlich weniger geschafft hat. Nach einem guten Zyklus greift die Grenze nicht (zuletzt stärker).
+    if (p && p.weight != null && t.intro && en.lastRef && rule !== 'brake') {
+      const lastV = ofVariant(en.lastRef.sets, v).filter(s => s.weight != null && s.reps != null);
+      if (lastV.length) {
+        const lr = en.lastRef.target && en.lastRef.target.rir != null ? rirAt(en.lastRef.target, i) : null;
+        const capP = shiftedRef(refAt(lastV, k), t, i, lr, 1);
+        if (capP && capP.weight != null && lighterSet(capP, p)) { p = capP; rule = 'lastcap'; }
+      }
+    }
     if (!p && v) {
       const lastV = lastVariantSets(en.name, v).map(s => t.bodyweight ? { ...s, weight: null } : s);
       // v352 (Fehler, User): im Deload die Variante wie die normalen Sätze entlasten, nicht die Werte einer normalen Woche
@@ -4070,14 +4087,26 @@ function lastWarmup(name) {
   return null;
 }
 
+// v372 (User 2026-11-24): Ist die Muskelgruppe an diesem Tag schon mit einer früheren Langhantel-Grundübung aufgewärmt
+// (z. B. Schrägbank nach Flachbank), bekommt die nächste Langhantel-Grundübung derselben Gruppe nur 1 Aufwärmsatz mit etwa 70 %.
+const WARM_AGAIN_PCT = 0.7;
+const warmEx = x => planExercise(x.name) || x;
+function warmedBefore(list, i) {
+  const g = groupOf(warmEx(list[i]));
+  return !!g && i > 0 && list.slice(0, i).some(x => (x.name || '').trim() && groupOf(warmEx(x)) === g && warmupKind(x) === 'barbell');
+}
+
 // Vorschlag: wie zuletzt selbst angepasst, sonst Langhantel-Steigerung bzw. 1 Satz mit 50 %;
 // Übungen ohne Aufwärmen (z. B. Assistenzübungen) nur, wenn man es dort selbst hinzugefügt hatte
 function defaultWarmup(en) {
   const work = firstWorkWeight(en);
   if (!work) return [];
   const kind = warmupKind(en);
+  const i = draft && draft.entries ? draft.entries.indexOf(en) : -1;
+  const again = kind === 'barbell' && i > 0 && warmedBefore(draft.entries, i);
   const list = lastWarmup(en.name)
-    || (kind === 'barbell' ? warmupSets(work).map(w => ({ pct: w / work, reps: warmupReps(w, work) }))
+    || (again ? [{ pct: WARM_AGAIN_PCT, reps: warmupReps(WARM_AGAIN_PCT * work, work) }]
+      : kind === 'barbell' ? warmupSets(work).map(w => ({ pct: w / work, reps: warmupReps(w, work) }))
       : kind === 'normal' ? [{ pct: WARM_PCT, reps: WARM_REPS }]
       : []);
   return list.map(w => ({ pct: w.pct, weight: fmtNum(warmWeight(en, w.pct, work)), reps: w.reps == null ? '' : String(w.reps) }));
@@ -5137,10 +5166,13 @@ function renderTraining() {
             ? 'Heute: begrenzt durch das 1. Training dieser Woche'
           : en.rule === 'diet'
             ? 'Diät: Gewicht wie zuletzt, höchstens 1 Wdh. mehr, dafür näher am Muskelversagen'
+          : en.rule === 'lastcap'
+            ? 'Intro-Woche: Zuletzt lief es schwerer als im letzten Zyklus. Du startest knapp über deinem letzten Training statt auf dem alten Niveau'
             : `Heute: je Satz +${en.compare.plus || 1} Wdh. oder mehr Gewicht, wenn es die Leistung hergibt`;
       const occ = draft.occurrence > 1 || en.compare.occ > 1 ? `, ${en.compare.occ || 1}. Training` : '';
       const cols = [{ label: `Letzter Zyklus<small>${weekLabel(en.compare.week)}${occ} | ${fmtDate(en.compare.date)}</small>`, sets: en.compare.rawSets || en.compare.sets }];
       if (en.prevWeek) cols.push({ label: `Vorwoche<small>${weekLabel(en.prevWeek.week)} | ${fmtDate(en.prevWeek.date)}</small>`, sets: en.prevWeek.rawSets || en.prevWeek.sets });
+      if (en.rule === 'lastcap' && en.lastRef) cols.push({ label: `Letztes Training<small>${weekLabel(en.lastRef.week)} | ${fmtDate(en.lastRef.date)}</small>`, sets: en.lastRef.rawSets || en.lastRef.sets });  // v373
       const conv = [en.compare, en.prevWeek].some(x => x && x.rawSets);
       h += `<div class="compare">${setRows(cols, true, en.name)}<b>${rule}</b>${conv && feat('tr-prefat') ? '<br><small>Damals stand die Übung an anderer Stelle im Training. Die App hat die Werte auf die heutige Vorermüdung umgerechnet.</small>' : ''}</div>`;
     } else {
@@ -6938,6 +6970,23 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 374, date: '2026-11-24', items: [
+    ['Ernährung: Eiweiß und Fett richten sich jetzt nach deiner fettfreien Masse, also deinem Gewicht ohne Körperfett. In Diät und Minicut sind es mindestens 2 g Eiweiß je kg Körpergewicht, sonst mindestens 1,6 g, außer bei starkem Übergewicht. Die Warnung „Sehr wenig Fett“ rechnet genauso.'],
+    ['Ernährung: Neue optionale Frage „Wie schätzt du dich ein?“ mit untergewichtig, normal oder übergewichtig. Ohne Körperfettanteil nimmt die App daraus einen an. So bekommen z. B. muskulöse Menschen mit hohem BMI keine zu niedrigen Werte mehr.'],
+    ['Ernährung: Bei Untergewicht geht der Aufbau schneller (1 bis 1,5 % pro Monat, Ambitioniert bis 2 %), ein Minicut wird nicht angeboten und vor einer Diät warnt die App deutlich. Bei starkem Übergewicht darf die Diät schneller sein (Normal −700, Zügig −1.000 kcal).'],
+  ] },
+  { v: 373, date: '2026-11-24', items: [
+    ['Steigerung bei kleinen Gewichten: Wäre der nächste Gewichtssprung groß (mehr als 10 % des Gewichts), schlägt die App erst mehr Wiederholungen vor. Das Gewicht steigt, sobald du auch mit der nächsten Stufe dein Wiederholungsziel schaffst. Vorher ging es z. B. beim Seitheben von 10 kg × 15 auf 12,5 kg × 6.'],
+    ['Intro-Woche nach einem schwachen Zyklus: Lief es zuletzt schwerer als im Zyklus davor, startest du knapp über deinem letzten Training statt wieder auf dem alten Niveau.'],
+    ['Ernährungsplan vegetarisch und vegan: Gerichte mit viel Eiweiß (Tofu, Seitan, Sojaschnetzel, Tempeh) kommen öfter vor, und die Mengen treffen dein Eiweißziel besser.'],
+  ] },
+  { v: 372, date: '2026-11-24', items: [
+    ['Aufwärmen: Ist eine Muskelgruppe an dem Tag schon mit einer Langhantel-Grundübung aufgewärmt, schlägt die App bei der nächsten Langhantel-Grundübung für dieselbe Gruppe nur noch 1 Aufwärmsatz mit etwa 70 % vor, z. B. bei Schrägbankdrücken nach Flachbankdrücken. Die geschätzte Trainingsdauer wird dadurch kürzer.'],
+    ['Plan-Assistent: Der Zeitrahmen meint die reine Trainingszeit. Das steht jetzt deutlich bei der Auswahl, zusammen mit dem Hinweis, dass für Aufwärmen, Mobility, Umziehen und Wartezeiten etwa 15 Minuten dazukommen. Die Vorschau zeigt die Dauer jetzt wie angeschrieben ohne Aufwärmen.'],
+  ] },
+  { v: 371, date: '2026-11-24', items: [
+    ['Plan-Assistent: Statt einer Höchstdauer wählst du jetzt einen Zeitrahmen pro Training: 30 bis 45, 45 bis 60 oder 60 bis 90 Minuten oder länger als 90 Minuten ohne Zeitgrenze. Zu lange Tage kürzt die App, in der letzten Trainingswoche darf es etwa 5 Minuten länger dauern. Kein Training ist kürzer als 30 Minuten. Der Rahmen gilt auch bei „Mehr Volumen“.'],
+  ] },
   { v: 370, date: '2026-11-24', items: [
     ['Neuer Stil „80er“ unter Optionen → Aussehen: Synthwave mit Neon-Pink und Cyan, Retro-Sonne und Gitter bis zum Horizont, Überschriften in 80er-Schrift und Zahlen wie auf einer Digitalanzeige. Der Stil ist immer dunkel.'],
   ] },
@@ -7857,6 +7906,9 @@ function setupEntry(en, target, variantFor = () => '') {
   en.target = { ...target, sets: n, rirSplit: true };
   en.compare = cmp;
   en.prevWeek = prev;
+  // v373: Intro-Woche: letztes Training dieser Übung ohne Deload (meist die letzte Aufbauwoche), als Obergrenze in proposeSet
+  const lastRef = draft.intro && cmp && !target.hold ? condRef(strip(findWeekEntry(en.name, draft.dayId, () => true)), { step: 2.5, ...target }) : null;
+  en.lastRef = lastRef && !(lastRef.cycleStart === cmp.cycleStart && lastRef.week === cmp.week && lastRef.date === cmp.date) ? lastRef : null;
   // 2. Training dieses Tages in der Woche: nie mehr als im 1. Training dieser Woche geschafft
   en.weekFirst = draft.occurrence > 1 && !draft.deload ? condRef(strip(weekFirstEntry(en.name, draft.dayId, draft)), { step: 2.5, ...target }) : null;
   en.rule = null;

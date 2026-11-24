@@ -304,7 +304,11 @@ function mgShuffle(a) {
 }
 // v339: Lieblingszutaten. Gerichte mit einer (oder mehr) davon kommen öfter vor.
 const mgFavN = r => { const fav = mgPrefs().fav, its = mgItems(r) || []; return fav.length ? new Set(its.flatMap(i => [i.n, i.sub]).filter(n => n && fav.includes(n))).size : 0; };
-const mgWeight = r => 1 + 3 * Math.min(2, mgFavN(r));
+// v373 (Bericht D6): vegetarisch und vegan Gerichte mit viel Eiweiß je kcal (Tofu, Seitan, Sojaschnetzel, Tempeh) öfter wählen –
+// mit vielen Linsen- und Kichererbsen-Gerichten blieb das Eiweiß sonst an jedem zweiten Tag unter 95 % des Ziels
+const mgPDens = r => { let k = 0, p = 0; (mgItems(r) || []).forEach(i => { const v = mgVal(i.n, i.g); k += v[0]; p += v[1]; }); return k > 0 ? p * 4 / k : 0; };
+const mgPBoost = r => ['veg', 'vegan'].includes(mgPrefs().diet) ? Math.min(4, Math.max(0.25, Math.pow(mgPDens(r) / 0.25, 3))) : 1;
+const mgWeight = r => (1 + 3 * Math.min(2, mgFavN(r))) * mgPBoost(r);
 // zufällige Reihenfolge, Gerichte mit Lieblingszutaten eher vorne
 const mgWOrder = list => list.map(r => ({ r, key: -Math.log(1 - Math.random()) / mgWeight(r) })).sort((a, b) => a.key - b.key).map(x => x.r);
 
@@ -405,7 +409,9 @@ function mgSolve(slots, T, fills, pLo = MG_BOUNDS.P[0]) {
   const rows = [];  // { t: Zielwert, w: Gewicht, a: Map(var → Beitrag), b: fester Beitrag }
   const tg = [T.kcal, T.protein, T.carbs, T.fat];
   const vars = [];
-  const day = [0, 1, 2, 3].map(i => ({ t: Math.max(tg[i], 10), w: [10, 6, 1, 1][i], a: new Map(), b: 0 }));
+  // v373 (Bericht D6): vegetarisch und vegan Eiweiß stärker gewichten (eher kleinere Beilage, dafür mehr Eiweißquelle)
+  const pw = ['veg', 'vegan'].includes(mgPrefs().diet) ? 12 : 6;
+  const day = [0, 1, 2, 3].map(i => ({ t: Math.max(tg[i], 10), w: [10, pw, 1, 1][i], a: new Map(), b: 0 }));
   day[1].wOver = MG_P_OVER_W;  // mehr Eiweiß als das Ziel ist kaum ein Fehler
   const shareSum = slots.reduce((s, x) => s + MG_SHARE[mgCat(x.k)], 0);
   slots.forEach((sl, si) => {

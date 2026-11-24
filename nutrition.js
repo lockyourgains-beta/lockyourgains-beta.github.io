@@ -104,6 +104,18 @@ const NUT_PROTEIN = {
   diet: { lo: 1.8, hi: 2.4, def: 2.0 },
   minicut: { lo: 2.0, hi: 2.5, def: 2.2 },
 };
+// v374 (User 2026-11-24): Eiweiß je kg fettfreie Masse, für alle gleich (vorher Bezugsgewicht mit Sprüngen bei 25 / 32 % KFA).
+// Untergrenze je kg Körpergewicht (Diät und Minicut 2 g, sonst 1,6 g), außer bei starkem Übergewicht (nutBodyType 'over').
+// Die Spanne (NUT_PROTEIN lo–hi) wird über den Mittelwert def auf diese Menge umgerechnet.
+const NUT_PROTEIN_FFM = { bulk: 2.1, recomp: 2.3, diet: 2.4, minicut: 2.6 };
+const NUT_PROTEIN_MIN = { bulk: 1.6, recomp: 1.6, diet: 2.0, minicut: 2.0 };
+const NUT_FAT_FFM = 0.8, NUT_FAT_WARN_FFM = 0.6;  // Fett mindestens 0,8 g je kg fettfreie Masse, Warnung unter 0,6 g
+// Selbsteinschätzung (optional, n.selfEst) und angenommener KFA ohne Messung; gemessener KFA gilt immer zuerst
+const NUT_SELF = [['under', 'Untergewichtig'], ['normal', 'Normal'], ['over', 'Übergewichtig']];
+const NUT_BF_ASSUME = { under: { m: 10, f: 15 }, normal: { m: 14, f: 22 } };
+const NUT_UNDER_WARN = 'Nach deinen Angaben bist du untergewichtig. Ein Kaloriendefizit kostet dann eher Muskeln, Kraft und Gesundheit, als dass es dir nützt. Sinnvoll ist eine Diät hier höchstens, wenn du sehr ambitioniert Sport treibst oder Wettkämpfe bestreitest, z. B. um eine Gewichtsklasse zu erreichen. Dann am besten mit Trainer oder Ernährungsberatung. Hast du Sorgen rund ums Essen oder dein Gewicht, sprich bitte mit einer Ärztin oder einem Arzt.';
+const NUT_BF_SRC ={ measured: 'von dir eingetragen', assumed: 'angenommen, weil kein Körperfettanteil eingetragen ist', estimated: 'geschätzt aus BMI, Alter und Geschlecht' };
+const NUT_BF_UNDER = { m: 8, f: 15 }, NUT_BF_OVER = { m: 25, f: 32 };  // gemessener KFA: darunter Untergewicht, ab da starkes Übergewicht
 const NUT_KCAL_KG = 7700;  // grob: 1 kg Körpergewicht ≈ 7.700 kcal
 
 let nutDraft = null;  // Eingaben während der Einrichtung (Phase → Angaben → Ziel & Tempo)
@@ -125,7 +137,25 @@ function nutWeight() {
 // Vollständig eingerichtet? Beim ersten Öffnen wird nur die Phase gewählt – Kalorien gibt es erst mit den Angaben.
 const nutReady = n => !!(n && n.sex && n.age != null && n.height != null && n.activity);
 
-const nutPace = n => NUT_PACES[n.phase].find(p => p.k === n.pace) || NUT_PACES[n.phase].find(p => p.k === 'normal' || p.k === 'light');
+// v374: Tempo je Körpertyp. Untergewicht: Aufbau schneller (1–1,5 % bzw. höchstens 2 % pro Monat), starkes Übergewicht: Diät
+// Normal −700 und Zügig −1.000 kcal. Sonst NUT_PACES.
+function nutPaces(phase, type) {
+  if (phase === 'bulk' && type === 'under') return [
+    { k: 'normal', label: 'Standard', kcal: 300, rate: [1, 1.5],
+      text: 'Bei Untergewicht darfst und solltest du etwas schneller zunehmen. Peile 1 bis 1,5 % deines Körpergewichts pro Monat an, gemessen am Wochenschnitt.' },
+    { k: 'ambitious', label: 'Ambitioniert', kcal: 500, rate: [null, 2],
+      text: 'Höchstens 2 % deines Körpergewichts pro Monat, gemessen am Wochenschnitt. Gut, wenn du zügig aus dem Untergewicht herauskommen möchtest.' },
+  ];
+  if (phase === 'diet' && type === 'over') return NUT_PACES.diet.map(p => p.k === 'normal' ? { ...p, kcal: -700, text: 'Der gute Mittelweg bei deutlich mehr Körperfett.' }
+    : p.k === 'fast' ? { ...p, kcal: -1000, text: 'Bei viel Körperfett gut machbar. Mehr Hunger, eher Kraftverlust.' } : p);
+  return NUT_PACES[phase];
+}
+// n darf auch der Entwurf mit Texteingaben sein; kg: Gewicht für den Körpertyp (sonst aus n bzw. dem Wochenschnitt)
+function nutPace(n, kg) {
+  const m = typeof n.kg === 'string' || typeof n.bodyFat === 'string' ? nutNumbers(n) : n;
+  const list = nutPaces(m.phase, nutBodyType(m, kg || m.kg || nutWeight() || m.startKg));
+  return list.find(p => p.k === m.pace) || list.find(p => p.k === 'normal' || p.k === 'light');
+}
 // Minicut-Abschnitt: 'cut' (Defizit), 'maint' (Erhaltungswoche danach), 'done'
 // Training an Diät/Minicut angepasst (n.trainAdapt, beim Einrichten gefragt): Regel v229 siehe dietRirRange/dietVolWeek (app.js)
 // – nur während des Defizits (nicht in der Erhaltungswoche)
@@ -493,14 +523,24 @@ function nutLowCard(n, c) {
 const nutHintsOn = () => !(data.profile && data.profile.nutHints === false) && !nutPaused();
 const nutAge = n => n.age + (new Date().getFullYear() - (n.ageYear || new Date().getFullYear()));
 
-// Bezugsgewicht fürs Eiweiß: bei viel Körperfett nicht das volle Gewicht, sonst wird es unnötig viel
-function nutProteinKg(n, kg, lbm) {
-  if (lbm != null) {
-    const high = n.sex === 'm' ? 25 : 32;
-    return n.bodyFat > high ? lbm / (1 - (n.sex === 'm' ? 0.15 : 0.25)) : kg;
-  }
-  const m = n.height / 100;
-  return kg / (m * m) > 30 ? 27 * m * m : kg;
+// v374: Körpertyp 'under' | 'normal' | 'over' (= starkes Übergewicht). Gemessener KFA vor Selbsteinschätzung vor BMI.
+const nutSexKey = n => n.sex === 'f' ? 'f' : 'm';
+const nutBmi = (n, kg) => n.height && kg ? kg / ((n.height / 100) ** 2) : null;
+function nutBodyType(n, kg) {
+  const s = nutSexKey(n);
+  if (n.bodyFat != null) return n.bodyFat < NUT_BF_UNDER[s] ? 'under' : n.bodyFat >= NUT_BF_OVER[s] ? 'over' : 'normal';
+  if (NUT_SELF.some(([k]) => k === n.selfEst)) return n.selfEst;
+  const bmi = nutBmi(n, kg);
+  return bmi == null ? 'normal' : bmi < 18.5 ? 'under' : bmi >= 30 ? 'over' : 'normal';
+}
+// KFA für Eiweiß und Fett: gemessen, angenommen (Untergewicht/Normal) oder geschätzt (Übergewicht: Deurenberg aus BMI, Alter,
+// Geschlecht, mindestens die Grenze zum starken Übergewicht)
+function nutBf(n, kg) {
+  if (n.bodyFat != null) return { bf: n.bodyFat, src: 'measured' };
+  const t = nutBodyType(n, kg), s = nutSexKey(n);
+  if (t !== 'over') return { bf: NUT_BF_ASSUME[t][s], src: 'assumed' };
+  const est = 1.2 * (nutBmi(n, kg) || 30) + 0.23 * (nutAge(n) || 35) - (s === 'm' ? 10.8 : 0) - 5.4;
+  return { bf: Math.round(Math.min(55, Math.max(NUT_BF_OVER[s], est))), src: 'estimated' };
 }
 
 // v266 (User 2026-11-14): Im Aufbau macht der Körper mit der Zeit weniger aus dem Überschuss (er verbraucht mehr).
@@ -526,17 +566,22 @@ function nutCalc(n, kg) {
   const bmr = lbm != null ? 370 + 21.6 * lbm : 10 * kg + 6.25 * n.height - 5 * age + (n.sex === 'm' ? 5 : -161);
   const tdee = bmr * NUT_ACT[n.activity].f;
   // Minicut: nach den Defizit-Wochen eine Woche auf Erhaltung
-  const delta = (n.phase === 'minicut' && nutMinicutStage(n) !== 'cut') || nutBreakNow(n) ? 0 : nutPace(n).kcal;
+  const pace = nutPace(n, kg);
+  const delta = (n.phase === 'minicut' && nutMinicutStage(n) !== 'cut') || nutBreakNow(n) ? 0 : pace.kcal;
   let note = null;
   const planned = delta * 7 / NUT_KCAL_KG * (n.phase === 'bulk' ? nutBulkEff(n) : 1);  // geplante Veränderung in kg pro Woche (Aufbau: mit Abflachen, v266)
-  let kcal = n.kcalOwn != null ? n.kcalOwn + (delta - nutPace(n).kcal) : tdee + delta + (n.adjust || 0);
+  let kcal = n.kcalOwn != null ? n.kcalOwn + (delta - pace.kcal) : tdee + delta + (n.adjust || 0);
   const floor = n.sex === 'm' ? 1500 : 1200;
   if (kcal < floor) { kcal = floor; note = 'floor'; }
   kcal = Math.round(kcal / 10) * 10;
 
-  const ref = nutProteinKg(n, kg, lbm);
+  // v374: Eiweiß und Fett aus der fettfreien Masse (KFA gemessen, angenommen oder geschätzt, siehe nutBf)
+  const bfInfo = nutBf(n, kg), ffm = kg * (1 - bfInfo.bf / 100), type = nutBodyType(n, kg);
+  const pMinKg = type === 'over' ? 0 : NUT_PROTEIN_MIN[n.phase];
+  const pRaw = Math.max(NUT_PROTEIN_FFM[n.phase] * ffm, pMinKg * kg);
+  const pFloor = pMinKg * kg >= NUT_PROTEIN_FFM[n.phase] * ffm;  // Untergrenze je kg Körpergewicht bestimmt das Eiweiß
   const pr = NUT_PROTEIN[n.phase];
-  const pLo = Math.round(pr.lo * ref / 5) * 5, pHi = Math.round(pr.hi * ref / 5) * 5;
+  const pLo = Math.round(pRaw * pr.lo / pr.def / 5) * 5, pHi = Math.round(pRaw * pr.hi / pr.def / 5) * 5;
   let protein, fat, carbs;
   if (n.macroPct) {
     // eigene Aufteilung in % der Kalorien
@@ -544,13 +589,12 @@ function nutCalc(n, kg) {
     fat = Math.round(kcal * n.macroPct.f / 100 / 9);
     carbs = Math.round(kcal * n.macroPct.c / 100 / 4);
   } else {
-    protein = Math.round(pr.def * ref / 5) * 5;
+    protein = Math.round(pRaw / 5) * 5;
     const fatShare = n.phase === 'minicut' ? 0.2 : 0.25;
-    const fatMin = (n.phase === 'minicut' ? 0.6 : 0.8) * ref;
-    fat = Math.round(Math.max(fatMin, kcal * fatShare / 9) / 5) * 5;
+    fat = Math.round(Math.max(NUT_FAT_FFM * ffm, kcal * fatShare / 9) / 5) * 5;
     carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4 / 5) * 5);
   }
-  return { age, lbm, bmr, tdee, delta, planned, kcal, note, protein, fat, carbs, ref, pLo, pHi };
+  return { age, lbm, bmr, tdee, delta, planned, kcal, note, protein, fat, carbs, pLo, pHi, ffm, bf: bfInfo, type, pFloor, pMinKg };
 }
 
 // Trend der letzten 3 Wochen in kg pro Woche (lineare Regression) – frühestens ab Tag 8 der Phase
@@ -692,6 +736,8 @@ const nutStep = (no, of) => `<p class="sub">Schritt ${no} von ${of}</p>`;
 function renderNutPhase() {
   if (!nutDraft) nutInit('nutphase');
   const d = nutDraft;
+  // v374: Angaben schon bekannt (z. B. Phase wechseln) und Untergewicht: kein Minicut
+  const nb = nutNumbers(d), under = !nutBodyErrors(nb) && nutBodyType(nb, nb.kg) === 'under';
   const more = (p, ph) => `<details class="nut-more"><summary>Ausführlich: ${ph.label}</summary>
       ${ph.long.map(([t, x]) => `<p><b>${t}:</b> ${x}</p>`).join('')}
       <button class="btn outline" data-action="nut-phase" data-p="${p}">${ph.label} wählen</button>
@@ -701,7 +747,7 @@ function renderNutPhase() {
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🧭</span><h2>Was ist dein Ernährungsziel?</h2></div>
       <p class="hint wiz-q-explain">Davon hängt ab, ob du mehr oder weniger essen solltest, als du verbrauchst. Unter jedem Ziel
         kannst du eine ausführliche Erklärung aufklappen.</p>
-      ${Object.entries(NUT_PHASES).filter(([p]) => p !== 'minicut' || feat('nut-minicut') || d.phase === p).map(([p, ph]) => `<button class="split-opt cat ${d.phase === p ? 'on' : ''}" data-action="nut-phase" data-p="${p}">
+      ${Object.entries(NUT_PHASES).filter(([p]) => p !== 'minicut' || ((feat('nut-minicut') || d.phase === p) && !under)).map(([p, ph]) => `<button class="split-opt cat ${d.phase === p ? 'on' : ''}" data-action="nut-phase" data-p="${p}">
           <span class="cat-icon">${ph.icon}</span><b>${ph.label}</b><small>${ph.short}</small></button>${more(p, ph)}`).join('')}
     </div>
     <details class="card nut-help">${NUT_HELP}</details>`;
@@ -737,6 +783,10 @@ function renderNutBody() {
       <p class="hint nut-small explain">Kennst du deinen Körperfettanteil (z. B. von einer Körperfettwaage), wird die Rechnung genauer.
         Sonst einfach leer lassen. Wenn du magst, kannst du ihn auch ungefähr anhand von Vergleichsbildern aus dem Internet
         abschätzen (z. B. nach „Körperfettanteil Vergleichsbilder ${n.sex === 'f' ? 'Frauen' : 'Männer'}“ suchen).</p>
+      <p class="lbl chips-title">Wie schätzt du dich ein? <small class="hint">(optional)</small></p>
+      <div class="seg nut-self">${NUT_SELF.map(([k, l]) => `<button class="${d.selfEst === k ? 'on' : ''}" data-action="nut-self" data-k="${k}">${l}</button>`).join('')}</div>
+      <p class="hint nut-small explain">Hilft, wenn du deinen Körperfettanteil nicht kennst. Der BMI unterscheidet nicht zwischen Muskeln
+        und Fett: Hast du viel Muskulatur, wähle „Normal“. Ein eingetragener Körperfettanteil gilt immer zuerst.</p>
     </div>
     <div class="card wiz-q nut-hints-q">
       <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">🔔</span><h2>Hinweise zur Ernährung</h2></div>
@@ -773,7 +823,7 @@ function renderNutGoal() {
     since: same ? data.nutrition.since : todayISO() };
   const ph = NUT_PHASES[d.phase];
   const c = nutCalc(n, n.kg);
-  const paces = NUT_PACES[d.phase].map(p => {
+  const paces = nutPaces(d.phase, nutBodyType(n, n.kg)).map(p => {  // v374: Tempo je Körpertyp
     const kgWeek = p.kcal * 7 / NUT_KCAL_KG;
     const kcal = p.rate ? `ca. ${nutSigned(p.kcal, 'kcal')}` : nutSigned(p.kcal, 'kcal');
     // Aufbau: Richtwert in % des Körpergewichts pro Monat (v258), sonst pro Woche
@@ -830,8 +880,11 @@ function nutProteinNote(n, c) {
   const why = [nutAge(n) >= 50 ? 'du über 50 bist' : null,
     n.bodyFat != null && n.bodyFat < (n.sex === 'm' ? 15 : 23) ? 'du wenig Körperfett hast' : null].filter(Boolean);
   const low = c.protein < c.pLo - 2;
+  const kg = n.kg || nutWeight();
+  // v374: Spanne je kg Körpergewicht (gerechnet wird über die fettfreie Masse, siehe nutCalc)
+  const perKg = v => perKgDisp(round1(v / kg));
   return `<p class="nut-protein ${low ? 'low' : 'explain'}"><b>Eiweiß-Empfehlung: ${c.pLo}–${c.pHi} g am Tag</b>
-      (${perKgDisp(pr.lo)}–${perKgDisp(pr.hi)} g pro kg${Math.abs(c.ref - (n.kg || nutWeight())) > 1 ? ` bezogen auf ${fmtNum(Math.round(c.ref))} kg` : ''}).
+      ${kg ? `(${perKg(c.pLo)}–${perKg(c.pHi)} g pro kg Körpergewicht).` : ''}
       ${low ? 'Dein Eiweiß liegt gerade darunter. ' : ''}Orientiere dich eher am oberen Rand, wenn du relativ wenig Körperfett hast,
       älter bist (ab ca. 50) oder dich vegan ernährst. Pflanzliches Eiweiß verwertet der Körper etwas schlechter.
       ${why.length ? `<b>Bei dir passt eher der obere Rand, weil ${why.join(' und ')}.</b>` : ''}</p>`;
@@ -905,7 +958,7 @@ function nutTargetCard(n, c, editable = false) {
   const adj = n.kcalOwn != null ? '' : n.adjust ? ` | inkl. ${nutSigned(n.adjust, 'kcal')} aus deinem Gewichtsverlauf` : '';
   const pct = nutPctOf(c);
   const kg = n.kg || nutWeight();
-  const fatLow = kg && c.fat < 0.6 * kg;
+  const fatLow = c.ffm && c.fat < NUT_FAT_WARN_FFM * c.ffm;  // v374: wie die Rechnung über die fettfreie Masse
   let macros;
   if (editable && nutMacroEdit) macros = nutPctEditor();
   else if (!feat('nut-macros')) {
@@ -920,7 +973,7 @@ function nutTargetCard(n, c, editable = false) {
       </div>
       <div class="nut-bar" aria-hidden="true">${[['p', c.protein * 4], ['f', c.fat * 9], ['c', c.carbs * 4]].map(([k, v]) =>
         `<div class="${k}" style="flex:${v}"></div>`).join('')}</div>
-      ${fatLow ? `<p class="nut-warn">Sehr wenig Fett: Auf Dauer sollten es mindestens ca. ${Math.round(0.6 * kg / 5) * 5} g am Tag sein (u. a. für die Hormone).</p>` : ''}
+      ${fatLow ? `<p class="nut-warn">Sehr wenig Fett: Auf Dauer sollten es mindestens ca. ${Math.round(NUT_FAT_WARN_FFM * c.ffm / 5) * 5} g am Tag sein (u. a. für die Hormone).</p>` : ''}
       ${editable && feat('nut-macro-pct') ? `<div class="nut-macro-btns">${n.macroPct
         ? `<span class="hint">Eigene Aufteilung ${n.macroPct.p} / ${n.macroPct.f} / ${n.macroPct.c} %</span>
            <button class="btn" data-action="nut-pct-edit">Ändern</button>
@@ -964,7 +1017,7 @@ function nutGoalToolsHtml() {
       <small>zuklappen ▴</small></button>`;
   const adj = n.kcalOwn != null ? '' : n.adjust ? ` | inkl. ${nutSigned(n.adjust, 'kcal')} aus deinem Gewichtsverlauf` : '';
   const pct = nutPctOf(c);
-  const fatLow = c.fat < 0.6 * kg;
+  const fatLow = c.ffm && c.fat < NUT_FAT_WARN_FFM * c.ffm;  // v374
   // v327 (User-Wunsch): oben groß das aktuelle Tagesziel (wie im Kalorien-Editor), darunter die Makros als große Kacheln
   const kcalBox = nutKcalEdit ? nutKcalEditor(n, c, kg) : `<div class="fe-goal-kcal">
       <span class="fe-goal-kcal-l">Kalorien pro Tag</span><b class="fe-goal-kcal-v">${nutKcal(c.kcal)} kcal</b>
@@ -981,7 +1034,7 @@ function nutGoalToolsHtml() {
         const g = { p: c.protein, f: c.fat, c: c.carbs }[k];
         return `<div class="fe-mac ${k}"><span>${l}</span><b>${g} g</b><small>${pct[k]} %</small></div>`;
       }).join('')}</div>
-      ${fatLow ? `<p class="nut-warn">Sehr wenig Fett: Auf Dauer sollten es mindestens ca. ${Math.round(0.6 * kg / 5) * 5} g am Tag sein (u. a. für die Hormone).</p>` : ''}
+      ${fatLow ? `<p class="nut-warn">Sehr wenig Fett: Auf Dauer sollten es mindestens ca. ${Math.round(NUT_FAT_WARN_FFM * c.ffm / 5) * 5} g am Tag sein (u. a. für die Hormone).</p>` : ''}
       ${feat('nut-macro-pct') ? `<div class="nut-macro-btns">${n.macroPct
         ? `<span class="hint">Eigene Aufteilung ${n.macroPct.p} / ${n.macroPct.f} / ${n.macroPct.c} %</span>
            <button class="btn" data-action="nut-pct-edit">Ändern</button>
@@ -1419,8 +1472,11 @@ function nutExplain(n, c, kg) {
       ${n.macroPct
         ? `<p><b>Makros:</b> deine eigene Aufteilung: ${n.macroPct.p} % Eiweiß, ${n.macroPct.f} % Fett und ${n.macroPct.c} % Kohlenhydrate
           von ${nutKcal(c.kcal)} kcal (1 g Eiweiß oder Kohlenhydrate = 4 kcal, 1 g Fett = 9 kcal).</p>`
-        : `<p><b>Eiweiß:</b> ${perKgDisp(NUT_PROTEIN[n.phase].def)} g pro kg (Mitte der Spanne ${perKgDisp(NUT_PROTEIN[n.phase].lo)}–${perKgDisp(NUT_PROTEIN[n.phase].hi)} g)${Math.abs(c.ref - kg) > 1 ? `, bezogen auf ${fmtNum(Math.round(c.ref))} kg statt deines vollen Gewichts, weil viel Körperfett kein Eiweiß braucht` : ''}.
-        <b>Fett:</b> ${n.phase === 'minicut' ? '20' : '25'} % der Kalorien, mindestens ${perKgDisp(n.phase === 'minicut' ? 0.6 : 0.8)} g pro kg.
+        : `<p><b>Fettfreie Masse:</b> ca. ${fmtNum(Math.round(c.ffm))} kg bei ${fmtNum(c.bf.bf)} % Körperfett (${NUT_BF_SRC[c.bf.src]}).
+          Danach richten sich Eiweiß und Fett, denn Körperfett braucht kein Eiweiß.</p>
+        <p><b>Eiweiß:</b> ${perKgDisp(NUT_PROTEIN_FFM[n.phase])} g je kg fettfreie Masse${c.pMinKg
+          ? `, mindestens aber ${perKgDisp(c.pMinKg)} g je kg Körpergewicht${c.pFloor ? ' (gilt bei dir)' : ''}` : ''}.
+        <b>Fett:</b> ${n.phase === 'minicut' ? '20' : '25'} % der Kalorien, mindestens ${perKgDisp(NUT_FAT_FFM)} g je kg fettfreie Masse.
         <b>Kohlenhydrate:</b> der Rest.</p>`}
       ${n.phase === 'diet' || n.phase === 'minicut' ? `<p><b>Deload = Erhaltungswoche:</b> In jeder Deload-Woche deines Trainings isst du
         automatisch auf Erhaltung. Das schützt die Muskeln und macht die Diät auf Dauer leichter.${n.phase === 'minicut'
@@ -1701,9 +1757,11 @@ Object.assign(actions, {
       nutDraft.pace = p === 'recomp' ? 'light' : 'normal';  // Standard-Tempo; Recomp leicht unter Erhaltung
       nutDraft.goalKg = '';  // Zielgewicht der alten Phase passt meist nicht (z. B. Diät -> Aufbau)
       nutDraft.trainAdapt = null;  // bei Diät/Minicut jedes Mal neu fragen
+      nutDraft.underOk = false;    // v374: Warnung bei Untergewicht neu bestätigen
     }
     go('nutbody');
   },
+  'nut-self': el => { nutDraft.selfEst = nutDraft.selfEst === el.dataset.k ? null : el.dataset.k; render(); },  // v374, nochmal tippen = keine Angabe
   'nut-sex': el => { nutDraft.sex = el.dataset.k; render(); },
   'nut-act': el => { nutDraft.activity = Number(el.dataset.k); render(); },
   'nut-hints-pick': el => { nutDraft.hints = el.dataset.v === '1'; render(); },
@@ -1711,6 +1769,21 @@ Object.assign(actions, {
     const err = nutBodyErrors(nutNumbers(nutDraft));
     if (err) { alert(err); return; }
     if (nutDraft.hints == null) { alert('Bitte wähle noch, ob die App dir Hinweise zur Ernährung geben soll.'); return; }
+    // v374 (User 2026-11-24): Untergewicht: kein Minicut, Diät nur nach deutlicher Warnung
+    const nb = nutNumbers(nutDraft);
+    if (nutBodyType(nb, nb.kg) === 'under') {
+      if (nutDraft.phase === 'minicut') {
+        alert('Nach deinen Angaben bist du untergewichtig. Einen Minicut bietet die App dann nicht an, das starke Defizit würde dir eher schaden. Bitte wähle ein anderes Ernährungsziel.');
+        go('nutphase');
+        return;
+      }
+      if (nutDraft.phase === 'diet' && !nutDraft.underOk) {
+        uiDialog({ title: '⚠️ Diät bei Untergewicht', msg: NUT_UNDER_WARN, choices: [
+          { label: 'Lieber Aufbau oder Rekomposition', value: 'back', primary: true }, { label: 'Trotzdem Diät starten', value: 'go' }] })
+          .then(v => { if (v === 'go') { nutDraft.underOk = true; go('nutgoal'); } else go('nutphase'); });
+        return;
+      }
+    }
     go('nutgoal');
   },
   'nut-pace': el => { nutDraft.pace = el.dataset.k; render(); },
@@ -1745,6 +1818,7 @@ Object.assign(actions, {
     if (last == null || Math.abs(last - d.kg) >= 0.05) saveBodyweight(todayISO(), d.kg);
     const n = {
       sex: d.sex, age: d.age, ageYear: new Date().getFullYear(), height: d.height, bodyFat: d.bodyFat, activity: d.activity,
+      selfEst: nutDraft.selfEst || null,  // v374: Selbsteinschätzung (optional)
       phase: d.phase, pace: d.pace, goalKg: d.phase === 'recomp' ? null : d.goalKg, weeks: Math.min(d.weeks || NUT_MINICUT_MAX, NUT_MINICUT_MAX),
       macroPct: d.macroPct || null,  // eigene Makro-Aufteilung bleibt auch beim Phasenwechsel
       // v259: Bezug für die Körperfett-Schätzung im Aufbau, neu bei jedem geänderten Wert

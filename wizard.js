@@ -146,8 +146,13 @@ const WEEKLY_TARGET = {
 const SESSION_CAP = 25;  // höchstens so viele Sätze pro Training – in jeder Woche des Zyklus (bei 90 min)
 // Höchstdauer eines Trainings (Schritt „Trainingsdauer“): capSessions rechnet in Minuten wie estDuration – ein Satz einer
 // großen Muskelgruppe (meist Grund- oder normale Übung, lange Pause) ≈ SET_MIN_BIG, einer Assistenzgruppe ≈ SET_MIN_ASSIST.
-// TIME_CAPS = ungefähre Sätze, nur für die Anzeige.
-const TIME_CAPS = { 90: '20–25', 75: '17–21', 60: '13–17', 45: '10–12', 30: '6–8' };  // 30: v360 (Zeit-Pfad)  // im Studio eher die kleinere Zahl (längere Pausen)
+// v371 (User 2026-11-24): Zeitrahmen statt fester Höchstdauer, in beiden Pfaden gleich. wiz.timeMax = Obergrenze (0 = länger als
+// 90 Minuten, ohne Zeitgrenze), die Untergrenze gehört fest dazu (wizTimeMin). Zu lange Tage kürzt capSessions, zu kurze füllt
+// fillSessions auf (im Zeit-Pfad wizTimeFloor). TIME_SETS = ungefähre Sätze, nur für die Anzeige.
+const TIME_RANGES = [[30, 45], [45, 60], [60, 90]];
+const TIME_SETS = { 45: [6, 12], 60: [10, 17], 90: [13, 25] };
+const TIME_FLOOR = 30, TIME_TOL_LAST = 5, TIME_EXTRA = 15;  // TIME_EXTRA (v372): Hinweis „zusätzlich etwa … Minuten“ für Aufwärmen & Co.  // feste Untergrenze jedes Trainings; Spielraum über der Obergrenze in der letzten Trainingswoche
+const wizTimeMin = () =>((wiz && TIME_RANGES.find(r => r[1] === wiz.timeMax)) || [0])[0];
 const SET_MIN_BIG = 4.5, SET_MIN_ASSIST = 3;
 // Mit Supersätzen (v210, Schritt „Trainingsdauer“): grob die Hälfte der Sätze läuft im Wechsel mit kürzerer Pause
 // (Satz 1 min + 2 min bzw. bei zwei Isolationsübungen 1,5 min) – genau rechnet danach estDuration mit den echten Paaren
@@ -164,10 +169,10 @@ const VOL_STYLES = {
 };
 const wizStyle = () => VOL_STYLES[wiz.style] || VOL_STYLES.mid;
 // Obergrenze Sätze pro Training: bei „Mehr Volumen“ im selben Verhältnis höher (25 → 30), sonst würde sie das Mehr wieder kappen
-// Minuten pro Training (die längste Woche); „Mehr Volumen“ darf 20 % länger dauern, sonst würde die Grenze das Mehr kappen
-// 0 = „Zeit spielt keine Rolle“: trotzdem höchstens TIME_NO_LIMIT Minuten (sonst z. B. Ganzkörper 1×/Woche fast 5 Stunden)
+// Minuten pro Training (die längste Woche). v371: der gewählte Zeitrahmen gilt auch bei „Mehr Volumen“ (vorher 20 % länger).
+// 0 = „Länger als 90 Minuten“: trotzdem höchstens TIME_NO_LIMIT Minuten (sonst z. B. Ganzkörper 1×/Woche fast 5 Stunden)
 const TIME_NO_LIMIT = 120;
-const sessionCap = () => (wiz.timeMax || TIME_NO_LIMIT) * Math.max(1, wizStyle().vol);
+const sessionCap = () => wiz.timeMax || TIME_NO_LIMIT * Math.max(1, wizStyle().vol);
 // Tank-Ziel normaler Übungen (Intro…W4) für Erfahrung und Variante
 const wizRirBase = (style, course = wiz.course || 'strong') => [1, 2, 3, 4].map(wk =>
   Math.max((style.rir || 0) < 0 ? RIR_LOW_FLOOR : 0, rirNormalBase(course, wk, style.rir) + rirLevelBonus(wiz.level)));  // v230–v232: Tank-Regel wie rirAutoRange
@@ -451,7 +456,7 @@ function wizStart() {
     deload: 'auto',                   // Deload automatisch nach den Trainingswochen oder 'self' = selbst bestimmen
     progression: { volume: true, load: true },  // Grundeinstellung des neuen Plans
     style: 'mid',                      // Volumen-Variante (VOL_STYLES): 'high' / 'mid' / 'low'
-    timeMax: 90,                       // Höchstdauer eines Trainings in Minuten (TIME_CAPS)
+    timeMax: 90,                       // Obergrenze des Zeitrahmens in Minuten (TIME_RANGES, 0 = länger als 90 Minuten)
     mob: 2,                            // v355: Mobility vor dem Training; v358: Stufe 0–3 (0 = selbst hinzufügen, 1–3 = Vorschlag mit 2/4/6 Übungen)
     perWeek: 1,                        // jeder Trainingstag 1× oder 2× pro Woche
     volDiv: 1,                         // Wochensätze auf so viele Durchgänge je Tag verteilen (siehe daysWith)
@@ -582,6 +587,7 @@ function syncGroups() {
     if (!wiz.volume[g] || wiz.volKey[g] !== key) {
       wiz.volume[g] = tv[g];
       wiz.volKey[g] = key;
+      wiz.needFit = true;  // v371: neu berechnet -> vor der Volumen-Anzeige in den Zeitrahmen bringen (wizFitRange)
       delete wiz.weekWanted[g];  // neu vorgeschlagen -> eingetippte Wochenzahlen gelten nicht mehr
     }
     // Tank-Ziel je nach Erfahrung: Neulinge weiter weg vom Muskelversagen, Alte Hasen näher dran
@@ -809,7 +815,6 @@ const wizTimePath = () => !!wiz && wiz.mode === 'app' && wiz.goal === 'time';
 // Aufteilung im Zeit-Pfad je Trainings pro Woche (die App wählt, im Plan änderbar)
 const TIME_SPLITS = { 1: 'fb1', 2: 'fb2', 3: 'fb3', 4: 'ul', 5: 'ul5' };
 const TIME_MAX_DAYS = 5;
-const TIME_OPTS = [30, 45, 60, 75, 90];
 
 // Vorlagen mit genau so vielen Trainings pro Woche (Neulinge: nur Ganzkörper und 2er-Split)
 const splitsFor = n => SPLITS.filter(s => (s.rotate || s.days.length) === n && (!wizLevel().tags || wizLevel().tags.includes(s.tag)) && !classicHidden(s.id));
@@ -851,12 +856,13 @@ function wizWeekText(g) {
 function wizDurText() {
   const days = wiz.days.filter(d => d.groups.length);
   if (!days.length) return '';
-  const mins = w => days.map(d => Math.max(5, Math.round(d.groups.reduce((a, g) =>
-    a + (wiz.volume[g] ? wiz.volume[g][w] * wizSetMin(g) : 0), 0) / 5) * 5));
+  // v372: gleiche Rechnung wie Vorschau, Zeitrahmen und Startseite (estDuration an den fertigen Tagen, ohne Aufwärmen)
+  const built = buildPlanDays(), idx = wiz.days.map((d, i) => i).filter(i => wiz.days[i].groups.length);
+  const mins = w => idx.map(i => Math.max(5, Math.round(estDuration(built[i], w + 1, { volume: wiz.volume }, false, false) / 5) * 5));
   const a = mins(0), b = mins(3);
   const list = days.map((d, i) => `<b>${esc(d.name)}</b> ca. ${a[i] === b[i] ? fmtDur(b[i]) : `${fmtDur(a[i])} → ${fmtDur(b[i])}`}`).join(' | ');
   let t = `⏱ So lange dauern deine Trainings damit etwa (Intro → Woche 4): ${list}.`;
-  if (wiz.timeMax && Math.max(...b) > sessionCap()) t += ` Das ist etwas länger als die ${wiz.timeMax} min, die du vorhin gewählt hast. Die App übernimmt deine Zahlen trotzdem so.`;
+  if (wiz.timeMax && Math.max(...b) > wiz.timeMax + TIME_TOL_LAST) t += ` Das ist etwas länger als die ${wizTimeMin()} bis ${wiz.timeMax} Minuten, die du vorhin gewählt hast. Die App übernimmt deine Zahlen trotzdem so.`;
   return t;
 }
 
@@ -1045,7 +1051,7 @@ function renderWizProgApp() {
         der Tank wird kleiner, und im Training schlägt sie dir passende Steigerungen bei Gewicht und Wiederholungen vor. Dazwischen
         liegen leichte Deload-Wochen. Du kannst das später im Plan jederzeit umstellen.</p>
       ${opt('mid', 'Normal (empfohlen)', 'Sätze und Tank genau so, wie die App sie für deine Erfahrung berechnet.')}
-      ${feat('wiz-style') ? opt('high', 'Mehr Volumen, mehr im Tank', 'Jede Muskelgruppe bekommt 20 % mehr Arbeitssätze, dafür bleibt in jedem Satz 0,5 Wdh. mehr im Tank. Das Training dauert etwas länger.')
+      ${feat('wiz-style') ? opt('high', 'Mehr Volumen, mehr im Tank', 'Jede Muskelgruppe bekommt 20 % mehr Arbeitssätze, dafür bleibt in jedem Satz 0,5 Wdh. mehr im Tank. Das Training dauert etwas länger, bleibt aber in dem Zeitrahmen, den du gleich wählst.')
         + opt('low', 'Weniger Volumen, näher am Muskelversagen', 'Jede Muskelgruppe bekommt 20 % weniger Arbeitssätze, dafür bleibt in jedem Satz 0,5 Wdh. weniger im Tank, mindestens aber 0,5. Das Training geht schneller, ist aber anstrengender.') : ''}
       ${opt('own', 'Keine automatische Steigerung', 'Keine Zyklen, keine Deload-Wochen, keine Vorschläge. Im Training stehen deine Werte vom letzten Mal, du steigerst selbst, wenn du es für sinnvoll hältst.')}
     </div>${overloadHtml(cur === 'own')}
@@ -1277,37 +1283,26 @@ const wizSsHtml = () => wizSsAsk() ? `<div class="card wiz-ss"><p><b>🔗 Supers
       <div class="seg two"><button class="${wiz.ss ? 'on' : ''}" data-action="wiz-ss" data-v="1">Ja, wo es Zeit spart</button>
         <button class="${wiz.ss ? '' : 'on'}" data-action="wiz-ss" data-v="0">Nein, alles einzeln</button></div></div>` : '';
 
-// Schritt „Trainingsdauer“: Höchstdauer in der längsten Woche -> Satzgrenze pro Training (TIME_CAPS)
+// Schritt „Trainingsdauer“ (v371: Zeitrahmen, in beiden Pfaden gleich): Rahmen in der längsten Woche -> Sätze pro Training
 function renderWizTime() {
-  if (wizTimePath()) return renderWizTimeShort();
-  const opt = (m, text) => `<button class="split-opt freq-opt ${wiz.timeMax === m ? 'on' : ''}" data-action="wiz-time" data-m="${m}">
-      <b>höchstens ${m} Minuten</b><small>${text}</small></button>`;
-  return wizCard('⏱️', 'Wie lange darf ein Training höchstens dauern?',
-    `Das ist die reine Trainingszeit: deine Sätze mit den Pausen dazwischen. Aufwärmen, Umziehen und Wartezeiten am Gerät kommen
-      noch dazu, deshalb zeigt die Startseite später etwas mehr Zeit an. Gemeint ist die längste Woche am Ende des Zyklus. Am Anfang des
-      Zyklus sind die Trainings kürzer, weil von Woche zu Woche Sätze dazukommen. Die App plant höchstens so viele Sätze pro Training,
-      dass es in diese Zeit passt.`,
-    opt(90, `bis etwa ${TIME_CAPS[90]} Sätze, das volle Programm`) +  // v361 (User): keine Empfehlung bei der Dauer
-    opt(75, `bis etwa ${TIME_CAPS[75]} Sätze`) +
-    opt(60, `bis etwa ${TIME_CAPS[60]} Sätze`) +
-    opt(45, `bis etwa ${TIME_CAPS[45]} Sätze, für sehr wenig Zeit, dafür kommen im Zyklus kaum Sätze dazu`) +
+  const tp = wizTimePath();
+  const opt = ([lo, hi]) => `<button class="split-opt freq-opt ${wiz.timeMax === hi ? 'on' : ''}" data-action="wiz-time" data-m="${hi}">
+      <b>${lo} bis ${hi} Minuten</b><small>reine Trainingszeit, etwa ${TIME_SETS[hi][0]} bis ${TIME_SETS[hi][1]} Sätze pro Training</small></button>`;
+  return wizCard('⏱️', 'Wie viel Zeit hast du pro Training?',
+    `Gemeint ist die reine Trainingszeit: deine Arbeitssätze mit den Pausen dazwischen. ${tp ? `Wähle, was realistisch in deinen Alltag passt.
+      Trainierst du nur 1 bis 3 Mal pro Woche, darf es gern auch etwas länger sein.` : `Gemeint ist die längste Woche am Ende des Zyklus.
+      Am Anfang des Zyklus sind die Trainings kürzer, weil von Woche zu Woche Sätze dazukommen.`} Der Rahmen ist eine Richtschnur:
+      In der letzten Trainingswoche darf es auch mal etwa ${TIME_TOL_LAST} Minuten länger dauern, und kürzer als ${TIME_FLOOR} Minuten wird kein Training.`,
+    // v372 (User 2026-11-24): reine Trainingszeit deutlich machen, Aufwärmen & Co. extra
+    `<p class="auto-info wiz-time-extra">⏱ Plane zusätzlich etwa ${TIME_EXTRA} Minuten ein: für Aufwärmen, Mobility, Umziehen und
+      Wartezeiten am Gerät. Die Startseite zählt Aufwärmen und Mobility schon mit und zeigt deshalb etwas mehr an.</p>` +
+    TIME_RANGES.map(opt).join('') +
     `<button class="split-opt freq-opt ${wiz.timeMax === 0 ? 'on' : ''}" data-action="wiz-time" data-m="0">
-      <b>Die Zeit spielt keine Rolle</b><small>Jede Muskelgruppe bekommt ihre vorgesehenen Sätze. Am Ende des Zyklus kann ein Training dann deutlich über 90 Minuten dauern, höchstens aber etwa ${TIME_NO_LIMIT / 60} Stunden.</small></button>`,
+      <b>Länger als 90 Minuten</b><small>Ohne Zeitgrenze: Jede Muskelgruppe bekommt ihre vorgesehenen Sätze. Am Ende des Zyklus kann ein Training dann deutlich über 90 Minuten dauern, höchstens aber etwa ${TIME_NO_LIMIT / 60} Stunden.</small></button>`,
     true,
     wizSsHtml() +
-    `<p class="hint">Gekürzt werden zuerst die kleinen Muskelgruppen, dein Schwerpunkt zuletzt. Hast du an einem Tag einmal weniger Zeit,
-      hilft „⏱ Wenig Zeit?“ auf der Startseite.</p>${wizNext() ? '' : '<button class="btn primary" data-action="wiz-quick">Plan erstellen</button>'}`);
-}
-
-// v360: Zeit-Pfad: 30 bis 90 Minuten (bei 1 bis 3 Trainings pro Woche darf es auch länger sein), Supersätze wie im anderen Pfad
-function renderWizTimeShort() {
-  const opt = m => `<button class="split-opt freq-opt ${wiz.timeMax === m ? 'on' : ''}" data-action="wiz-time" data-m="${m}">
-      <b>höchstens ${m} Minuten</b><small>bis etwa ${TIME_CAPS[m]} Sätze</small></button>`;
-  return wizCard('⏱️', 'Wie viel Zeit hast du pro Training?',
-    `Das ist die reine Trainingszeit: deine Sätze mit den Pausen dazwischen. Aufwärmen und Umziehen kommen noch dazu. Wähle, was realistisch
-      in deinen Alltag passt. Trainierst du nur 1 bis 3 Mal pro Woche, darf es gern auch etwas länger sein.`,
-    TIME_OPTS.map(opt).join(''), true,
-    wizSsHtml() + `<p class="hint">Die App plant höchstens so viele Sätze, dass es in diese Zeit passt, und kürzt zuerst die kleinen Muskelgruppen.</p>`);
+    `<p class="hint">Gekürzt werden zuerst die kleinen Muskelgruppen${tp ? '' : ', dein Schwerpunkt zuletzt'}. Hast du an einem Tag einmal weniger Zeit,
+      hilft „⏱ Wenig Zeit?“ auf der Startseite.</p>${wizNext() || tp ? '' : '<button class="btn primary" data-action="wiz-quick">Plan erstellen</button>'}`);
 }
 
 
@@ -1677,7 +1672,8 @@ function renderWizard() {
     const WL = ['Intro', 'W2', 'W3', 'W4', 'Deload'];
     const mins = m => m ? `${Math.max(5, Math.round(m / 5) * 5)} min` : '–';
     const sums = weeks.map(m => [...m.values()].reduce((a, b) => a + b, 0)).concat([[...dl.values()].reduce((a, b) => a + b, 0)]);
-    const durs = [1, 2, 3, 4].map(w => estDuration(day, w, { volume: wiz.volume })).concat([estDuration(day, 4, { volume: wiz.volume }, true)]);
+    // v372: wie angeschrieben ohne Aufwärmen (reine Trainingszeit wie beim Zeitrahmen); vorher wurde das Aufwärmen mitgezählt
+    const durs = [1, 2, 3, 4].map(w => estDuration(day, w, { volume: wiz.volume }, false, false)).concat([estDuration(day, 4, { volume: wiz.volume }, true, false)]);
     h += `<div class="card"><h2>${esc(day.name)}</h2>
       <table class="wiz-sum"><tr><th></th>${WL.map(l => `<th>${l}</th>`).join('')}</tr>
         <tr><td>Sätze</td>${sums.map(v => `<td>${v}</td>`).join('')}</tr>
@@ -1792,9 +1788,9 @@ function wizQuick() {
   if (tpl) wiz.name = tpl.label;
   if (wizTimePath()) wizTimeShape();  // v361
   syncGroups();
-  for (const g of wizGroups()) wiz.picks[g] = autoPicks(g);
-  if (wizTimePath()) wizTimeFloor();  // v362
   wiz.autoYes = true;
+  for (const g of wizGroups()) wiz.picks[g] = autoPicks(g);
+  wizFitRange();  // v362 Zeit-Pfad, v371 alle: in den Zeitrahmen bringen
   actions['wiz-commit']();
 }
 
@@ -1806,9 +1802,9 @@ function wizQuick() {
       geringsten Zeitbedarf, der noch Platz hat (Tage möglichst gleich lang).
    2. Volumen wie immer (Wochenziel ÷ Tage, gekürzt auf die Zeit), große Gruppen je Übung mindestens 2 Sätze; zu volle Tage
       verlieren zuerst Sätze der kleinen Gruppen.
-   3. Kein Training unter TIME_FLOOR Minuten (wizTimeFloor, nach der Übungswahl, Schätzung wie auf der Startseite mit Aufwärmen). */
+   3. Kein Training unter der Untergrenze des Zeitrahmens (wizTimeFloor, nach der Übungswahl; v371: reine Trainingszeit in der
+      längsten Woche wie bei der Obergrenze, vorher fest 30 Minuten in der Intro-Woche mit Aufwärmen). */
 const TIME_DROP = ['unterarme', 'schulter_vorne', 'adduktoren', 'abduktoren'];
-const TIME_FLOOR = 30;
 function wizTimeShape() {
   for (const d of wiz.days) {
     d.groups = d.groups.filter(g => !TIME_DROP.includes(g));
@@ -1860,30 +1856,61 @@ function wizTimeShape() {
     for (let x = w - 1; x >= 0; x--) wiz.volume[g][x] = Math.min(wiz.volume[g][x], wiz.volume[g][x + 1]);
   }
 }
-// v362: zu kurze Tage auffüllen. Gemessen wird wie auf der Startseite (estDuration mit Aufwärmen) an den fertigen Tagen, also mit
-// den echten Übungen samt Wechsel. Zuerst große Gruppen, kleine höchstens bis zu einer Übung; alles muss in die gewählte Zeit passen
-// (ebenfalls an den fertigen Tagen gemessen, reine Trainingszeit).
-function wizTimeFloor() {
-  const big = g => !ASSIST_GROUPS.includes(g);
+/* v371: Feinabgleich mit dem Zeitrahmen, gemessen wie auf der Startseite (estDuration, reine Trainingszeit) an den fertigen Tagen,
+   also mit den echten Übungen samt Supersätzen. Das grobe Minutenmodell von capSessions / wizTimeShape trifft das nicht genau (D5).
+   1. Zu lange Tage (irgendeine Woche über der Obergrenze, 1 Minute Spielraum): je 1 Satz weniger in dieser Woche, zuerst kleine
+      Gruppen ohne Schwerpunkt mit den meisten Sätzen, dann große, Schwerpunkt zuletzt. Große Gruppen behalten mindestens 2 Sätze.
+   2. Zu kurze Tage (längste Woche unter TIME_FLOOR, bei jedem Rahmen; v362 nur im Zeit-Pfad): +1 Satz in allen Wochen, große Gruppen
+      zuerst, Gruppen mit „weniger“ nie. Höchstens +50 % je Gruppe (Zeit-Pfad: kleine Gruppen höchstens eine Übung, große zwei),
+      und nur, wenn danach alles unter der Obergrenze bleibt.
+   Mit automatischer Übungswahl werden die Übungen der geänderten Gruppe neu gewählt (mehr Sätze -> evtl. eine Übung mehr). */
+// Standard/Experte: nur nach neu berechnetem Volumen (selbst eingetippte Zahlen bleiben unangetastet)
+function wizFitNew() {
+  if (!wiz.needFit || wizTimePath()) return;
+  wiz.needFit = false;
+  if (wiz.autoYes) for (const g of wizGroups()) wiz.picks[g] = autoPicks(g);
+  wizFitRange();
+}
+function wizFitRange() {
+  // v371 (User 2026-11-24): Grenzen nicht starr. Fest ist nur TIME_FLOOR (30 min) als Untergrenze, bei jedem Rahmen; die Obergrenze
+  // darf in der letzten Trainingswoche um TIME_TOL_LAST Minuten überschritten werden (vorher 1 Minute Spielraum).
+  const tp = wizTimePath();
+  const hi = wiz.timeMax || sessionCap(), lo = TIME_FLOOR;
+  const big = g => !ASSIST_GROUPS.includes(g), vol = wiz.volume;
+  const repick = g => { if (tp || wiz.autoYes) wiz.picks[g] = autoPicks(g); };
+  const dur = (d, w) => estDuration(d, w, { volume: wiz.volume }, false, false);
+  const tol = w => w === 4 ? TIME_TOL_LAST : 1;
+  const fits = () => buildPlanDays().every(d => [1, 2, 3, 4].every(w => dur(d, w) <= hi + tol(w)));
+  // 1. zu lang
+  for (let guard = 0; guard < 200; guard++) {
+    const days = buildPlanDays();
+    let hit = null;
+    days.forEach((d, i) => { for (const w of [4, 3, 2, 1]) if (!hit && dur(d, w) > hi + tol(w)) hit = { i, w: w - 1 }; });
+    if (!hit) break;
+    const gs = wiz.days[hit.i].groups.filter(g => vol[g] && vol[g][hit.w] > (big(g) ? 2 : 1));
+    const order = g => (wiz.prio.includes(g) ? 2 : big(g) ? 1 : 0) * 100 - vol[g][hit.w];
+    const g = gs.sort((a, b) => order(a) - order(b))[0];
+    if (!g) break;
+    vol[g][hit.w]--;
+    for (let x = hit.w - 1; x >= 0; x--) vol[g][x] = Math.min(vol[g][x], vol[g][hit.w]);
+    repick(g);
+  }
+  // 2. zu kurz
+  const base = Object.fromEntries(Object.keys(vol).map(g => [g, vol[g][3]]));
+  const lim = g => tp ? MAX_SETS_PER_EX * (big(g) ? 2 : 1) : base[g] + Math.max(1, Math.ceil(base[g] * 0.5));
   const stuck = new Set();  // Tage, die sich nicht weiter auffüllen lassen
-  const short = () => buildPlanDays().findIndex((d, i) => !stuck.has(i) && estDuration(d, 1, { volume: wiz.volume }, false, true) < TIME_FLOOR);
-  // passt alles noch in die gewählte Zeit? Reine Trainingszeit wie bei der Zeitwahl, in jeder Woche (1 Minute Spielraum)
-  const fits = () => buildPlanDays().every(d => [1, 2, 3, 4].every(w => estDuration(d, w, { volume: wiz.volume }, false, false) <= (wiz.timeMax || TIME_NO_LIMIT) + 1));
-  for (let guard = 0; guard < 80; guard++) {
-    const i = short();
+  for (let guard = 0; guard < 120; guard++) {
+    const i = buildPlanDays().findIndex((d, k) => !stuck.has(k) && dur(d, 4) < lo);
     if (i < 0) break;
-    const cands = wiz.days[i].groups.filter(g => wiz.volume[g]).sort((a, b) => (big(b) - big(a)) || wiz.volume[a][0] - wiz.volume[b][0]);
+    const cands = wiz.days[i].groups.filter(g => vol[g] && !wiz.low.includes(g) && Math.max(...vol[g]) < lim(g))
+      .sort((a, b) => (big(b) - big(a)) || (vol[a][3] - base[a]) / base[a] - (vol[b][3] - base[b]) / base[b]);
     let done = false;
     for (const g of cands) {
-      const old = wiz.volume[g].slice();
-      wiz.volume[g] = old.map(x => Math.max(x, old[0] + 1));
-      const oldPicks = wiz.picks[g];
-      if (Math.max(...wiz.volume[g]) <= MAX_SETS_PER_EX * (big(g) ? 2 : 1)) {
-        wiz.picks[g] = autoPicks(g);
-        if (fits()) { done = true; break; }
-        wiz.picks[g] = oldPicks;
-      }
-      wiz.volume[g] = old;
+      const old = vol[g].slice(), oldPicks = wiz.picks[g];
+      vol[g] = old.map(x => x + 1);  // in allen Wochen +1 (der Anstieg bleibt)
+      repick(g);
+      if (fits()) { done = true; break; }
+      vol[g] = old; wiz.picks[g] = oldPicks;
     }
     if (!done) stuck.add(i);
   }
@@ -1907,7 +1934,7 @@ function wizTimeGo() {
   syncGroups();
   wiz.autoYes = true;
   for (const g of wizGroups()) wiz.picks[g] = autoPicks(g);
-  wizTimeFloor();
+  wizFitRange();
   Object.assign(wiz, { fromPreview: false, volEdit: false, rirEdit: false, step: 'preview', pdi: 0 });
   go('wizard');
 }
@@ -2286,6 +2313,7 @@ Object.assign(actions, {
   'wiz-auto': el => {
     wiz.autoYes = !!el.dataset.yes;
     syncGroups();
+    wizFitNew();
     wiz.volEdit = wiz.rirEdit = false;
     wiz.step = 'volume';
     go('wizard');
@@ -2298,6 +2326,7 @@ Object.assign(actions, {
     if (tpl && /^Plan \d+$/.test(wiz.name)) wiz.name = tpl.label;
     syncGroups();
     wiz.autoYes = true;
+    wizFitNew();
     actions['wiz-after-rir']();
   },
   'wiz-after-rir': () => {
@@ -2347,6 +2376,7 @@ Object.assign(actions, {
     if (wiz.rotate) plan.rotate = wiz.rotate;  // Wechsel-Plan (siehe dayTimes in app.js)
     if (wiz.level) plan.level = wiz.level;
     plan.timeMax = wiz.timeMax || null;  // gewählte Höchstdauer (nur zur Info, null = ohne Grenze)
+    plan.timeMin = wizTimeMin() || null;  // v371: Untergrenze des Zeitrahmens
     plan.mob = wizMobL();  // v355, v358: Stufe 0–3
     if (wizMachines()) plan.equip = 'machine';  // Ersetzen schlägt dann zuerst Maschinen vor
     if (wizHome()) plan.equip = 'home';          // nur vorhandene Gewichte, Ersetzen zuerst passende Heim-Übungen
