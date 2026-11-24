@@ -1506,14 +1506,15 @@ function nutExplain(n, c, kg) {
     </details>`;
 }
 
-// Karte „Training angepasst / unverändert“ (Diät und Minicut)
+// Karte „Training angepasst / unverändert“ (Diät und Minicut); v386 (User): Erklärung hinter „ⓘ Was ändert sich?“
 function nutTrainCard(n) {
   if (n.phase !== 'diet' && n.phase !== 'minicut') return '';
   return `<div class="card nut-train">
         <p><b>🏋️ Training ${n.trainAdapt ? (n.phase === 'minicut' ? 'an den Minicut' : 'an die Diät') + ' angepasst' : 'läuft unverändert'}</b></p>
+        <details class="nut-more nut-train-more"><summary>ⓘ ${n.trainAdapt ? 'Was ändert sich?' : 'Was würde sich ändern?'}</summary>
         <p class="hint nut-small">${n.trainAdapt ? (nutTrainAdapt() ? (feat('tr-rir-input') ? NUT_ADAPT_TEXT : 'Das Volumen steigt nur am Anfang des Zyklus, danach bleibt es gleich, und das Gewicht wird nicht erzwungen.') : 'In der Erhaltungswoche läuft das Training wieder normal (am besten als Deload).')
           : feat('tr-rir-input') ? 'Du kannst den Plan an dein Ernährungsziel anpassen lassen: Volumen ohne weiteren Anstieg ab Woche 2, Tank von 2 schrittweise auf 0,5, kein erzwungenes Gewicht.'
-            : 'Du kannst den Plan an dein Ernährungsziel anpassen lassen: weniger Volumen-Anstieg und kein erzwungenes Gewicht.'}</p>
+            : 'Du kannst den Plan an dein Ernährungsziel anpassen lassen: weniger Volumen-Anstieg und kein erzwungenes Gewicht.'}</p></details>
         <button class="btn" data-action="nut-train-toggle">${n.trainAdapt ? 'Anpassung ausschalten' : 'Training anpassen'}</button></div>`;
 }
 

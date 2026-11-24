@@ -1138,3 +1138,113 @@ Object.assign(actions, {
     go('mealplan', { from: 'pantry' });
   },
 });
+
+/* ----- v384 (User-Wunsch 2026-11-24): „💡 Inspiration“ im Ernährungstagebuch ----------
+   Je Mahlzeit: Gerichte aus dem Fundus des Ernährungsplans (MG_RECIPES nach den Vorlieben), die Mengen passend zu dem, was vom
+   Tagesziel für diese Mahlzeit noch übrig ist (wie bei „Was hast du zu Hause?“: Anteil der Mahlzeit am offenen Rest des Tages).
+   Sortiert danach, wie gut das Gericht die Makros trifft (Kalorien und Eiweiß zählen mehr als Kohlenhydrate und Fett),
+   Lieblingszutaten etwas weiter vorn. Je Seite INSPO_N Ideen, „Andere Ideen“ blättert weiter. */
+const INSPO_N = 6, INSPO_MIN_KCAL = 80;
+let inspoOpen = null, inspoPage = 0;
+const inspoCache = new Map();
+// Ziel einer Mahlzeit: Anteil am noch offenen Tagesziel (null = ohne Tagesziel)
+function inspoTarget(date, k) {
+  const tgt = mgDayTarget(date, true);
+  if (!tgt) return null;
+  const open = tgt.open.includes(k) ? tgt.open : [...tgt.open, k];
+  const sh = ks => ks.reduce((a, q) => a + MG_SHARE[mgCat(q)], 0), f = MG_SHARE[mgCat(k)] / sh(open);
+  return { tgt, open, T: { kcal: tgt.T.kcal * f, protein: tgt.T.protein * f, carbs: tgt.T.carbs * f, fat: tgt.T.fat * f } };
+}
+const inspoScaled = it => !!it && it.T.kcal >= INSPO_MIN_KCAL;
+function inspoLines(k, r, it) {
+  const its = mgItems(r) || [];
+  if (!inspoScaled(it)) return its.map(i => mgLine(i.n, i.g, { unit: i.unit || null, sub: i.sub }));
+  const [sl] = mgSolve([{ k, r, its }], it.T, [], mgPLo(it.tgt.goal, it.tgt.T, it.tgt.keys, it.open));
+  return mgSlotLines(sl);
+}
+const inspoSum = lines => lines.reduce((a, i) => ({ kcal: a.kcal + i.kcal, p: a.p + i.p, c: a.c + i.c, f: a.f + i.f }), { kcal: 0, p: 0, c: 0, f: 0 });
+// Abweichung vom Ziel der Mahlzeit (0 = trifft genau); zu viel Eiweiß ist kein Fehler
+function inspoErr(s, T) {
+  return Math.abs(s.kcal - T.kcal) / Math.max(T.kcal, 100)
+    + 1.5 * Math.max(0, T.protein - s.p) / Math.max(T.protein, 10)
+    + 0.4 * Math.abs(s.c - T.carbs) / Math.max(T.carbs, 15)
+    + 0.4 * Math.abs(s.f - T.fat) / Math.max(T.fat, 8);
+}
+function inspoList(date, k) {
+  const it = inspoTarget(date, k);
+  const sig = JSON.stringify([date, k, mgPrefSig(), it && [it.T.kcal, it.T.protein, it.T.carbs, it.T.fat].map(Math.round), unitLb()]);
+  if (inspoCache.has(sig)) return inspoCache.get(sig);
+  const res = mgAllowed(mgCat(k)).map(r => {
+    const lines = inspoLines(k, r, it), s = inspoSum(lines);
+    const err = (inspoScaled(it) ? inspoErr(s, it.T) : 0) - Math.min(2, mgFavN(r)) * 0.05;
+    return { r, lines, s, err };
+  }).sort((a, b) => a.err - b.err || a.r.name.localeCompare(b.r.name));
+  if (inspoCache.size > 30) inspoCache.clear();
+  inspoCache.set(sig, res);
+  return res;
+}
+const inspoFit = err => err < 0.15 ? 'passt sehr gut' : err < 0.35 ? 'passt gut' : 'passt grob';
+
+function renderInspo(p) {
+  const date = p.date || todayISO(), keys = mealKeys(), k = keys.includes(p.meal) ? p.meal : keys[0];
+  const it = inspoTarget(date, k), list = inspoList(date, k), lbl = mealLabel(k);
+  const pages = Math.max(1, Math.ceil(list.length / INSPO_N)), pg = inspoPage % pages;
+  const shown = list.slice(pg * INSPO_N, (pg + 1) * INSPO_N);
+  const info = inspoScaled(it)
+    ? `${date === todayISO() ? 'Für diese Mahlzeit sind heute' : 'An diesem Tag sind für diese Mahlzeit'} noch etwa ${nutKcal(it.T.kcal)} kcal übrig, davon ${Math.round(it.T.protein)} g Eiweiß, ${Math.round(it.T.carbs)} g Kohlenhydrate und ${Math.round(it.T.fat)} g Fett. Die Mengen der Gerichte sind darauf umgerechnet.`
+    : it ? 'Dein Tagesziel ist für diesen Tag schon erreicht. Die Gerichte stehen mit ihren normalen Mengen da.'
+    : 'Ohne Tagesziel stehen die Gerichte mit ihren normalen Mengen da. Richte die Ernährung ein, dann rechnet die App die Mengen passend.';
+  let h = `<div class="card inspo-head"><h2><span>💡 Ideen für</span> <span>${esc(lbl)}</span></h2>
+      ${keys.length > 1 ? `<div class="variants">${keys.map(q => `<button class="vchip ${q === k ? 'on' : ''}" data-action="inspo-meal" data-k="${q}">${esc(mealLabel(q))}</button>`).join('')}</div>` : ''}
+      <p class="hint nut-small">${info}</p>
+      <p class="hint nut-small">Die Gerichte kommen aus dem Fundus des Ernährungsplans und passen zu deinen Vorlieben.</p></div>`;
+  if (!list.length) return h + '<p class="hint">Zu deinen Vorlieben passt hier gerade kein Gericht.</p>';
+  h += `<div class="card pt-res inspo-list">${shown.map(m => {
+    const open = inspoOpen === m.r.id;
+    return `<div class="pt-r ${open ? 'open' : ''}">
+        <button class="pt-r-head" data-action="inspo-open" data-id="${m.r.id}" aria-expanded="${open}"><b>${esc(m.r.name)}</b>
+          <small class="inspo-mac"><span>${nutKcal(m.s.kcal)} kcal</span> | <span>Eiweiß ${Math.round(m.s.p)} g</span> | <span>KH ${Math.round(m.s.c)} g</span> | <span>Fett ${Math.round(m.s.f)} g</span>${inspoScaled(it) ? ` | <span class="inspo-fit">${inspoFit(m.err)}</span>` : ''}</small></button>
+        ${open ? `<div class="pt-detail">
+          <ul class="mg-items">${m.lines.map(i => `<li><span class="mg-g">${amtTxt(i.g)}</span><span class="mg-n"><span>${esc(i.name)}</span>${i.unit ? ` <small>(${Math.round(i.g / i.unit)} Stück)</small>` : ''}${i.sub ? ` <small>statt ${esc(i.sub)}</small>` : ''}</span></li>`).join('')}</ul>
+          <p class="hint nut-small mg-how">${esc(m.r.how)}</p>
+          <div class="row mg-btns">
+            <button class="btn primary" data-action="inspo-log" data-id="${m.r.id}">✔ Eintragen</button>
+            ${mgActive() && date >= todayISO() ? `<button class="btn" data-action="inspo-plan" data-id="${m.r.id}">📋 Einplanen</button>` : ''}
+          </div></div>` : ''}
+      </div>`;
+  }).join('')}</div>`;
+  if (pages > 1) h += `<button class="btn center inspo-more" data-action="inspo-more">↻ Andere Ideen <small>${pg + 1} von ${pages}</small></button>`;
+  return h;
+}
+views.inspo = { title: 'Inspiration', tab: 'nutrition', back: p => ['food', { date: p.date }], render: renderInspo };
+
+const inspoFind = id => { const p = current.params, date = p.date || todayISO(), k = mealKeys().includes(p.meal) ? p.meal : mealKeys()[0];
+  return { date, k, m: inspoList(date, k).find(x => x.r.id === id) }; };
+Object.assign(actions, {
+  'food-inspo': el => { inspoOpen = null; inspoPage = 0; go('inspo', { date: el.dataset.date || todayISO(), meal: el.dataset.meal }); },
+  'inspo-meal': el => { current.params.meal = el.dataset.k; inspoOpen = null; inspoPage = 0; render(); },
+  'inspo-more': () => { inspoPage++; inspoOpen = null; render(); window.scrollTo(0, 0); },
+  'inspo-open': el => { inspoOpen = inspoOpen === el.dataset.id ? null : el.dataset.id; render(); },
+  'inspo-log': el => {
+    const { date, k, m } = inspoFind(el.dataset.id);
+    if (!m) return;
+    const reopened = typeof foodReopen === 'function' && foodReopen(date);
+    for (const i of m.lines) { const f = foodGet(i.key); if (f) data.foodLog.push({ id: uid(), date, meal: k, key: f.key, name: f.name, brand: '', g: i.g, per: f.per.slice() }); }
+    foodSync(date);
+    mgCache.clear(); inspoCache.clear();
+    saveData();
+    if (reopened) foodReopenToast(); else toast(`${mealLabel(k)} eingetragen ✔`);
+    go('food', { date });
+  },
+  // nur für diesen Tag in den Ernährungsplan (der Wochentag bleibt, wie er ist)
+  'inspo-plan': el => {
+    const { date, k, m } = inspoFind(el.dataset.id), p = data.mealPlan;
+    if (!m || !p) return;
+    p.over = p.over || {}; p.over[date] = { ...(p.over[date] || {}), [k]: m.r.id };
+    if (p.alt && p.alt[date]) delete p.alt[date][k];
+    mgCache.clear(); inspoCache.clear();
+    saveData();
+    toast('📋 Eingeplant ✔');
+    go('food', { date });
+  },
+});
