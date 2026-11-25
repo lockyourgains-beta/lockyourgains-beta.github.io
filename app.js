@@ -5053,10 +5053,11 @@ function renderTraining() {
     const pr = pairs.get(ei), ssNx = pr && ssNext(pr);
     if (pr && pr.role === 'A') h += `<div class="ss-wrap"${vis(ei) ? '' : ' hidden'}>${ssHeadHtml(pr, swipe || pr.i === [...pairs.keys()][0])}`;
     else if (!pr && raw.get(ei) && raw.get(ei).role === 'A') h += ssSoloHtml(raw.get(ei), !vis(ei));
+    const xfMini = exFigHtml(en.name), mini = xfMini ? `<span class="exfig-mini" aria-hidden="true">${xfMini}</span>` : '';  // v393
     h += `<section class="card ex-card tint-${ei % 4}${pr ? ' ss-card' : ''}${swipe && ei === cur && draft.slide ? ` slide-${draft.slide}` : ''}" data-ei="${ei}"${vis(ei) ? '' : ' hidden'}>
       <div class="ex-head">
         <h2>${pr ? `<span class="ss-badge" aria-label="Übung ${pr.role} im Supersatz">${pr.role}</span>` : ''}${libEntry(en.name) ? `<button class="lib-link" data-action="lib-open" data-name="${esc(en.name)}"
-          aria-label="Ausführung ansehen">${exTitleHtml(en.name)} <span class="info-dot">i</span></button>` : exTitleHtml(en.name)}</h2>
+          aria-label="Ausführung ansehen">${mini ? `${mini}<span class="exfig-ttl">${exTitleHtml(en.name)} <span class="info-dot">i</span></span>` : `${exTitleHtml(en.name)} <span class="info-dot">i</span>`}</button>` : mini ? `<span class="exfig-row">${mini}<span class="exfig-ttl">${exTitleHtml(en.name)}</span></span>` : exTitleHtml(en.name)}</h2>
         <button class="det-btn ord-btn" data-action="reorder-toggle" data-ei="${ei}" aria-label="Reihenfolge ändern">⇅</button>
         ${`<div class="ex-tools">
           ${feat('tr-comment') ? `<button class="icon-btn bubble ${hasComment ? 'has' : ''}" data-action="comment-toggle"
@@ -6184,7 +6185,7 @@ const libOpenGroups = new Set();  // aufgeklappte Muskelgruppen
 function libRow(name) {
   const kind = KINDS[kindOf({ name })];
   return `<button class="btn nav lib-row" data-action="lib-open" data-name="${esc(name)}">
-    <span class="lib-thumb">${libFigure(name, false) || '<span class="lib-own" aria-hidden="true">★</span>'}</span>
+    <span class="lib-thumb">${exFigHtml(name) || libFigure(name, false) || '<span class="lib-own" aria-hidden="true">★</span>'}</span>
     <span class="lib-txt">${esc(name)}<small>${kind}${(pf => pf ? ` | <span class="prof-txt prof-${pf.p}">${EX_PROF_LABEL[pf.p]}</span>` : '')(typeof exProfile === 'function' && exProfile(name))}</small></span></button>`;
 }
 
@@ -6234,6 +6235,18 @@ function renderLibrary() {
   return h + '</div>';
 }
 
+// v393: neue Übungsfigur aus figures.js; Muskeln wie in der Muskelkarte darunter (Ganzkörper: Muskeln der Szene)
+function exFigHtml(name) {
+  if (typeof exFigSvg !== 'function' || !name) return '';
+  const c = customExercise(name), key = exFigHas(name) ? name : c && c.like && exFigHas(c.like) ? c.like : '';
+  if (!key) return '';
+  const e = libEntry(name);
+  const t = !e ? {} : typeof shortFor === 'function' ? shortFor(e.name, e.pattern) : FIG_TEXT[e.pattern] || {};
+  const g = groupOf(planExercise(name) || { name });
+  const m = g !== 'ganzkoerper' && typeof mmMuscles === 'function' ? mmMuscles(name, t.also) : null;
+  return exFigSvg(key, m, exDisp(name));
+}
+
 function renderLibEx({ name }) {
   const e = libEntry(name);
   const c = customExercise(name);
@@ -6250,7 +6263,7 @@ function renderLibEx({ name }) {
         `<button class="vchip ${kindK === k ? 'on' : ''}" data-action="lib-kind" data-name="${esc(name)}" data-k="${k}">${label}${k === base ? ' <small>(Standard)</small>' : ''}</button>`).join('')}</div>
       <p class="hint nut-small">Gilt für diese Übung in allen Plänen. Davon hängen Wiederholungsbereich, Verteilung der Sätze, Pausen und Tank ab.</p>
     </div>` : '';
-  return `<div class="card lib-fig">${libFigure(name, true)}</div>
+  return `<div class="card lib-fig">${exFigHtml(name) || libFigure(name, true)}</div>
     ${typeof muscleMapHtml === 'function' ? muscleMapHtml(name, t.also) : ''}
     <div class="lib-chips"><span class="lib-chip">${kind}</span>${group ? `<span class="lib-chip">${group}</span>` : ''}</div>
     ${e.note ? `<p class="lib-note">${esc(e.note)}</p>` : ''}
@@ -6318,7 +6331,8 @@ function registerCustomExercises() {
 function renderCustomEx(c, e) {
   const t = !e ? {} : typeof shortFor === 'function' ? shortFor(c.like, e.pattern) : FIG_TEXT[e.pattern] || {};
   const trained = data.sessions.some(s => s.entries.some(en => nameKey(en.name) === nameKey(c.name)));
-  let h = e ? `<div class="card lib-fig">${libFigure(c.name, true)}</div>` : '';
+  const xf = exFigHtml(c.name);
+  let h = xf || e ? `<div class="card lib-fig">${xf || libFigure(c.name, true)}</div>` : '';
   if (typeof muscleMapHtml === 'function') h += muscleMapHtml(c.name, t.also);  // v314: Muskelkarte
   h += `<div class="lib-chips"><span class="lib-chip">★ Eigene Übung</span><span class="lib-chip">${KINDS[c.kind]}</span>
       <span class="lib-chip">${MUSCLES[c.group] || ''}</span></div>
@@ -6609,7 +6623,7 @@ const CHANNEL_TEST = (() => { try { return localStorage.getItem('trainingsapp-ka
 const IS_BETA = /-beta\.github\.io$/i.test(location.hostname) || CHANNEL_TEST === 'beta';
 const OLD_HOST = /^stepup-strength\.github\.io$/i.test(location.hostname) || CHANNEL_TEST === 'alt';
 // v249 (User 2026-11-14): Umzugsmeldung vorerst aus (MOVE_ON); wenn sie wieder an soll, zeigt sie auf die Beta-Seite
-const MOVE_ON = false;
+const MOVE_ON = true;  // v395 (User 2026-11-25): Umzugsmeldung wieder an, mit Sicherungs-Knopf
 const NEW_URL = 'https://lockyourgains-beta.github.io/';
 let shareUrl = null, shareFile = null;
 const shareSetText = (x, name) => { const u = holdSec(name); return x.weight != null ? `${fmtNum(x.weight)} kg × ${x.reps != null ? x.reps : '–'}${u ? ' s' : ''}` : `${x.reps != null ? x.reps : '–'}${u ? ' s' : ' Wdh.'}`; };
@@ -6978,6 +6992,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 393, date: '2026-11-25', items: [
+    ['Neue Übungsfiguren: Zu fast jeder Übung zeigt eine Figur jetzt die Haltung mitsamt Gerät, der Zielmuskel ist rot, mitarbeitende Muskeln sind orange. Du siehst sie oben in der Übungsbeschreibung (Bibliothek und „i“ im Training), die Muskelkarte bleibt darunter. Im Training steht außerdem eine kleine Figur neben jeder Übung.'],
+  ] },
   { v: 392, date: '2026-11-25', items: [
     ['Zykluskalender: Neuer, freiwilliger Zyklus-Spielraum in der Zyklus-Karte im Reiter Ernährung. In den 7 Tagen vor der Periode liegt dein Tagesziel 100 kcal höher, nach der Periode zieht die App das an genauso vielen Tagen wieder ab. Über den Zyklus bleibt die Summe gleich. Mit hormoneller Verhütung bleibt er aus.'],
   ] },
@@ -10592,7 +10609,6 @@ function introHtml() {
       <div class="row intro-btns">${last ? '' : '<button class="btn" data-action="intro-skip">Überspringen</button>'}
         <button class="btn primary" data-action="intro-next">${last ? "Los geht's" : 'Weiter ›'}</button></div>
       <button class="link-btn intro-import" data-action="welcome-import">📥 Ich habe schon eine Sicherung</button>
-      ${IS_BETA ? '<button class="link-btn intro-import" data-action="beta-testdata">🧪 Testdaten laden (Beta)</button>' : ''}
     </div>`;
 }
 
@@ -11105,31 +11121,22 @@ function betaCard() {
   if (!IS_BETA) return '';
   return `<div class="card beta-card"><p><b>🧪 Beta-Version ${APP_V}</b>: Hier testest du Neues, bevor alle es bekommen. Deine Daten hier sind
       getrennt von der normalen App.</p>
-    ${typeof LEGAL !== 'undefined' && LEGAL.email ? '' : '<button class="btn" data-action="beta-feedback">💬 Rückmeldung geben</button>'}
-    <button class="btn" data-action="beta-testdata">🧪 Testdaten laden<small>Max, 6 Monate Training und Ernährung (Mai bis Nov. 2026), ersetzt die Daten der Beta</small></button></div>`;
+    ${typeof LEGAL !== 'undefined' && LEGAL.email ? '' : '<button class="btn" data-action="beta-feedback">💬 Rückmeldung geben</button>'}</div>`;
 }
-// Beta (v223, User 2026-11-13): simulierte Testperson aus testdaten-max.json laden – läuft wie „Sicherung laden“ (mit Rückfrage)
-actions['beta-testdata'] = async () => {
-  if (!IS_BETA) return;
-  try {
-    const res = await fetch('testdaten-max.json', { cache: 'no-cache' });
-    if (!res.ok) throw new Error(res.status);
-    importData(new File([await res.text()], 'testdaten-max.json', { type: 'application/json' }));
-  } catch (e) { alert('Die Testdaten konnten nicht geladen werden. Bitte mit Internetverbindung noch einmal versuchen.'); }
-};
+// v394 (User 2026-11-25): Knopf „Testdaten laden“ entfernt, testdaten-max.json liegt nicht mehr im App-Ordner (trainings-app-entwurf/testdaten)
 // Alte Adresse (stepup-strength.github.io): Daten ziehen nicht von selbst mit (jede Adresse hat ihren eigenen Speicher)
 function moveCard() {
   if (!OLD_HOST || !MOVE_ON) return '';
-  const host = NEW_URL.replace('https://', '').replace(/\/$/, '');
+  // v395 (User 2026-11-25): freundlicher, mit Knopf für die Sicherung direkt in der Meldung
   return `<div class="card move-card"><h2>📦 Die App zieht um</h2>
-    <p>Sie heißt jetzt <b>${APP_NAME}</b> und hat eine neue Adresse. Deine Daten nimmst du einmal mit. So geht's:</p>
-    <ol><li><b>Sicherung erstellen</b>: speichert alle Trainings, Pläne und Einträge als Datei.
+    <p>Aus StepUp Strength wird ${APP_NAME}, mit neuer Adresse und vielen Neuerungen. Wir freuen uns sehr, wenn du die Beta-Version weiter mit uns testest!</p>
+    <p>Deine Daten ziehen nicht von selbst mit, du nimmst sie einmal per Sicherung mit. Das dauert etwa 5 Minuten.</p>
+    <ol><li><p>Sicherung erstellen und die Datei speichern, z. B. in „Dateien“ oder unter Downloads.</p>
         <button class="btn primary" data-action="export">💾 Sicherung erstellen</button></li>
-      <li><b>Neue Adresse öffnen</b> <a class="btn" href="${NEW_URL}" target="_blank" rel="noopener">${host} öffnen</a></li>
-      <li>Dort bei der Begrüßung <b>„Ich habe schon eine Sicherung“</b> tippen und die Datei wählen.</li></ol>
-    <p class="hint">iPhone: Öffne die neue Adresse in Safari, füge sie über „Teilen → Zum Home-Bildschirm“ hinzu und lade die Sicherung
-      <b>in der neuen App</b>. Sie hat ihren eigenen Speicher. Fortschrittsfotos haben eine eigene Sicherung (Ernährung → Fortschrittsfotos →
-      Fotos sichern). Lösch die alte App erst, wenn drüben alles da ist.</p></div>`;
+      <li><p>Die neue App öffnen und zum Home-Bildschirm hinzufügen.</p>
+        <a class="btn" href="${NEW_URL}" target="_blank" rel="noopener">🚀 Neue App öffnen</a></li>
+      <li><p>Die neue App über ihr Symbol öffnen, bei der Begrüßung auf „📥 Ich habe schon eine Sicherung“ tippen und die Datei wählen.</p></li></ol>
+    <p class="hint">iPhone: Die neue Adresse in Safari öffnen und über Teilen → „Zum Home-Bildschirm“ hinzufügen. Lade die Sicherung dann in der App vom Home-Bildschirm, sie hat ihren eigenen Speicher. Fortschrittsfotos haben eine eigene Sicherung unter Ernährung → Fortschrittsfotos → Fotos sichern. Lösch die alte App erst, wenn drüben alles da ist.</p></div>`;
 }
 actions['beta-feedback'] = async () => {
   if (typeof LEGAL !== 'undefined' && LEGAL.email) { feedbackMail(true); return; }

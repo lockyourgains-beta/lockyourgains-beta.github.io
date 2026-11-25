@@ -7091,6 +7091,7 @@ Object.assign(I18N.en, {
 "Neue Diagramme im Verlauf: Gewicht und Kalorien übersichtlicher, mit Gewichtstrend, Tagesziel und deinen Ernährungsphasen im Hintergrund. Die übrigen Diagramme haben denselben ruhigeren Stil.": "New charts in history: weight and calories clearer, with weight trend, daily goal and your nutrition phases in the background. The other charts share the same calmer style.",
 "Neue persönliche Bestleistung": "New personal best",
 "Neue Übungen": "New exercises",
+"Neue Übungsfiguren: Zu fast jeder Übung zeigt eine Figur jetzt die Haltung mitsamt Gerät, der Zielmuskel ist rot, mitarbeitende Muskeln sind orange. Du siehst sie oben in der Übungsbeschreibung (Bibliothek und „i“ im Training), die Muskelkarte bleibt darunter. Im Training steht außerdem eine kleine Figur neben jeder Übung.": "New exercise figures: for almost every exercise a figure now shows the position including the equipment, with the target muscle in red and assisting muscles in orange. You see it at the top of the exercise description (library and “i” in your workout), the muscle map stays below. In your workout there is also a small figure next to each exercise.",
 "Neuen Plan erstellen": "Create new plan",
 "Neuer Erfolg:": "New achievement:",
 "Neuer Name für den Plan": "New name for the plan",
