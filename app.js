@@ -11130,6 +11130,7 @@ function moveCard() {
   // v395 (User 2026-11-25): freundlicher, mit Knopf für die Sicherung direkt in der Meldung
   return `<div class="card move-card"><h2>📦 Die App zieht um</h2>
     <p>Aus StepUp Strength wird ${APP_NAME}, mit neuer Adresse und vielen Neuerungen. Wir freuen uns sehr, wenn du die Beta-Version weiter mit uns testest!</p>
+    <p>Diese alte Adresse ist voraussichtlich ab dem neuen Jahr nicht mehr erreichbar. Zieh deshalb am besten bald um.</p>
     <p>Deine Daten ziehen nicht von selbst mit, du nimmst sie einmal per Sicherung mit. Das dauert etwa 5 Minuten.</p>
     <ol><li><p>Sicherung erstellen und die Datei speichern, z. B. in „Dateien“ oder unter Downloads.</p>
         <button class="btn primary" data-action="export">💾 Sicherung erstellen</button></li>
