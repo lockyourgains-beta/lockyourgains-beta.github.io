@@ -4931,3 +4931,16 @@ html[data-look="viking"][data-theme] :is(.ex-card.tint-0, .ex-card.tint-1, .ex-c
 /* Platz am Seitenende für die Szene */
 :is([data-look="space"], [data-look="dojo"], [data-look="garage"], [data-look="aero"], [data-look="viking"]) main::after { content: ''; display: block; height: min(22vh, 190px); }
 /* LOOKS382>> */
+
+/* v391: Mengen ändern und Zutaten tauschen */
+.mg-items .mg-g-btn { flex: none; min-width: 58px; padding: 2px 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 650;
+  text-align: right; font-variant-numeric: tabular-nums; text-decoration: underline dotted; text-underline-offset: 4px; text-decoration-color: var(--muted); cursor: pointer; }
+.mg-items li.mg-own .mg-g-btn { color: var(--accent-text); text-decoration-color: var(--accent); }
+.mg-amt-row { display: flex; align-items: center; gap: 8px; margin: 2px 0 6px; }
+.mg-amt-row .inp { width: 84px; text-align: center; }
+.mg-amt-row .mg-amt-u { color: var(--muted); min-width: 36px; }
+.mg-amt-row .btn.small { margin-left: auto; }
+.mg-alt-panel .btn.small { margin: 2px 0 6px; }
+
+.inspo-list .hint .link-btn { margin: 0; padding: 0 0 0 4px; font-size: inherit; font-weight: 650; }
+.mg-alt-panel > .btn.small { display: inline-flex; width: auto; min-height: 36px; padding: 6px 14px; font-size: 15px; }

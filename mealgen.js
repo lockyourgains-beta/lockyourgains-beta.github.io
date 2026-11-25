@@ -296,6 +296,17 @@ const mgPlanObj = () => mgDraft || data.mealPlan || null;
 const mgPicks = () => (mgPlanObj() || {}).picks || null;
 // Alternativen für einen Tag: { Mahlzeit: { Zutat: stattdessen } } (v339, „Gerade nicht da?“)
 const mgDayAlt = date => { const p = mgPlanObj(); return (p && p.alt && p.alt[date]) || null; };
+// v391 (User 2026-11-25): selbst geänderte Mengen je Tag und Mahlzeit: plan.amt[datum][mahlzeit][Zutat] = g (0 = weglassen)
+const mgDayAmt = date => { const p = mgPlanObj(); return (p && p.amt && p.amt[date]) || null; };
+// Zeilen einer Mahlzeit mit selbst geänderten Mengen (die übrigen Zutaten bleiben, wie die App sie gerechnet hat)
+function mgApplyAmt(lines, amt) {
+  if (!amt) return lines;
+  return lines.flatMap(i => {
+    if (!(i.name in amt)) return [i];
+    const g = amt[i.name];
+    return g > 0 ? [{ ...mgLine(i.name, g, { unit: i.unit, sub: i.sub, dayAlt: i.dayAlt, extra: i.extra }), own: true }] : [];
+  });
+}
 
 function mgShuffle(a) {
   const r = a.slice();
@@ -529,8 +540,8 @@ function mgDay(date = todayISO(), picks = mgPicks(), live = false) {
   const tgt = mgDayTarget(date, live);
   if (!tgt) return null;
   const { goal, T, keys, open, eaten } = tgt, wd = mgWd(date);
-  const alt = mgDayAlt(date) || {};
-  const sig = JSON.stringify([wd, keys, open, keys.map(k => (mgPickD(picks, date, k) || {}).id), mgPrefSig(), T.kcal, T.protein, T.carbs, T.fat, eaten && Math.round(eaten.kcal), unitLb(), alt]);
+  const alt = mgDayAlt(date) || {}, amt = mgDayAmt(date) || {};
+  const sig = JSON.stringify([wd, keys, open, keys.map(k => (mgPickD(picks, date, k) || {}).id), mgPrefSig(), T.kcal, T.protein, T.carbs, T.fat, eaten && Math.round(eaten.kcal), unitLb(), alt, amt]);
   if (mgCache.has(sig)) return mgCache.get(sig);
   const x = mgX();
   // „Gerade nicht da?“: für diesen Tag gewählte Alternativen einsetzen
@@ -549,6 +560,7 @@ function mgDay(date = todayISO(), picks = mgPicks(), live = false) {
       if (has) Object.assign(has, mgLine(it.n, has.g + g, { unit: has.unit, sub: has.sub }));
       else meals[sl.k].push(mgLine(it.n, g, { unit: it.unit || null, sub: it.sub, extra: true }));
     });
+    meals[sl.k] = mgApplyAmt(meals[sl.k], amt[sl.k]);
     meals[sl.k].forEach(i => { tot[0] += i.kcal; tot[1] += i.p; tot[2] += i.c; tot[3] += i.f; });
   }
   const out = { label: 'Ernährungsplan', meals, recipes, goal, eaten, kcal: Math.round(tot[0]), p: Math.round(tot[1]), c: Math.round(tot[2]), f: Math.round(tot[3]) };
@@ -626,17 +638,37 @@ function mgPrefsCard() {
   return h;
 }
 
-// Zutatenzeile im Gericht, mit ⇄ für Alternativen („Gerade nicht da?“)
-function mgItemLi(k, i, items) {
+// Zutatenzeile im Gericht: Menge antippen = ändern, ⇄ = andere Zutat (v391: auch in der Inspiration, c = 'plan' oder 'i:Rezept-ID')
+let mgAmtOpen = null;   // offene Mengen-Eingabe: 'c|Mahlzeit|Zutat'
+let mgAltMore = false;  // bei den Alternativen auch alle übrigen Lebensmittel der Gruppe zeigen
+const mgAmtUnit = i => i.unit ? 'Stück' : unitLb() ? 'oz' : 'g';
+const mgAmtVal = (i, g) => i.unit ? Math.max(0, Math.round(g / i.unit)) : unitLb() ? Math.round(g / OZ_G * 10) / 10 : Math.round(g);
+function mgItemLi(k, i, items, c = 'plan') {
   const base = i.dayAlt ? i.sub : i.name, x = mgX(), have = items.map(j => j.name);
-  const opts = i.extra ? [] : [...(i.dayAlt ? [base] : []), ...(MG_ALT[base] || [])]
+  const near = i.extra ? [] : [...(i.dayAlt ? [base] : []), ...(MG_ALT[base] || [])]
     .filter((m, ix, a) => a.indexOf(m) === ix && m !== i.name && mgOk(m, x) && !have.includes(m));
-  const open = opts.length && mgAltOpen === `${k}|${base}`;
-  let h = `<li class="${i.dayAlt ? 'mg-swapped' : ''}"><span class="mg-g">${amtTxt(i.g)}</span><span class="mg-n"><span>${esc(i.name)}</span>${i.unit ? ` <small>(${Math.round(i.g / i.unit)} Stück)</small>` : ''}${i.sub ? ` <small>statt ${esc(i.sub)}</small>` : ''}${i.extra ? ' <small>zusätzlich</small>' : ''}</span>${opts.length ? `<button class="mg-alt-btn ${open ? 'on' : ''}" data-action="mg-alt" data-k="${k}" data-b="${esc(base)}" aria-expanded="${!!open}" aria-label="Alternativen">⇄</button>` : ''}</li>`;
-  if (open) h += `<li class="mg-alt-panel"><p class="hint nut-small">${i.dayAlt ? 'Andere Zutat nehmen:' : 'Gerade nicht da? Nimm stattdessen:'}</p>
-      <div class="variants">${opts.map(m => `<button class="vchip" data-action="mg-alt-set" data-k="${k}" data-b="${esc(base)}" data-n="${esc(m)}">${m === base ? '↺ ' : ''}${esc(mgShort(m))}</button>`).join('')}</div>
-      ${i.dayAlt ? `<button class="btn mg-alt-pin" data-action="mg-alt-pin" data-b="${esc(base)}" data-n="${esc(i.name)}">📌 In allen Gerichten so ersetzen</button>` : ''}
-      <p class="hint nut-small">Die Menge rechnet die App passend um. Das gilt nur für diese Mahlzeit an diesem Tag.</p></li>`;
+  const gi = mgGroupOf(base);
+  const more = i.extra ? [] : ptChoices().filter(m => mgGroupOf(m) === gi && m !== i.name && m !== base && !near.includes(m) && !have.includes(m))
+    .sort((a, b) => tr(mgShort(a)).localeCompare(tr(mgShort(b)), LOCALE()));
+  const altKey = `${c}|${k}|${base}`, amtKey = `${c}|${k}|${i.name}`;
+  const open = mgAltOpen === altKey, amtOpen = mgAmtOpen === amtKey, canAlt = near.length || more.length;
+  const d = `data-c="${esc(c)}" data-k="${k}"`;
+  let h = `<li class="${i.dayAlt ? 'mg-swapped' : ''}${i.own ? ' mg-own' : ''}"><button class="mg-g mg-g-btn" data-action="mg-amt" ${d} data-n="${esc(i.name)}" aria-expanded="${amtOpen}" aria-label="Menge ändern">${amtTxt(i.g)}</button><span class="mg-n"><span>${esc(i.name)}</span>${i.unit ? ` <small>(${Math.round(i.g / i.unit)} Stück)</small>` : ''}${i.sub ? ` <small>statt ${esc(i.sub)}</small>` : ''}${i.extra ? ' <small>zusätzlich</small>' : ''}${i.own ? ' <small>selbst geändert</small>' : ''}</span>${canAlt ? `<button class="mg-alt-btn ${open ? 'on' : ''}" data-action="mg-alt" ${d} data-b="${esc(base)}" aria-expanded="${open}" aria-label="Andere Zutat">⇄</button>` : ''}</li>`;
+  if (amtOpen) h += `<li class="mg-alt-panel mg-amt-panel"><div class="mg-amt-row">
+        <button class="icon-btn" data-action="mg-amt-step" data-d="-1" aria-label="Weniger">−</button>
+        <input class="inp kg" id="mg-amt-in" type="text" inputmode="decimal" autocomplete="off" value="${fmtNum(mgAmtVal(i, i.g))}" data-unit="${i.unit || ''}">
+        <span class="mg-amt-u">${mgAmtUnit(i)}</span>
+        <button class="icon-btn" data-action="mg-amt-step" data-d="1" aria-label="Mehr">＋</button>
+        <button class="btn small primary" data-action="mg-amt-ok" ${d} data-n="${esc(i.name)}" data-unit="${i.unit || ''}">OK</button></div>
+      <p class="hint nut-small">Die übrigen Zutaten bleiben, wie sie sind. 0 nimmt die Zutat heraus.</p>
+      ${i.own ? `<button class="btn small" data-action="mg-amt-reset" ${d} data-n="${esc(i.name)}">↺ Menge der App</button>` : ''}</li>`;
+  if (open) h += `<li class="mg-alt-panel"><p class="hint nut-small">${i.dayAlt ? 'Andere Zutat nehmen:' : 'Stattdessen nehmen:'}</p>
+      ${near.length ? `<div class="variants">${near.map(m => `<button class="vchip" data-action="mg-alt-set" ${d} data-b="${esc(base)}" data-n="${esc(m)}">${m === base ? '↺ ' : ''}${esc(mgShort(m))}</button>`).join('')}</div>` : ''}
+      ${more.length ? (mgAltMore || !near.length ? `<p class="hint nut-small">Weitere aus „${esc(MG_GROUPS[gi][0])}“:</p>
+        <div class="variants">${more.map(m => `<button class="vchip" data-action="mg-alt-set" ${d} data-b="${esc(base)}" data-n="${esc(m)}">${esc(mgShort(m))}</button>`).join('')}</div>`
+        : `<button class="btn small" data-action="mg-alt-more">＋ Weitere Lebensmittel (${more.length})</button>`) : ''}
+      ${i.dayAlt && c === 'plan' ? `<button class="btn mg-alt-pin" data-action="mg-alt-pin" data-b="${esc(base)}" data-n="${esc(i.name)}">📌 In allen Gerichten so ersetzen</button>` : ''}
+      <p class="hint nut-small">Die Menge rechnet die App passend um. ${c === 'plan' ? 'Das gilt nur für diese Mahlzeit an diesem Tag.' : 'Das gilt für dieses Gericht.'}</p></li>`;
   return h;
 }
 
@@ -654,7 +686,7 @@ function renderMealPlan() {
   let h = `<div class="card mg-head">
       <h2>🍽️ ${mgDraft ? 'Vorschlag für deinen Ernährungsplan' : 'Dein Ernährungsplan'}</h2>
       <p class="hint nut-small">Die Mengen richten sich jeden Tag nach deinem Tagesziel. Ändert sich dein Ziel, passt die App sie von selbst an.
-        Gefällt dir ein Gericht nicht, tausch es mit „⇄ Anderes Gericht“. Fehlt dir eine Zutat, tipp in ihrer Zeile auf ⇄.</p>
+        Gefällt dir ein Gericht nicht, tausch es mit „⇄ Anderes Gericht“. Fehlt dir eine Zutat, tipp in ihrer Zeile auf ⇄. Eine Menge änderst du, indem du sie antippst.</p>
       ${mgDraft ? `<button class="btn primary" data-action="mg-accept">✔ Plan übernehmen</button>
         <p class="hint nut-small">Danach steht im Ernährungstagebuch bei jeder Mahlzeit, was geplant ist, und du trägst sie mit „✔ Wie geplant“ ein.</p>`
         : '<button class="btn nav" data-action="mg-shop">🛒 Einkaufsliste<small>Alle Zutaten für die nächsten Tage zusammengerechnet</small></button>' + ptOpenBtn()}
@@ -814,6 +846,24 @@ function mgPrefsSet(p) {
   render();
 }
 
+// v391: Menge setzen (g; null = wieder die Menge der App), im Plan je Tag und Mahlzeit, in der Inspiration je Gericht
+function mgAmtSet(c, k, n, g) {
+  if (c && c.startsWith('i:')) {
+    const md = inspoModOf(c.slice(2));
+    if (g == null) delete md.amt[n]; else md.amt[n] = g;
+  } else {
+    const p = mgPlanObj();
+    if (!p) return;
+    const all = p.amt = p.amt || {}, day = all[mgSel] = { ...(all[mgSel] || {}) }, m = day[k] = { ...(day[k] || {}) };
+    if (g == null) delete m[n]; else m[n] = g;
+    if (!Object.keys(m).length) delete day[k];
+    if (!Object.keys(day).length) delete all[mgSel];
+    mgCache.clear();
+    if (!mgDraft) saveData();
+  }
+  mgAmtOpen = null;
+  render();
+}
 Object.assign(actions, {
   'mg-open': () => {
     mgSel = todayISO(); mgPrefsOpen = null; mgAltOpen = null;
@@ -823,6 +873,7 @@ Object.assign(actions, {
       for (const d of Object.keys(data.mealPlan.alt)) if (d < old) delete data.mealPlan.alt[d];
     }
     if (data.mealPlan && data.mealPlan.over) { const old = addDaysISO(todayISO(), -1); for (const d of Object.keys(data.mealPlan.over)) if (d < old) delete data.mealPlan.over[d]; }
+    if (data.mealPlan && data.mealPlan.amt) { const old = addDaysISO(todayISO(), -1); for (const d of Object.keys(data.mealPlan.amt)) if (d < old) delete data.mealPlan.amt[d]; }
     go('mealplan');
   },
   'go-nutrition': () => go('nutrition'),
@@ -851,15 +902,44 @@ Object.assign(actions, {
     render();
   },
   // Alternativen zu einer Zutat auf- und zuklappen
-  'mg-alt': el => { const id = `${el.dataset.k}|${el.dataset.b}`; mgAltOpen = mgAltOpen === id ? null : id; render(); },
+  'mg-alt': el => { const id = `${el.dataset.c || 'plan'}|${el.dataset.k}|${el.dataset.b}`; mgAltOpen = mgAltOpen === id ? null : id; mgAmtOpen = null; mgAltMore = false; render(); },
+  'mg-alt-more': () => { mgAltMore = true; render(); },
+  // v391: Menge einer Zutat ändern
+  'mg-amt': el => { const id = `${el.dataset.c || 'plan'}|${el.dataset.k}|${el.dataset.n}`; mgAmtOpen = mgAmtOpen === id ? null : id; mgAltOpen = null; render();
+    const inp = document.getElementById('mg-amt-in'); if (inp) { inp.focus(); inp.select(); } },
+  'mg-amt-step': el => {
+    const inp = document.getElementById('mg-amt-in');
+    if (!inp) return;
+    const st = inp.dataset.unit ? 1 : unitLb() ? 0.5 : 10, v = parseNum(inp.value) || 0;
+    inp.value = fmtNum(Math.max(0, Math.round((v + st * Number(el.dataset.d)) / st) * st));
+  },
+  'mg-amt-ok': el => {
+    const inp = document.getElementById('mg-amt-in'), v = inp ? parseNum(inp.value) : NaN;
+    const u = Number(el.dataset.unit) || 0;
+    if (u && !(v >= 0 && v <= 30)) { alert('Bitte zwischen 0 und 30 Stück eintragen.'); return; }
+    if (!(v >= 0) || v > 5000) { alert('Bitte eine Menge zwischen 0 und 5.000 eintragen.'); return; }
+    const g = u ? Math.round(v) * u : unitLb() ? Math.round(v * OZ_G) : Math.round(v);
+    mgAmtSet(el.dataset.c, el.dataset.k, el.dataset.n, g);
+  },
+  'mg-amt-reset': el => mgAmtSet(el.dataset.c, el.dataset.k, el.dataset.n, null),
   // Zutat für diese Mahlzeit an diesem Tag ersetzen (Auswahl der ursprünglichen Zutat = zurück)
   'mg-alt-set': el => {
+    const { c, k, b, n } = el.dataset;
+    if (c && c.startsWith('i:')) {  // Inspiration: nur dieses Gericht, nur bis zum Verlassen der Ansicht
+      const md = inspoModOf(c.slice(2)), old = md.alt[b] || b;
+      if (n === b) delete md.alt[b]; else md.alt[b] = n;
+      delete md.amt[old]; delete md.amt[n];
+      mgAltOpen = null; render(); return;
+    }
     const p = mgPlanObj();
     if (!p) return;
-    const { k, b, n } = el.dataset, alt = p.alt = p.alt || {}, day = alt[mgSel] = { ...(alt[mgSel] || {}) }, m = day[k] = { ...(day[k] || {}) };
+    const alt = p.alt = p.alt || {}, day = alt[mgSel] = { ...(alt[mgSel] || {}) }, m = day[k] = { ...(day[k] || {}) }, old = m[b] || b;
     if (n === b) delete m[b]; else m[b] = n;
     if (!Object.keys(m).length) delete day[k];
     if (!Object.keys(day).length) delete alt[mgSel];
+    const a = p.amt && p.amt[mgSel] && p.amt[mgSel][k];  // selbst geänderte Menge gehört zur alten Zutat
+    if (a) { delete a[old]; delete a[n]; }
+    mgAltOpen = null;
     mgCache.clear();
     if (!mgDraft) saveData();
     render();
@@ -1146,6 +1226,10 @@ Object.assign(actions, {
    Lieblingszutaten etwas weiter vorn. Je Seite INSPO_N Ideen, „Andere Ideen“ blättert weiter. */
 const INSPO_N = 6, INSPO_MIN_KCAL = 80;
 let inspoOpen = null, inspoPage = 0;
+// v391: geänderte Zutaten und Mengen je Gericht (nur solange die Ansicht offen ist): { Rezept-ID: { alt: { Zutat: statt }, amt: { Zutat: g } } }
+let inspoMod = {};
+const inspoModOf = id => inspoMod[id] || (inspoMod[id] = { alt: {}, amt: {} });
+const inspoModded = id => { const m = inspoMod[id]; return !!m && (Object.keys(m.alt).length > 0 || Object.keys(m.amt).length > 0); };
 const inspoCache = new Map();
 // Ziel einer Mahlzeit: Anteil am noch offenen Tagesziel (null = ohne Tagesziel)
 function inspoTarget(date, k) {
@@ -1156,11 +1240,18 @@ function inspoTarget(date, k) {
   return { tgt, open, T: { kcal: tgt.T.kcal * f, protein: tgt.T.protein * f, carbs: tgt.T.carbs * f, fat: tgt.T.fat * f } };
 }
 const inspoScaled = it => !!it && it.T.kcal >= INSPO_MIN_KCAL;
-function inspoLines(k, r, it) {
-  const its = mgItems(r) || [];
-  if (!inspoScaled(it)) return its.map(i => mgLine(i.n, i.g, { unit: i.unit || null, sub: i.sub }));
-  const [sl] = mgSolve([{ k, r, its }], it.T, [], mgPLo(it.tgt.goal, it.tgt.T, it.tgt.keys, it.open));
-  return mgSlotLines(sl);
+function inspoLines(k, r, it, mod) {
+  const its = mgApplyAlt(mgItems(r) || [], mod && mod.alt);
+  let lines;
+  if (!inspoScaled(it)) lines = its.map(i => mgLine(i.n, i.g, { unit: i.unit || null, sub: i.sub, dayAlt: i.dayAlt || false }));
+  else { const [sl] = mgSolve([{ k, r, its }], it.T, [], mgPLo(it.tgt.goal, it.tgt.T, it.tgt.keys, it.open)); lines = mgSlotLines(sl); }
+  return mgApplyAmt(lines, mod && mod.amt);
+}
+// ein Gericht der Liste mit den eigenen Änderungen (falls es welche gibt)
+function inspoWithMod(m, k, it) {
+  if (!inspoModded(m.r.id)) return m;
+  const lines = inspoLines(k, m.r, it, inspoMod[m.r.id]), s2 = inspoSum(lines);
+  return { ...m, lines, s: s2, err: inspoScaled(it) ? inspoErr(s2, it.T) : 0, mod: true };
 }
 const inspoSum = lines => lines.reduce((a, i) => ({ kcal: a.kcal + i.kcal, p: a.p + i.p, c: a.c + i.c, f: a.f + i.f }), { kcal: 0, p: 0, c: 0, f: 0 });
 // Abweichung vom Ziel der Mahlzeit (0 = trifft genau); zu viel Eiweiß ist kein Fehler
@@ -1197,15 +1288,16 @@ function renderInspo(p) {
   let h = `<div class="card inspo-head"><h2><span>💡 Ideen für</span> <span>${esc(lbl)}</span></h2>
       ${keys.length > 1 ? `<div class="variants">${keys.map(q => `<button class="vchip ${q === k ? 'on' : ''}" data-action="inspo-meal" data-k="${q}">${esc(mealLabel(q))}</button>`).join('')}</div>` : ''}
       <p class="hint nut-small">${info}</p>
-      <p class="hint nut-small">Die Gerichte kommen aus dem Fundus des Ernährungsplans und passen zu deinen Vorlieben.</p></div>`;
-  if (!list.length) return h + '<p class="hint">Zu deinen Vorlieben passt hier gerade kein Gericht.</p>';
-  h += `<div class="card pt-res inspo-list">${shown.map(m => {
-    const open = inspoOpen === m.r.id;
+      <p class="hint nut-small">Die Gerichte kommen aus dem Fundus des Ernährungsplans und passen zu deinen Vorlieben.</p></div>${mgPrefsCard()}`;  // v390: Vorlieben direkt hier einstellbar
+  if (!list.length) return h + '<p class="hint">Zu deinen Vorlieben passt hier gerade kein Gericht. Tipp oben auf „⚙️ Vorlieben“, um sie anzupassen.</p>';
+  h += `<div class="card pt-res inspo-list">${shown.map(m0 => {
+    const m = inspoWithMod(m0, k, it), open = inspoOpen === m.r.id;
     return `<div class="pt-r ${open ? 'open' : ''}">
         <button class="pt-r-head" data-action="inspo-open" data-id="${m.r.id}" aria-expanded="${open}"><b>${esc(m.r.name)}</b>
           <small class="inspo-mac"><span>${nutKcal(m.s.kcal)} kcal</span> | <span>Eiweiß ${Math.round(m.s.p)} g</span> | <span>KH ${Math.round(m.s.c)} g</span> | <span>Fett ${Math.round(m.s.f)} g</span>${inspoScaled(it) ? ` | <span class="inspo-fit">${inspoFit(m.err)}</span>` : ''}</small></button>
         ${open ? `<div class="pt-detail">
-          <ul class="mg-items">${m.lines.map(i => `<li><span class="mg-g">${amtTxt(i.g)}</span><span class="mg-n"><span>${esc(i.name)}</span>${i.unit ? ` <small>(${Math.round(i.g / i.unit)} Stück)</small>` : ''}${i.sub ? ` <small>statt ${esc(i.sub)}</small>` : ''}</span></li>`).join('')}</ul>
+          <ul class="mg-items">${m.lines.map(i => mgItemLi(k, i, m.lines, 'i:' + m.r.id)).join('')}</ul>
+          <p class="hint nut-small">Tipp auf eine Menge, um sie zu ändern, oder auf ⇄, um eine Zutat zu tauschen.${m.mod ? ' <button class="link-btn" data-action="inspo-mod-reset" data-id="' + m.r.id + '">↺ Alles wie vorgeschlagen</button>' : ''}</p>
           <p class="hint nut-small mg-how">${esc(m.r.how)}</p>
           <div class="row mg-btns">
             <button class="btn primary" data-action="inspo-log" data-id="${m.r.id}">✔ Eintragen</button>
@@ -1219,12 +1311,14 @@ function renderInspo(p) {
 views.inspo = { title: 'Inspiration', tab: 'nutrition', back: p => ['food', { date: p.date }], render: renderInspo };
 
 const inspoFind = id => { const p = current.params, date = p.date || todayISO(), k = mealKeys().includes(p.meal) ? p.meal : mealKeys()[0];
-  return { date, k, m: inspoList(date, k).find(x => x.r.id === id) }; };
+  const m = inspoList(date, k).find(x => x.r.id === id);
+  return { date, k, m: m && inspoWithMod(m, k, inspoTarget(date, k)) }; };
 Object.assign(actions, {
-  'food-inspo': el => { inspoOpen = null; inspoPage = 0; go('inspo', { date: el.dataset.date || todayISO(), meal: el.dataset.meal }); },
-  'inspo-meal': el => { current.params.meal = el.dataset.k; inspoOpen = null; inspoPage = 0; render(); },
+  'food-inspo': el => { inspoOpen = null; inspoPage = 0; inspoMod = {}; mgAltOpen = null; mgAmtOpen = null; mgPrefsOpen = false; go('inspo', { date: el.dataset.date || todayISO(), meal: el.dataset.meal }); },
+  'inspo-meal': el => { current.params.meal = el.dataset.k; inspoOpen = null; inspoPage = 0; inspoMod = {}; mgAltOpen = null; mgAmtOpen = null; render(); },
+  'inspo-mod-reset': el => { delete inspoMod[el.dataset.id]; mgAltOpen = null; mgAmtOpen = null; render(); },
   'inspo-more': () => { inspoPage++; inspoOpen = null; render(); window.scrollTo(0, 0); },
-  'inspo-open': el => { inspoOpen = inspoOpen === el.dataset.id ? null : el.dataset.id; render(); },
+  'inspo-open': el => { inspoOpen = inspoOpen === el.dataset.id ? null : el.dataset.id; mgAltOpen = null; mgAmtOpen = null; render(); },
   'inspo-log': el => {
     const { date, k, m } = inspoFind(el.dataset.id);
     if (!m) return;
@@ -1241,7 +1335,12 @@ Object.assign(actions, {
     const { date, k, m } = inspoFind(el.dataset.id), p = data.mealPlan;
     if (!m || !p) return;
     p.over = p.over || {}; p.over[date] = { ...(p.over[date] || {}), [k]: m.r.id };
-    if (p.alt && p.alt[date]) delete p.alt[date][k];
+    const md = inspoMod[m.r.id] || { alt: {}, amt: {} };  // v391: getauschte Zutaten und geänderte Mengen mitnehmen
+    for (const [key, v] of [['alt', md.alt], ['amt', md.amt]]) {
+      const all = p[key] = p[key] || {}, day = all[date] = { ...(all[date] || {}) };
+      if (Object.keys(v).length) day[k] = { ...v }; else delete day[k];
+      if (!Object.keys(day).length) delete all[date];
+    }
     mgCache.clear(); inspoCache.clear();
     saveData();
     toast('📋 Eingeplant ✔');

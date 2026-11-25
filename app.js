@@ -6978,6 +6978,13 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 391, date: '2026-11-25', items: [
+    ['Ernährungsplan und Inspiration: Mengen lassen sich jetzt ändern. Einfach die Menge einer Zutat antippen, neue Menge eintragen (0 nimmt die Zutat heraus). Die übrigen Zutaten bleiben, wie sie sind.'],
+    ['Zutaten tauschen geht jetzt auch in der Inspiration. Neben den passenden Vorschlägen gibt es unter „Weitere Lebensmittel“ alles aus derselben Gruppe, die Menge rechnet die App passend um. Beim Einplanen werden die Änderungen übernommen.'],
+  ] },
+  { v: 390, date: '2026-11-25', items: [
+    ['Inspiration im Ernährungstagebuch: Oben gibt es jetzt die Karte „⚙️ Vorlieben“. Dort stellst du vegetarisch, vegan oder pescetarisch ein und was du nicht isst (z. B. Milchprodukte, Ei, Nüsse, Gluten, Soja). Die Ideen passen sich sofort an. Die Einstellung gilt auch für den Ernährungsplan.'],
+  ] },
   { v: 389, date: '2026-11-25', items: [
     ['Der Stil „Cyberpunk“ heißt jetzt „2077“.'],
     ['Dojo: Am See vor der Pagode übt jetzt ein kleiner Samurai mit seinem Schwert.'],
