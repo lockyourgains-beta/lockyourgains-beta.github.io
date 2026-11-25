@@ -3446,7 +3446,8 @@ function syncTrHead() {
 
 // Details je Übung (v200): Kommentar, Ersetzen, Max., Steigerung, Ausführung und Werte vom letzten Mal sind zugeklappt.
 // Die letzte Wahl (auf/zu) gilt als Vorgabe fürs nächste Training (profile.trDetails).
-const detOpen = en => en.detOpen != null ? en.detOpen : !!(data.profile && data.profile.trDetails);
+// v389 (User 2026-11-25): Knopf „Anpassen“ im Training entfernt, die Details bleiben zu (Max. kg erscheint nur, wenn es fehlt)
+const detOpen = () => false;
 // Satz-Zustand für die Felder: erledigt (grün) – Vorschlag, noch nicht angefasst (grau) – selbst eingetragen
 const setState = s => isDone(s) ? 'done' : s.touched ? '' : 'prop';
 function markSets(ei) {
@@ -4290,6 +4291,8 @@ const views = {
 // (localStorage, gehört nicht in die Sicherung). „Alle Einführungen noch einmal zeigen“ setzt sie zurück.
 const VISIT_KEY = 'trainingsapp-besuche', EXPLAIN_AFTER = 2;
 let explainOpen = new Set();  // auf dieser Seite wieder aufgeklappte Erklärungen (bis zum Seitenwechsel)
+let explainShut = new Set();  // v389: auf dieser Seite selbst zugeklappte Erklärungen (bis zum Seitenwechsel)
+const EXPLAIN_BTN = open => open ? '▴ Erklärung ausblenden' : '? Erklärung';
 const visitKey = (view, p) => view + (p && p.sec ? ':' + p.sec : '');
 function visitsLoad() {
   try { const o = JSON.parse(localStorage.getItem(VISIT_KEY)); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; }
@@ -4302,15 +4305,15 @@ function visitAdd(k) {
 function visitsReset() { try { localStorage.removeItem(VISIT_KEY); } catch (e) { /* egal */ } }
 const explainKeep = () => !!(data.profile && data.profile.explainKeep);
 const explainId = p => p.textContent.replace(/\s+/g, ' ').trim().slice(0, 80);
+// v389 (User 2026-11-25): Jede Erklärung hat einen Umschalter und lässt sich auch sofort wieder zuklappen
 function explainFold() {
-  if (explainKeep()) return;
-  if ((visitsLoad()[visitKey(current.view, current.params)] || 0) <= EXPLAIN_AFTER) return;
+  const auto = !explainKeep() && (visitsLoad()[visitKey(current.view, current.params)] || 0) > EXPLAIN_AFTER;
   let n = 0;
   $view.querySelectorAll('.explain').forEach(p => {
-    if (explainOpen.has(explainId(p))) return;
-    p.classList.add('folded');
-    p.insertAdjacentHTML('beforebegin', '<button class="explain-q" data-action="explain-show" aria-expanded="false">? Erklärung</button>');
-    n++;
+    const id = explainId(p), shut = explainShut.has(id) || (auto && !explainOpen.has(id));
+    if (shut) p.classList.add('folded');
+    p.insertAdjacentHTML('beforebegin', `<button class="explain-q ${shut ? '' : 'open'}" data-action="explain-show" aria-expanded="${!shut}">${EXPLAIN_BTN(!shut)}</button>`);
+    if (shut && auto && !explainShut.has(id)) n++;
   });
   // v239 (User 2026-11-14): beim ersten Zuklappen einmal sagen, was passiert ist
   if (n && !data.foldHintSeen) {
@@ -4332,7 +4335,7 @@ function go(view, params = {}) {
   exRename = null;  // offenes Umbenennen-Feld schließt beim Wechsel der Ansicht
   if (!current || current.view !== view || (params.id && params.id !== current.params.id)) dayReorder = null;
   const vk = visitKey(view, params);
-  if (!current || visitKey(current.view, current.params) !== vk) { visitAdd(vk); explainOpen = new Set(); painQuick = null; }
+  if (!current || visitKey(current.view, current.params) !== vk) { visitAdd(vk); explainOpen = new Set(); explainShut = new Set(); painQuick = null; }
   current = { view, params };
   render();
   window.scrollTo(0, 0);
@@ -5055,8 +5058,6 @@ function renderTraining() {
         <h2>${pr ? `<span class="ss-badge" aria-label="Übung ${pr.role} im Supersatz">${pr.role}</span>` : ''}${libEntry(en.name) ? `<button class="lib-link" data-action="lib-open" data-name="${esc(en.name)}"
           aria-label="Ausführung ansehen">${exTitleHtml(en.name)} <span class="info-dot">i</span></button>` : exTitleHtml(en.name)}</h2>
         <button class="det-btn ord-btn" data-action="reorder-toggle" data-ei="${ei}" aria-label="Reihenfolge ändern">⇅</button>
-        ${feat('tr-max') || feat('tr-variants') || feat('tr-compare') ? `<button class="det-btn" data-action="ex-details" data-ei="${ei}" aria-expanded="${det}">Anpassen
-          <span class="chev" aria-hidden="true">▾</span></button>` : ''}
         ${`<div class="ex-tools">
           ${feat('tr-comment') ? `<button class="icon-btn bubble ${hasComment ? 'has' : ''}" data-action="comment-toggle"
             data-ei="${ei}" aria-label="Kommentar">💬 Kommentar</button>` : ''}
@@ -6977,6 +6978,13 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 389, date: '2026-11-25', items: [
+    ['Der Stil „Cyberpunk“ heißt jetzt „2077“.'],
+    ['Dojo: Am See vor der Pagode übt jetzt ein kleiner Samurai mit seinem Schwert.'],
+    ['Optionen → Aussehen: Farbwelt und Darstellung stehen jetzt direkt unter den normalen Stilen, die Spezial-Stile darunter.'],
+    ['Erklärungen lassen sich jetzt jederzeit ein- und wieder ausklappen, auch gleich beim ersten Besuch einer Seite.'],
+    ['Training: Der Knopf „Anpassen“ an den Übungen ist weg. Die Ausführung änderst du weiter über die Satznummer, Steigerung und Max. kg im Plan.'],
+  ] },
   { v: 387, date: '2026-11-24', items: [
     ['Über die App: Die Lizenzangaben nennen jetzt auch die Schriften der Spezial-Stile und das Hintergrundfoto im Stil Cyberpunk.'],
   ] },
@@ -10439,7 +10447,7 @@ for (const k of ['alert', 'confirm', 'prompt']) {
 }
 // Stile (v234): drei neue Designs, dazu die bisherigen „Standard“ und „Schlicht“. Ohne Angabe im Profil (neue Nutzer, seit v292): Standard.
 // v290 (User-Wunsch): „Schwarzweiß“ (bw) gestrichen, damit alle Stile in eine Zeile passen; gespeichertes bw wird über currentLook zu Kraftraum
-const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht', retro: '80er', golden: 'Golden Era', cyber: 'Cyberpunk', space: 'Raumfahrt', dojo: 'Dojo', garage: 'Garage-Gym', aero: 'Y2K', viking: 'Wikinger' };
+const LOOKS = { kraft: 'Kraftraum', log: 'Logbuch', sheet: 'Puristen', '': 'Standard', plain: 'Schlicht', retro: '80er', golden: 'Golden Era', cyber: '2077', space: 'Raumfahrt', dojo: 'Dojo', garage: 'Garage-Gym', aero: 'Y2K', viking: 'Wikinger' };
 // v378 (User-Wunsch 2026-11-24): Spezial-Stile mit festen Farben und fester Darstellung, eigene Kategorie in den Optionen; Farbwelt und Darstellung entfallen dort
 const LOOK_SPECIAL = { retro: 'dark', golden: 'light', cyber: 'dark', space: 'dark', dojo: 'light', garage: 'dark', aero: 'light', viking: 'dark' };  // v382: fünf weitere
 const lookSpecial = (l = currentLook()) => l in LOOK_SPECIAL;  // v370: 80er (Synthwave, immer dunkel)  // v248: Puristen = Tabellen-Optik
@@ -10481,9 +10489,7 @@ function appearanceCard() {
       <p class="hint nut-small" data-nounit>Gewichte in kg oder lb. Bei lb sind auch Körpergröße und Maße in Zoll und Lebensmittel-Mengen in Unzen (oz). Deine Daten bleiben erhalten, du kannst jederzeit wechseln.</p>
       <p class="lbl">Stil</p>
       <div class="variants look-pick">${Object.entries(LOOKS).filter(([k]) => !lookSpecial(k)).map(look).join('')}</div>
-      <p class="lbl">Spezial</p>
-      <div class="variants look-pick look-special">${Object.entries(LOOKS).filter(([k]) => lookSpecial(k)).map(look).join('')}</div>
-      ${special ? `<p class="hint look-special-note">Im Stil „${LOOKS[currentLook()]}“ sind Farben und Darstellung fest vorgegeben. Farbwelt und Hell oder Dunkel kannst du wieder wählen, sobald du oben einen anderen Stil nimmst.</p>` : `<p class="lbl">Farbwelt</p>
+      ${special ? `<p class="hint look-special-note">Im Stil „${LOOKS[currentLook()]}“ sind Farben und Darstellung fest vorgegeben. Farbwelt und Hell oder Dunkel kannst du wieder wählen, sobald du einen der Stile oben nimmst.</p>` : `<p class="lbl">Farbwelt</p>
       <div class="color-grid">${Object.entries(PROFILE_COLORS).map(([k, c]) => tile(k, c)).join('')}</div>
       <p class="lbl">Darstellung</p>
       <div class="seg three">${Object.entries(THEME_MODES).map(([k, l]) =>
@@ -10492,6 +10498,8 @@ function appearanceCard() {
       <p class="hint explain">Im Stil Standard färben die meisten Farbwelten auch den Hintergrund ein, in allen anderen Stilen bleibt er neutral.
         „Automatisch“ folgt der Einstellung deines Handys (hell/dunkel),
         „Hell“ und „Dunkel“ gelten immer. Jede Farbwelt gibt es in beiden Varianten.</p>`}
+      <p class="lbl">Spezial</p>
+      <div class="variants look-pick look-special">${Object.entries(LOOKS).filter(([k]) => lookSpecial(k)).map(look).join('')}</div>
       <p class="lbl">Übungen im Training</p>
       <div class="seg two tr-viewmode"><button class="${trSwipeOn() ? '' : 'on'}" data-action="tr-swipe" data-v="0">↕ Untereinander</button>
         <button class="${trSwipeOn() ? 'on' : ''}" data-action="tr-swipe" data-v="1">↔ Wischen</button></div>
@@ -10968,10 +10976,15 @@ actions['pain-save'] = () => {
   render();
 };
 // Erklärtexte (v209)
-actions['explain-show'] = el => {
+actions['explain-show'] = el => {  // v389: auf und zu
   const p = el.nextElementSibling;
-  if (p && p.classList.contains('explain')) { p.classList.remove('folded'); explainOpen.add(explainId(p)); }
-  el.remove();
+  if (!p || !p.classList.contains('explain')) return;
+  const id = explainId(p), open = p.classList.contains('folded');
+  p.classList.toggle('folded', !open);
+  if (open) { explainOpen.add(id); explainShut.delete(id); } else { explainShut.add(id); explainOpen.delete(id); }
+  el.classList.toggle('open', open);
+  el.setAttribute('aria-expanded', String(open));
+  el.textContent = typeof tr === 'function' ? tr(EXPLAIN_BTN(open)) : EXPLAIN_BTN(open);
 };
 actions['explain-mode'] = el => {
   data.profile = { ...(data.profile || {}), explainKeep: el.dataset.v === '1' };

@@ -146,7 +146,7 @@ function aboutRights() {
       (© The Schibsted-Grotesk Project Authors), Arimo (© The Arimo Project Authors), Orbitron, Share Tech Mono, Alfa Slab One, Oswald,
       Chakra Petch, Michroma, Space Mono, Shippori Mincho, Black Ops One, Nunito und Cinzel (jeweils © die Autoren des Projekts), unter der
       <a href="https://openfontlicense.org" target="_blank" rel="noopener">SIL Open Font License 1.1</a>. Die Lizenztexte liegen im Ordner fonts.</p>
-    <p><b>Hintergrundfoto</b> im Stil Cyberpunk: „Victoria Harbour skyscrapers“ von Wilfredor, Wikimedia Commons, gemeinfrei
+    <p><b>Hintergrundfoto</b> im Stil 2077: „Victoria Harbour skyscrapers“ von Wilfredor, Wikimedia Commons, gemeinfrei
       (<a href="https://creativecommons.org/publicdomain/zero/1.0/deed.de" target="_blank" rel="noopener">CC0</a>), eingefärbt.</p>
   </div>`;
 }
