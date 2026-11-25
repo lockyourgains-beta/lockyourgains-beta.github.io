@@ -262,13 +262,43 @@ function mobFit(list, free) {
   return out;
 }
 
+/* ----- v396: Figur mit Legende (Mobility und Yoga, ohne Muskelkarte) ----- */
+const FIG_LEG = { hold: ['Hier dehnt es', 'Wird leicht mitgedehnt'], dyn: ['Wird beweglich gemacht', 'Bewegt sich mit'], act: ['Wird aktiviert', 'Hält die Position'],
+  yoga: ['Hier spürst du die Haltung', 'Hält und stabilisiert'] };
+function figLegendHtml(fig, kind) {
+  if (!fig) return '';
+  const L = FIG_LEG[kind] || FIG_LEG.dyn, lbl = k => k === 'hueftbeuger' ? 'Hüftbeuger' : (typeof MUSCLES !== 'undefined' && MUSCLES[k]) || k;
+  const names = ks => ks.map(k => `<span>${lbl(k)}</span>`).join(', ');  // je Name ein Textknoten, damit die Übersetzung greift
+  return `<div class="xfig-box">${fig.svg}
+    <p class="mm-legend">${fig.p.length ? `<span class="mm-item"><span class="mm-dot p"></span><span>${L[0]}</span>: ${names(fig.p)}</span>` : ''}
+      ${fig.s.length ? `<span class="mm-item"><span class="mm-dot s"></span><span>${L[1]}</span>: ${names(fig.s)}</span>` : ''}
+      ${fig.arrows ? `<span class="mm-item"><span class="mm-dot mv"></span><span>Blaue Pfeile: Richtung der Bewegung</span></span>` : ''}</p></div>`;
+}
+
+// Figur auf den Inhalt zuschneiden (sonst viel Leerraum über liegenden Haltungen); versteckte Figuren später
+function xfigCrop() {
+  document.querySelectorAll('.xfig-box svg.xfig:not([data-crop])').forEach(svg => {
+    try {
+      const b = svg.getBBox();
+      if (!b.width || !b.height) return;
+      const y0 = Math.max(0, b.y - 8), y1 = Math.min(196, b.y + b.height + 6);
+      svg.setAttribute('viewBox', `0 ${y0.toFixed(1)} 240 ${Math.max(y1 - y0, 100).toFixed(1)}`);
+      svg.dataset.crop = '1';
+    } catch (e) { /* ältere Browser: Figur bleibt ungeschnitten */ }
+  });
+}
+if (typeof MutationObserver === 'function') new MutationObserver(() => { if (document.querySelector('.xfig-box svg.xfig:not([data-crop])')) xfigCrop(); })
+  .observe(document.documentElement, { childList: true, subtree: true });
+
 /* ----- Darstellung: Beschreibung ----- */
 let mobOpenEx = null;   // aufgeklappte Übung: 'ort|id' (ort = lib, pick, plan, tr)
 let mobOpenReg = null;  // aufgeklappte Region in der Bibliothek
 let mobQ = '';          // Suche
 function mobDetail(m) {
   const p = mobPref(m.id);
+  const fig = typeof exFigMob === 'function' ? exFigMob(m.id, m.de) : null;  // v396
   return `<div class="yg-detail mob-detail">
+      ${figLegendHtml(fig, m.type)}
       <div class="mob-pref"><button class="vchip ${p > 0 ? 'on' : ''}" data-action="mob-pref" data-id="${m.id}" data-v="1" aria-pressed="${p > 0}">👍 Gefällt mir</button>
         <button class="vchip ${p < 0 ? 'on' : ''}" data-action="mob-pref" data-id="${m.id}" data-v="-1" aria-pressed="${p < 0}">👎 Nicht nochmal vorschlagen</button></div>
       ${p ? `<p class="hint nut-small">${p > 0 ? 'Die App schlägt diese Übung bevorzugt vor.' : 'Die App schlägt diese Übung nicht mehr vor. Selbst auswählen kannst du sie weiterhin.'}</p>` : ''}

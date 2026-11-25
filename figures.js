@@ -1,6 +1,6 @@
 /* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
-// v393: Übungsfiguren – detaillierte Figur je Übung in der passenden Haltung mit Gerät (Ziel rot, mit dabei orange).
-// Erzeugt aus den Entwurfsdateien in trainings-app-entwurf/figuren (fig3, mmseg, fig4, kit, scA–scC). Alles gekapselt, nach außen nur exFigHas / exFigSvg.
+// v393: Übungsfiguren (v396: auch Mobility und Yoga) – detaillierte Figur je Übung in der passenden Haltung mit Gerät (Ziel rot, mit dabei orange).
+// Erzeugt aus den Entwurfsdateien in trainings-app-entwurf/figuren (fig3, mmseg, fig4, kit, scA–scC). Alles gekapselt, nach außen nur exFigHas / exFigSvg / exFigMob / exFigYoga.
 (() => {
 // ===== fig3.js =====
 /* Prototyp 2: anatomische Figur von der Seite (Stil wie die Muskelkarte), in Pose gestellt, ohne Animation.
@@ -83,7 +83,7 @@ function torsoG(J, P, inner) {  // Rumpf (Haut oder Muskeln), bei P.curl in der 
   if (!P.curl) return `<g transform="${tf(J.hip, 'torso', P.torso)}">${inner}</g>`;
   return `<g transform="${tf(J.hip, 'torso', P.torso)}"><g clip-path="url(#tlo)">${inner}</g><g transform="rotate(${P.curl} 0 ${-L2.torso / 2})"><g clip-path="url(#tup)">${inner}</g></g></g>`;
 }
-function torsoSkin(J, P) { const S = SEG.torso; return torsoG(J, P, `<rect x="-4.5" y="-63" width="9" height="7" class="sk"/><circle cx="${S.head[0]}" cy="${S.head[1]}" r="${S.head[2]}" class="sk"/><path class="sk" d="${S.skin}"/>`) + (P.curl ? jc(J.mid, 11) : ''); }
+function torsoSkin(J, P) { const S = SEG.torso; return torsoG(J, P, `<g transform="rotate(${P.head || 0} 0 -58)"><rect x="-4.5" y="-63" width="9" height="7" class="sk"/><circle cx="${S.head[0]}" cy="${S.head[1]}" r="${S.head[2]}" class="sk"/>${P.head != null ? `<ellipse cx="${S.head[0] + 9}" cy="${S.head[1] + 1}" rx="1.6" ry="2.6" class="sk"/>` : ''}</g><path class="sk" d="${S.skin}"/>`) + (P.curl ? jc(J.mid, 11) : ''); }
 function torsoMus(J, P, m, only) {
   const cls = k => m.p.includes(k) ? 'p' : m.s.includes(k) ? 's' : '';
   const ms = SEG.torso.mus.filter(([k]) => !only || m.p.includes(k));
@@ -102,7 +102,7 @@ function fig3Svg(ex) {
   const xr = torsoMus(J, P, m, true);
   if (xr) h += `<g class="xray">${xr}</g>`;
   h += E.front || '';
-  if (P.zoom) h = `<g transform="translate(120,190) scale(${P.zoom}) translate(-120,-190)">${h}</g>`;
+  if (P.zoom) { const z = P.zoomAt || [120, 190]; h = `<g transform="translate(${z[0]},${z[1]}) scale(${P.zoom}) translate(${-z[0]},${-z[1]})">${h}</g>`; }
   return `<svg viewBox="0 0 240 196" xmlns="http://www.w3.org/2000/svg"><defs>${CLIP}</defs>${h}</svg>`;
 }
 // Geräte (Seitenansicht): Langhantel = Scheibe von der Seite, Kurzhantel und Griffe von der Stirnseite
@@ -160,12 +160,13 @@ function fbRot(p, piv, a) { const r = -a * Math.PI / 180, x = p[0] - piv[0], y =
 function fbSide(arm, leg) {
   const us = arm[2] || 1, fs = arm[3] || 1, E0 = [FB_PIV.el[0], FB_PIV.sh[1] + (FB_PIV.el[1] - FB_PIV.sh[1]) * us], H0 = [FB_HAND[0], E0[1] + (FB_HAND[1] - FB_PIV.el[1]) * fs];
   const el = fbRot(E0, FB_PIV.sh, arm[0]), hand = fbRot(fbRot(H0, E0, arm[1]), FB_PIV.sh, arm[0]);
-  const knee = fbRot(FB_PIV.knee, FB_PIV.hip, leg[0]), foot = fbRot(fbRot([63, 210], FB_PIV.knee, leg[1]), FB_PIV.hip, leg[0]);
+  const ts = leg[2] || 1, ss = leg[3] || 1, K0 = [FB_PIV.knee[0], FB_PIV.hip[1] + (FB_PIV.knee[1] - FB_PIV.hip[1]) * ts], F0 = [63, K0[1] + (210 - FB_PIV.knee[1]) * ss];
+  const knee = fbRot(K0, FB_PIV.hip, leg[0]), foot = fbRot(fbRot(F0, K0, leg[1]), FB_PIV.hip, leg[0]);
   return { el, hand, knee, foot };
 }
 function fbSvg(sc) {
   const P = sc.pose, J = fbPoints(P), m = { p: sc.p || [], s: sc.s || [] }, E = sc.eq ? sc.eq(J, P) : {};
-  return `<svg viewBox="0 0 240 196" xmlns="http://www.w3.org/2000/svg"><line x1="6" y1="190" x2="234" y2="190" class="gr"/>${E.back || ''}${fbFigure(P, m)}${E.front || ''}</svg>`;
+  return `<svg viewBox="0 0 240 196" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="tnk"><rect x="-50" y="27" width="200" height="300"/></clipPath></defs><line x1="6" y1="190" x2="234" y2="190" class="gr"/>${E.back || ''}${fbFigure(P, m)}${E.front || ''}</svg>`;
 }
 const sceneSvg = sc => sc.view === 'side' ? fig3Svg(sc) : fbSvg(sc);
 function fbHalf(view, arm, leg, m, opt = {}) {
@@ -179,20 +180,32 @@ function fbHalf(view, arm, leg, m, opt = {}) {
   const legG = opt.seated
     ? rg(FB_PIV.hip, leg[0], `<g transform="translate(0,${FB_PIV.hip[1]}) scale(1,${SQ}) translate(0,${-FB_PIV.hip[1]})"><path class="sk" d="${FB_SKIN.thigh}"/>${mus('thigh')}</g>`
       + `<g transform="translate(0,${-up})">` + rg(FB_PIV.knee, leg[1], `<path class="sk" d="${FB_SKIN.shin}"/>${mus('shin')}`) + '</g>')
+    : (leg[2] || leg[3]) ? (() => { const ts = leg[2] || 1, ss = leg[3] || 1, ky = FB_PIV.hip[1] + (FB_PIV.knee[1] - FB_PIV.hip[1]) * ts;
+        const scy = (y0, f, inner) => f === 1 ? inner : `<g transform="translate(0,${y0}) scale(1,${f}) translate(0,${-y0})">${inner}</g>`;
+        return rg(FB_PIV.hip, leg[0], scy(FB_PIV.hip[1], ts, `<path class="sk" d="${FB_SKIN.thigh}"/>${mus('thigh')}`)
+          + `<g transform="translate(0,${(ky - FB_PIV.knee[1]).toFixed(2)})">` + rg(FB_PIV.knee, leg[1], scy(FB_PIV.knee[1], ss, `<path class="sk" d="${FB_SKIN.shin}"/>${mus('shin')}`)) + '</g>'); })()
     : rg(FB_PIV.hip, leg[0], `<path class="sk" d="${FB_SKIN.thigh}"/>${mus('thigh')}` + rg(FB_PIV.knee, leg[1], opt.shinSq ? `<g transform="translate(0,${FB_PIV.knee[1]}) scale(1,${opt.shinSq}) translate(0,${-FB_PIV.knee[1]})"><path class="sk" d="${FB_SKIN.shin}"/>${mus('shin')}</g>` : `<path class="sk" d="${FB_SKIN.shin}"/>${mus('shin')}`));
   const us = arm[2] || 1, fs = arm[3] || 1, ey = FB_PIV.sh[1] + (FB_PIV.el[1] - FB_PIV.sh[1]) * us;
   const sc = (y0, f, inner) => f === 1 ? inner : `<g transform="translate(0,${y0}) scale(1,${f}) translate(0,${-y0})">${inner}</g>`;
   const foreG = `<g transform="translate(0,${(ey - FB_PIV.el[1]).toFixed(2)})">` + rg(FB_PIV.el, arm[1], sc(FB_PIV.el[1], fs, `<path class="sk" d="${FB_SKIN.fore}"/>${mus('fore')}`)) + '</g>';
   const armG = `<g transform="${shrug}">` + rg(FB_PIV.sh, arm[0], sc(FB_PIV.sh[1], us, `<path class="sk" d="${FB_SKIN.upper}"/>${mus('upper')}`) + foreG) + '</g>';
   const torso = `<path class="sk" d="${FB_SKIN.torso}"/>${mus('torso')}`;
-  const legP = opt.seated ? '' : rg(FB_PIV.hip, leg[0], (S.thigh || []).filter(([k]) => cls(k) === 'p').map(([, d]) => `<path class="m p" d="${d}"/>`).join(''));
+  const legP = opt.seated ? '' : rg(FB_PIV.hip, leg[0], `<g transform="translate(0,${FB_PIV.hip[1]}) scale(1,${leg[2] || 1}) translate(0,${-FB_PIV.hip[1]})">` + (S.thigh || []).filter(([k]) => cls(k) === 'p').map(([, d]) => `<path class="m p" d="${d}"/>`).join('') + '</g>');
   return { legG, armG, torso, legP };
 }
 // ganze Figur: P = { view, at:[x,y] (Fußpunkt Mitte), s (Maßstab), rot (Grad, um die Hüfte), armR, armL, legR, legL, shrug, armsBehind }
 function fbFigure(P, m) {
   const R = fbHalf(P.view, P.armR, P.legR, m, P), L = fbHalf(P.view, P.armL || P.armR, P.legL || P.legR, m, P);
   const mir = inner => `<g transform="translate(100,0) scale(-1,1)">${inner}</g>`;
-  const body = R.legG + mir(L.legG) + R.torso + mir(L.torso) + R.legP + mir(L.legP) + R.armG + mir(L.armG);
+  const hd = P.headTilt != null || P.headTurn != null;
+  let tor = R.torso + mir(L.torso);
+  if (hd) {
+    const t = P.headTurn || 0, k = Math.cos(t * Math.PI / 180), nx = 50 + Math.sin(t * Math.PI / 180) * 7;
+    const face = P.headTurn != null && P.view !== 'back' ? `<ellipse cx="${nx.toFixed(1)}" cy="18" rx="1.7" ry="3" class="m"/>` : '';
+    tor = `<g clip-path="url(#tnk)">${tor}</g><g transform="rotate(${-(P.headTilt || 0)} 50 29)"><rect x="45.5" y="20" width="9" height="11" class="sk"/><ellipse cx="50" cy="16" rx="${(9.5 * (.82 + .18 * k)).toFixed(2)}" ry="12" class="sk"/>${face}</g>`;
+  }
+  const up = tor + R.armG + mir(L.armG);
+  const body = R.legG + mir(L.legG) + (P.lean ? `<g transform="rotate(${P.lean} 50 111)">${tor}</g>` + R.legP + mir(L.legP) + `<g transform="rotate(${P.lean} 50 111)">${R.armG + mir(L.armG)}</g>` : tor + R.legP + mir(L.legP) + R.armG + mir(L.armG));
   const s = P.s || .82, rot = P.rot ? ` rotate(${P.rot} 50 111)` : '';
   return `<g transform="translate(${(P.at[0] - 50 * s).toFixed(1)},${(P.at[1] - 213.5 * s).toFixed(1)}) scale(${s})${rot}">${body}</g>`;
 }
@@ -201,11 +214,11 @@ function fbPoints(P) {
   const s = P.s || .82, ox = P.at[0] - 50 * s, oy = P.at[1] - 213.5 * s;
   const R = fbSide(P.armR, P.legR), L = fbSide(P.armL || P.armR, P.legL || P.legR);
   if (P.seated) for (const [X, lg] of [[R, P.legR], [L, P.legL || P.legR]]) X.knee = fbRot([63, 111 + 49 * .3], FB_PIV.hip, lg[0]);
-  const mapR = p => { let q = p; if (P.rot) q = fbRot(q, [50, 111], -P.rot); return [ox + q[0] * s, oy + q[1] * s]; };
-  const mapL = p => mapR([100 - p[0], p[1]]);
+  const mapR = (p, up) => { let q = p; if (up && P.lean) q = fbRot(q, [50, 111], -P.lean); if (P.rot) q = fbRot(q, [50, 111], -P.rot); return [ox + q[0] * s, oy + q[1] * s]; };
+  const mapL = (p, up) => mapR([100 - p[0], p[1]], up);
   const sh = P.shrug || 0;
-  return { handR: mapR([R.hand[0], R.hand[1] - sh]), handL: mapL([L.hand[0], L.hand[1] - sh]), elR: mapR(R.el), elL: mapL(L.el),
-    footR: mapR(R.foot), footL: mapL(L.foot), kneeR: mapR(R.knee), kneeL: mapL(L.knee), shR: mapR(FB_PIV.sh), shL: mapL(FB_PIV.sh), hip: mapR([50, 111]), head: mapR([50, 15]), s };
+  return { handR: mapR([R.hand[0], R.hand[1] - sh], 1), handL: mapL([L.hand[0], L.hand[1] - sh], 1), elR: mapR(R.el, 1), elL: mapL(L.el, 1),
+    footR: mapR(R.foot), footL: mapL(L.foot), kneeR: mapR(R.knee), kneeL: mapL(L.knee), shR: mapR(FB_PIV.sh, 1), shL: mapL(FB_PIV.sh, 1), hip: mapR([50, 111]), head: mapR([50, 15], 1), s };
 }
 // ===== kit.js =====
 /* Bausteine für die Szenen: Seitenansicht (fig3.js) und Front/Rücken (fig4.js) */
@@ -248,6 +261,22 @@ const BB_OFF = [-17, 0];
 const bb3 = (c, r = 11) => { const o = BB_OFF, n = [c[0] + o[0], c[1] + o[1]], f = [c[0] - o[0], c[1] - o[1]], k = 1.35;
   return { back: ln2([c[0] - o[0] * k, c[1] - o[1] * k], c, 'barS') + pl(f, r), front: ln2(c, [c[0] + o[0] * k, c[1] + o[1] * k], 'barS') + pl(n, r) }; };
 const dbLong = (p, big = 1) => rot(rect(p[0] - 9 * big, p[1] - 1.6, 18 * big, 3.2, 'eq3') + rect(p[0] - 15 * big, p[1] - 6.5 * big, 7 * big, 13 * big, 'eq', 2) + rect(p[0] + 8 * big, p[1] - 6.5 * big, 7 * big, 13 * big, 'eq', 2), p[0], p[1], 0);
+
+// Bewegungspfeile (Mobility, Yoga): Bogen um (cx,cy) von a0 nach a1 Grad (Bildwinkel, im Uhrzeigersinn positiv) bzw. gerade
+const arrowHead = (p, dir, sz = 5) => { const a = Math.atan2(dir[1], dir[0]), l = sz, w = sz * .62;
+  const b = [p[0] - Math.cos(a) * l, p[1] - Math.sin(a) * l], n = [-Math.sin(a) * w, Math.cos(a) * w];
+  return `<path d="M${f1(p[0])},${f1(p[1])} L${f1(b[0] + n[0])},${f1(b[1] + n[1])} L${f1(b[0] - n[0])},${f1(b[1] - n[1])} Z" class="mvh"/>`; };
+const arcA = (cx, cy, r, a0, a1, both = false) => { const P = a => [cx + r * Math.cos(r2(a)), cy + r * Math.sin(r2(a))], s = P(a0), e = P(a1), sw = a1 > a0 ? 1 : 0, big = Math.abs(a1 - a0) > 180 ? 1 : 0;
+  const tan = (a, sg) => [-Math.sin(r2(a)) * sg, Math.cos(r2(a)) * sg], sg = a1 > a0 ? 1 : -1;
+  return `<path d="M${f1(s[0])},${f1(s[1])} A${r},${r} 0 ${big} ${sw} ${f1(e[0])},${f1(e[1])}" class="mv"/>` + arrowHead(e, tan(a1, sg)) + (both ? arrowHead(s, tan(a0, -sg)) : ''); };
+const lineA = (a, b, both = false) => { const d = [b[0] - a[0], b[1] - a[1]];
+  return `<line x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}" class="mv"/>` + arrowHead(b, d) + (both ? arrowHead(a, [-d[0], -d[1]]) : ''); };
+const roll = (cx, cy, r = 7) => `<circle cx="${f1(cx)}" cy="${f1(cy)}" r="${r}" class="eq3"/><circle cx="${f1(cx)}" cy="${f1(cy)}" r="${(r * .45).toFixed(1)}" class="eq2"/>`;
+const stick = (a, b) => ln2(a, b, 'stk');
+const mat = (x0 = 14, x1 = 226) => rect(x0, GY - 3, x1 - x0, 3, 'mat', 1.5);
+// Drehpfeil um eine senkrechte Achse (flache Ellipse vor dem Körper), dir 1 = nach rechts
+const turnA = (cx, cy, rx, ry = rx * .32, dir = 1) => { const a = [cx - rx * dir, cy], b = [cx + rx * dir, cy];
+  return `<path d="M${f1(a[0])},${f1(a[1])} A${rx},${ry} 0 0 ${dir > 0 ? 0 : 1} ${f1(b[0])},${f1(b[1])}" class="mv"/>` + arrowHead(b, [0, -1]); };
 // ===== scA.js =====
 const SC = [];
 const side = (n, ex, p, s, pose, eq) => SC.push({ n, ex, p, s, view: 'side', pose, eq });
@@ -518,6 +547,421 @@ side('Wall Balls', ['Wall Balls'], ['quadrizeps'], ['schulter_vorne', 'gesaess']
   () => ({ back: wall(214) + rect(206, 20, 8, 3, 'eq'), front: ball([188, 34]) }));
 side("Farmer's Walk", ["Farmer's Walk"], ['unterarme'], ['trapez', 'bauch'], { hip: [112, 98], torso: -90, leg: ft(132), leg2: { to: [90, 178], bend: -1 }, foot2: 150, arm: [92, 90] },
   J => ({ farFront: dbLong([J.hand2[0] - 3, J.hand2[1] - 2], 1.35), front: dbLong(J.hand, 1.35) }));
+// ===== scM.js =====
+/* Mobility-Szenen (eine je Übung, Schlüssel = id aus MOB_EX). Rot = gedehnt/mobilisiert, orange = mit dabei. Blaue Pfeile = Bewegung. */
+const SCM = {};
+const ms = (id, p, s, pose, eq) => { SCM[id] = { n: id, ex: [id], p, s, view: 'side', pose, eq }; };
+const mf = (id, p, s, pose, eq) => { SCM[id] = { n: id, ex: [id], p, s, view: pose.view, pose, eq }; };
+const STAND = { ankle: [120, 182], leg: [90, 90], torso: -90, arm: [90, 90] };
+const QUAD = { hip: [82, 141], torso: -18, leg: [90, 180], foot: 180, arm: hd(132, 186, 1), farOff: [-3, -2] };
+const SUPN = { torso: 180, farOff: [-2, -3] };                       // Rückenlage, Kopf links
+const PRONE = { hip: [92, 176], torso: -4, leg: [184, 184], foot: 180 };  // Bauchlage, Kopf rechts
+const HK = { hip: [112, 144], torso: -90, leg: { to: [158, 182], bend: -1 }, leg2: [110, 180], foot2: 180 };  // Kniestand, vorderes Bein vorn
+const DOG = { hip: [112, 104], torso: 48, leg: { to: [76, 182], bend: 1 }, foot: 0, arm: [48, 48] };
+const DSQ = { ankle: [122, 182], leg: [-6, 114], torso: -62 };      // tiefe Hocke
+const LUNGE = { hip: [108, 122], torso: -90, leg: ft(148), leg2: { to: [64, 176], bend: -1 }, foot2: 160 };
+const FRONT = { view: 'front', at: [120, 190], s: .72, armR: [8, 0], legR: [3, 0] };
+const BACK = { view: 'back', at: [120, 190], s: .72, armR: [8, 0], legR: [3, 0] };
+const floorT = () => rect(12, 22, 216, 160, 'matT', 12);
+const TOPQ = { view: 'back', at: [130, 168], s: .7, rot: -90, noGround: true, armR: [6, 0, .35, .35], legR: [0, 0, .3, 1] };  // Vierfüßler von oben, Kopf links
+const SIDEL = { hip: [100, 110], torso: 0, leg: [90, 180], foot: 180, noGround: true, farOff: [-2, 3] };  // Seitlage von oben, Kopf rechts
+const STICK = J => stick([J.hand[0] - 16, J.hand[1]], [J.hand[0] + 16, J.hand[1]]);
+
+// ---------- Ganzkörper ----------
+ms('worldsgreatest', ['hueftbeuger', 'gesaess'], ['brust', 'beinbeuger'], { hip: [106, 150], torso: -25, leg: ft(156), leg2: { to: [30, 180], bend: -1 }, foot2: 170, arm: hd(146, 186, 1), arm2: [-100, -100] },
+  J => ({ front: arcA(J.sh[0], J.sh[1], 44, -20, -100) }));
+ms('inchworm', ['beinbeuger'], ['bauch', 'schulter_vorne', 'waden'], { hip: [112, 100], torso: 62, leg: { to: [70, 182], bend: 1 }, foot: 0, arm: hd(176, 186, 1) },
+  J => ({ front: lineA([J.hand[0] + 10, 172], [J.hand[0] + 34, 172]) }));
+ms('squattostand', ['gesaess', 'adduktoren'], ['beinbeuger', 'waden'], { ankle: [122, 182], leg: [-8, 112], torso: -40, arm: hd(142, 178, 1) },
+  J => ({ front: lineA([J.hip[0] - 24, J.hip[1] + 4], [J.hip[0] - 24, J.hip[1] - 40]) }));
+ms('bearcrawl', ['bauch', 'schulter_vorne'], ['quadrizeps', 'trizeps'], { hip: [86, 126], torso: 0, leg: [90, 165], foot: 120, arm: hd(140, 186, 1) },
+  () => ({ front: lineA([96, 96], [140, 96]) }));
+ms('ohsquatstick', ['schulter_vorne', 'gesaess'], ['quadrizeps', 'lat', 'adduktoren'], { ankle: [122, 182], leg: [10, 112], torso: -66, arm: [-104, -104] },
+  J => ({ front: STICK(J) }));
+ms('lungetwist', ['bauch', 'hueftbeuger'], ['quadrizeps', 'gesaess'], { ...LUNGE, arm: [0, 0], arm2: [180, 180] },
+  J => ({ front: turnA(J.mid[0], J.mid[1] - 6, 30) }));
+ms('planktodog', ['beinbeuger', 'waden', 'lat'], ['schulter_vorne'], DOG,
+  J => ({ front: lineA([J.hip[0], J.hip[1] + 40], [J.hip[0], J.hip[1] + 10]) }));
+ms('crabreach', ['brust', 'schulter_vorne', 'hueftbeuger'], ['gesaess', 'trizeps'], { hip: [118, 150], torso: 204, farOff: [-2, -3], leg: ft(166), arm2: hd(66, 186, 1), arm: [-140, -140] },
+  J => ({ front: arcA(J.sh[0], J.sh[1], 48, -90, -150) }));
+
+// ---------- Sprunggelenk und Fuß ----------
+ms('kneetowall', ['waden'], ['quadrizeps'], { ...HK, hip: [118, 144], leg: { to: [168, 182], bend: -1 }, arm: hd(180, 98, 1) },
+  J => ({ back: wall(186), front: lineA([J.knee[0] + 4, J.knee[1] - 14], [J.knee[0] + 24, J.knee[1] - 14]) }));
+ms('anklecircles', ['waden'], [], { hip: [96, 136], torso: -90, leg: [-8, 6], foot: -10, leg2: [2, 90], arm: hd(110, 140, 1) },
+  J => ({ back: seat(66, 120, 140), front: arcA(J.ankle[0] + 12, J.ankle[1], 13, -160, 160) }));
+ms('slowcalfraise', ['waden'], [], { ankle: [120, 168], leg: [90, 90], torso: -90, foot: 58, arm: [90, 90] },
+  J => ({ front: lineA([J.ankle[0] - 26, 182], [J.ankle[0] - 26, 158]) }));
+ms('bandankle', ['waden'], [], { ...HK, arm: hd(150, 140, 1) },
+  J => ({ back: rect(14, 146, 6, 44, 'eq2'), front: band(J.ankle, [18, 176]) + lineA([J.knee[0] + 4, J.knee[1] - 14], [J.knee[0] + 24, J.knee[1] - 14]) }));
+ms('heeltoewalk', ['waden'], [], { hip: [116, 96], torso: -90, leg: { to: [140, 176], bend: -1 }, foot: -35, leg2: { to: [92, 176], bend: -1 }, foot2: -35, arm: [70, 70], arm2: [110, 110] },
+  () => ({ front: lineA([150, 60], [190, 60]) }));
+ms('toeyoga', [], ['waden'], { hip: [96, 136], torso: -90, leg: [2, 90], foot: 0, arm: hd(112, 140, 1) },
+  J => ({ back: seat(66, 120, 140), front: arcA(J.ankle[0] + 16, J.ankle[1] + 6, 9, 80, -40) }));
+ms('shinstretch', [], ['quadrizeps'], { hip: [92, 170], torso: -118, leg: [16, 180], foot: 180, arm: hd(58, 186, 1) });
+ms('ankleRock', ['waden'], ['adduktoren', 'gesaess'], { ...DSQ, arm: [10, 10] },
+  J => ({ front: lineA([J.knee[0] + 6, J.knee[1] - 16], [J.knee[0] + 28, J.knee[1] - 16]) }));
+ms('dogpedal', ['waden', 'beinbeuger'], ['lat'], { ...DOG, leg2: { to: [88, 176], bend: 1 }, foot2: 40 },
+  J => ({ front: lineA([J.ankle[0] - 14, 180], [J.ankle[0] - 14, 156], true) }));
+ms('wallcalf', ['waden'], [], { hip: [118, 100], torso: -74, leg: ft(150), leg2: { to: [70, 182], bend: -1 }, foot2: 0, arm: hd(184, 80, 1) },
+  () => ({ back: wall(190) }));
+ms('tibraise', [], ['waden'], { hip: [66, 100], torso: -96, leg: { to: [118, 178], bend: -1 }, foot: -40, arm: [90, 90] },
+  J => ({ back: wall(46), front: arcA(J.ankle[0], J.ankle[1], 18, -8, -50) }));
+ms('calfroll', ['waden'], [], { hip: [98, 170], torso: -124, leg: [2, 2], foot: -70, arm: hd(64, 186, 1) },
+  () => ({ back: roll(160, 182, 8), front: lineA([138, 156], [178, 156], true) }));
+
+// ---------- Knie ----------
+ms('spanishsquat', ['quadrizeps'], ['gesaess'], { ankle: [124, 182], leg: [2, 90], torso: -66, arm: [0, 0] },
+  J => ({ back: tower(214), front: band([J.knee[0] - 2, J.knee[1] + 4], [214, J.knee[1] + 4]) }));
+ms('tke', ['quadrizeps'], [], { ankle: [110, 182], leg: [80, 100], torso: -90, arm: [90, 90] },
+  J => ({ back: tower(214), front: band([J.knee[0] - 3, J.knee[1]], [214, J.knee[1]]) + lineA([J.knee[0] + 8, J.knee[1] - 16], [J.knee[0] - 8, J.knee[1] - 16]) }));
+ms('quadrock', ['quadrizeps'], ['gesaess', 'ruecken_unten'], QUAD,
+  J => ({ front: lineA([J.hip[0] + 14, J.hip[1] - 30], [J.hip[0] - 16, J.hip[1] - 30], true) }));
+ms('pausesquat', ['quadrizeps'], ['gesaess'], { ankle: [122, 182], leg: [8, 112], torso: -60, arm: [0, 0] });
+ms('reverselunge', ['quadrizeps', 'hueftbeuger'], ['gesaess'], { ...LUNGE, arm: hd(116, 122, 1) },
+  J => ({ front: lineA([J.ankle2[0] + 12, 160], [J.ankle2[0] - 14, 160], true) }));
+ms('wallsit', ['quadrizeps'], ['gesaess'], { hip: [66, 140], torso: -90, leg: [0, 90], arm: hd(100, 132, 1) }, () => ({ back: wall(46) }));
+ms('petersonstep', ['quadrizeps'], ['waden'], { ankle: [118, 152], leg: [74, 106], torso: -86, foot: 26, leg2: [96, 92], arm: [70, 70] },
+  J => ({ back: box(78, 160, 56), front: lineA([166, 110], [166, 140]) }));
+
+// ---------- Hüfte ----------
+mf('ninetyninety', ['gesaess', 'adduktoren'], ['abduktoren'], { view: 'front', at: [120, 258], s: .9, armR: [16, 0], legR: [24, -114, .4, 1], legL: [92, 70, 1, .4] },
+  J => ({ front: turnA(J.hip[0], J.hip[1] - 40, 34) }));
+mf('hipcars', ['gesaess', 'adduktoren', 'abduktoren'], ['hueftbeuger'], { ...TOPQ, legR: [70, -70, 1, 1], legL: [0, 0, .3, 1] },
+  J => ({ back: floorT(), front: arcA(J.kneeR[0], J.kneeR[1], 18, -200, 60) }));
+ms('legswingfront', ['beinbeuger', 'hueftbeuger'], ['gesaess'], { hip: [110, 98], torso: -90, leg: [40, 40], leg2: [92, 90], arm: [90, 90], arm2: hd(72, 112, 1) },
+  J => ({ back: rect(66, 60, 6, 130, 'eq2'), front: arcA(J.hip[0], J.hip[1], 74, 130, 30) }));
+mf('legswingside', ['adduktoren', 'abduktoren'], ['gesaess'], { ...BACK, armR: [150, 10], legR: [36, 0], legL: [2, 0] },
+  J => ({ back: rect(16, 8, 208, 182, 'wall'), front: arcA(J.hip[0], J.hip[1], 80, 120, 60, true) }));
+mf('cossack', ['adduktoren'], ['quadrizeps', 'gesaess'], { view: 'front', at: [120, 204], s: .72, armR: [-30, -60], legR: [55, -51], legL: [38, 0] });
+mf('frogrock', ['adduktoren'], ['gesaess'], { ...TOPQ, legR: [80, -80, 1, 1] },
+  J => ({ back: floorT(), front: lineA([J.hip[0] - 6, J.hip[1] - 50], [J.hip[0] + 24, J.hip[1] - 50], true) }));
+ms('hipflexorreach', ['hueftbeuger'], ['quadrizeps', 'bauch'], { ...HK, torso: -94, arm: hd(140, 150, 1), arm2: [-96, -96] },
+  J => ({ front: lineA([J.sh[0] - 22, J.sh[1] - 10], [J.sh[0] - 22, J.sh[1] - 50]) }));
+ms('couchstretch', ['hueftbeuger', 'quadrizeps'], [], { hip: [88, 154], torso: -90, leg: [137, -90], foot: -100, leg2: ft(150), arm: hd(140, 150, 1) },
+  () => ({ back: wall(44) }));
+ms('pigeon', ['gesaess'], ['hueftbeuger', 'abduktoren'], { hip: [100, 168], torso: -76, leg: [178, 180], foot: 180, leg2: [12, 160], foot2: 90, arm: hd(150, 186, 1) });
+ms('glutebridge', ['gesaess'], ['beinbeuger', 'ruecken_unten'], { hip: [136, 152], torso: 152, farOff: [-2, -3], leg: ft(168), arm: hd(126, 186, -1) },
+  J => ({ front: lineA([J.hip[0], J.hip[1] + 32], [J.hip[0], J.hip[1] + 10]) }));
+mf('monsterwalk', ['abduktoren'], ['gesaess'], { ...FRONT, legR: [12, -12] },
+  J => ({ front: band(J.kneeR, J.kneeL) + lineA([J.hip[0] + 50, J.hip[1] + 20], [J.hip[0] + 86, J.hip[1] + 20]) }));
+mf('clamshell', ['abduktoren'], ['gesaess'], { view: 'back', at: [128, 244], s: .7, rot: -90, armR: [6, 0], armL: [170, 30], legR: [35, 0, 1, .45], legL: [0, 0, 1, .45] },
+  J => ({ front: band(J.kneeR, J.kneeL) }));
+ms('hamsweep', ['beinbeuger'], ['waden', 'ruecken_unten'], { hip: [104, 111.7], torso: -40, leg: [56.8, 56.8], foot: -40, leg2: { to: [96, 182], bend: -1 }, arm: [70, 70] },
+  J => ({ front: arcA(J.sh[0], J.sh[1], 54, 40, 110) }));
+ms('bwgoodmorning', ['beinbeuger'], ['gesaess', 'ruecken_unten'], { ankle: [122, 182], leg: [74, 94], torso: -14, arm: hd(176, 76, -1) },
+  J => ({ front: arcA(J.hip[0], J.hip[1], 50, -70, -20) }));
+mf('firehydrant', ['abduktoren', 'gesaess'], [], { ...TOPQ, legR: [70, -70, 1, 1] },
+  J => ({ back: floorT(), front: arcA(J.hip[0], J.hip[1], 40, 200, 250) }));
+ms('deepsquathold', ['adduktoren', 'gesaess'], ['waden', 'quadrizeps'], { ...DSQ, torso: -74, arm: hd(146, 118, 1) });
+mf('butterfly', ['adduktoren'], [], { view: 'front', at: [120, 246], s: .7, armR: [14, -20], legR: [105, -150, .9, .8] });
+mf('shinbox', ['gesaess', 'adduktoren'], ['hueftbeuger', 'quadrizeps'], { view: 'front', at: [120, 236], s: .7, armR: [30, 0], legR: [24, -114, .4, 1], legL: [92, 70, 1, .4] },
+  J => ({ front: lineA([J.hip[0] + 52, J.hip[1] + 10], [J.hip[0] + 52, J.hip[1] - 30]) }));
+mf('adductorrock', ['adduktoren'], ['beinbeuger'], { ...TOPQ, legR: [90, 0, 1, 1] },
+  J => ({ back: floorT(), front: lineA([J.hip[0] - 10, J.hip[1] - 46], [J.hip[0] + 22, J.hip[1] - 46], true) }));
+ms('slrdl', ['beinbeuger', 'gesaess'], ['ruecken_unten'], { ankle: [122, 182], leg: [86, 94], leg2: [178, 178], foot2: 100, torso: -4, arm: [90, 90] });
+ms('hipairplane', ['gesaess', 'abduktoren'], ['beinbeuger'], { ankle: [122, 182], leg: [86, 94], leg2: [178, 178], foot2: 100, torso: -4, arm: [-70, -70], arm2: [100, 100] },
+  J => ({ front: turnA(J.mid[0], J.mid[1] + 18, 28) }));
+ms('figurefour', ['gesaess'], ['abduktoren'], { hip: [136, 176], ...SUPN, leg: [-70, 8], foot: -80, leg2: ft(176), arm: hd(150, 150, -1) });
+ms('strapham', ['beinbeuger'], ['waden'], { hip: [134, 177], ...SUPN, leg: [-95, -95], foot: -10, leg2: [0, 0], foot2: -80, arm: hd(112, 140, -1) },
+  J => ({ front: band(J.hand, J.ankle) }));
+
+// ---------- Wirbelsäule und Rumpf ----------
+ms('catcow', ['ruecken_unten'], ['bauch', 'trapez'], { ...QUAD, torso: -36, curl: 34 },
+  J => ({ front: lineA([J.mid[0], J.mid[1] - 40], [J.mid[0], J.mid[1] - 16], true) }));
+ms('birddog', ['ruecken_unten', 'gesaess'], ['schulter_vorne', 'bauch'], { ...QUAD, arm: [-6, -6], arm2: hd(132, 186, 1), leg2: [180, 180], foot2: 180 });
+ms('deadbug', ['bauch'], ['hueftbeuger'], { hip: [130, 177], ...SUPN, leg: [-90, 0], leg2: [-30, -30], arm: [-90, -90], arm2: [-160, -160] });
+ms('pelvictilt', ['bauch', 'ruecken_unten'], ['gesaess'], { hip: [132, 177], ...SUPN, leg: ft(170), arm: hd(126, 186, -1) },
+  J => ({ front: arcA(J.hip[0], J.hip[1] - 8, 16, 200, 330) }));
+ms('scorpion', ['hueftbeuger', 'bauch'], ['brust', 'quadrizeps'], { ...PRONE, leg: [200, -80], foot: -60, arm: [10, 10] },
+  J => ({ front: arcA(J.hip[0], J.hip[1], 50, 200, 270) }));
+mf('standrot', ['bauch'], ['ruecken_unten', 'lat'], { ...FRONT, armR: [90, 0], headTurn: 25 },
+  J => ({ front: turnA(J.hip[0], J.hip[1] - 26, 40) }));
+ms('childpose', ['lat', 'ruecken_unten'], ['gesaess'], { hip: [80, 168], torso: 2, curl: 26, leg: [18, 180], foot: 180, arm: [172, 172], zoom: 1.4, zoomAt: [120, 188] });
+ms('cobrapress', ['bauch'], ['ruecken_unten', 'brust'], { ...PRONE, hip: [90, 176], torso: -24, arm: hd(150, 186, 1) },
+  J => ({ front: lineA([J.sh[0] + 22, J.sh[1] + 20], [J.sh[0] + 22, J.sh[1] - 10], true) }));
+const SPL = { view: 'front', at: [116, 211], s: .64, rot: -50, armL: [40, 0], armR: [130, 0], legR: [2, 0] };  // Seitstütz auf der Hand
+mf('sideplankthread', ['bauch'], ['schulter_vorne', 'abduktoren'], SPL,
+  J => ({ front: arcA(J.handR[0], J.handR[1] + 40, 34, -110, 30) }));
+mf('lyingtwist', ['ruecken_unten', 'bauch'], ['gesaess', 'brust'], { view: 'front', at: [128, 162], s: .6, rot: -90, noGround: true, armR: [90, 0], legR: [80, -80], legL: [-62, 62] },
+  J => ({ back: floorT(), front: arcA(J.hip[0] + 34, J.hip[1], 34, 40, -50) }));
+mf('pallof', ['bauch'], ['schulter_vorne'], { ...FRONT, armR: [12, -40, .6, .5] },
+  J => ({ back: tower(16), front: band([(J.handR[0] + J.handL[0]) / 2, J.handR[1]], [24, J.handR[1]]) }));
+mf('sidebend', ['lat', 'bauch'], [], { ...FRONT, lean: 16, armR: [10, 0], armL: [170, 10] },
+  J => ({ front: arcA(J.hip[0], J.hip[1], 96, -120, -76) }));
+
+// ---------- Brustwirbelsäule ----------
+ms('openbook', ['brust', 'bauch'], ['schulter_vorne', 'lat'], { ...SIDEL, arm: [-90, -90], arm2: [90, 90] },
+  J => ({ back: floorT(), front: arcA(J.sh[0], J.sh[1], 54, 80, -80) }));
+ms('threadneedle', ['trapez', 'schulter_hinten'], ['lat', 'ruecken_unten'], { ...QUAD, torso: 0, curl: 10, arm: [120, 175], arm2: hd(150, 186, 1) },
+  J => ({ front: arcA(J.sh[0], J.sh[1], 40, 140, 200) }));
+ms('quadrot', ['trapez', 'lat'], ['brust'], { ...QUAD, arm: [-80, 140], arm2: hd(132, 186, 1) },
+  J => ({ front: arcA(J.sh[0], J.sh[1], 36, -40, -130) }));
+ms('rollerext', ['trapez'], ['bauch', 'brust'], { hip: [150, 177], ...SUPN, torso: 192, curl: -26, leg: ft(196), arm: [-150, 30] },
+  () => ({ back: roll(116, 180, 9) }));
+ms('benchtspine', ['lat', 'trapez'], ['trizeps'], { hip: [76, 140], torso: 8, curl: -14, leg: [90, 180], foot: 180, arm: { to: [136, 110], bend: -1 } },
+  () => ({ back: benchFlat(142, 228, 136) }));
+mf('wallangel', ['schulter_hinten', 'trapez'], ['brust'], { ...FRONT, armR: [90, 90] },
+  J => ({ back: rect(16, 8, 208, 182, 'wall'), front: lineA([J.handR[0] + 14, J.handR[1] + 20], [J.handR[0] + 14, J.handR[1] - 16], true) }));
+ms('sphinx', ['bauch'], ['ruecken_unten'], { ...PRONE, hip: [90, 176], torso: -22, arm: [90, 0] });
+mf('seatedtwist', ['bauch', 'ruecken_unten'], ['gesaess'], { view: 'front', at: [120, 246], s: .7, headTurn: 35, armR: [20, -60], armL: [10, 0], legR: [105, -150, .9, .8] },
+  J => ({ front: turnA(J.hip[0], J.hip[1] - 40, 34) }));
+ms('reachroll', ['trapez', 'schulter_hinten'], ['lat'], { hip: [80, 170], torso: 0, curl: 18, leg: [16, 180], foot: 180, arm: [-14, -14], arm2: hd(190, 182, 1) },
+  J => ({ front: lineA([J.hand[0] - 10, J.hand[1] + 16], [J.hand[0] - 10, J.hand[1] - 12]) }));
+ms('windmill', ['brust', 'schulter_vorne'], ['lat'], { ...SIDEL, arm: [-30, -30], arm2: [90, 90] },
+  J => ({ back: floorT(), front: arcA(J.sh[0], J.sh[1], 58, 100, -220) }));
+
+// ---------- Schulter ----------
+mf('armcircles', ['schulter_seite'], ['trapez', 'schulter_vorne'], { ...FRONT, armR: [90, 0] },
+  J => ({ front: arcA(J.handR[0], J.handR[1], 9, -160, 160) + arcA(J.handL[0], J.handL[1], 9, -20, 300) }));
+mf('pullapart', ['schulter_hinten'], ['trapez'], { ...BACK, armR: [86, 6] }, J => ({ front: band(J.handR, J.handL) }));
+mf('dislocates', ['schulter_vorne', 'brust'], ['lat'], { ...FRONT, armR: [160, 6] },
+  J => ({ front: stick([J.handL[0] - 10, J.handL[1]], [J.handR[0] + 10, J.handR[1]]) + arcA(J.hip[0], J.handR[1] + 30, 34, -150, -30) }));
+ms('scappushup', ['trapez'], ['brust', 'schulter_vorne'], { hip: [108.6, 145.9], torso: -24.3, leg: [155.7, 155.7], foot: 100, arm: [90, 90] },
+  J => ({ front: lineA([J.sh[0] - 6, J.sh[1] - 34], [J.sh[0] - 6, J.sh[1] - 14], true) }));
+mf('scappull', ['trapez', 'lat'], ['unterarme'], { view: 'back', at: [120, 182], s: .62, armR: [168, 0], legR: [1, 0], shrug: -4 },
+  J => ({ back: rect(28, 0, 6, 190, 'eq2') + rect(206, 0, 6, 190, 'eq2') + rect(28, J.handR[1] - 3, 184, 5, 'eq2'), front: lineA([J.hip[0] + 40, J.hip[1] - 30], [J.hip[0] + 40, J.hip[1] - 54]) }));
+mf('deadhang', ['lat'], ['unterarme', 'schulter_vorne'], { view: 'back', at: [120, 182], s: .62, armR: [168, 0], legR: [1, 0] },
+  J => ({ back: rect(28, 0, 6, 190, 'eq2') + rect(206, 0, 6, 190, 'eq2') + rect(28, J.handR[1] - 3, 184, 5, 'eq2') }));
+mf('ytw', ['schulter_hinten', 'trapez'], ['ruecken_unten'], { view: 'back', at: [128, 162], s: .6, rot: -90, noGround: true, armR: [150, 0], legR: [2, 0] }, () => ({ back: floorT() }));
+mf('bandextrot', ['schulter_hinten'], [], { ...FRONT, armR: [6, -50, 1, .55] }, J => ({ front: band(J.handR, J.handL) }));
+ms('sleeper', ['schulter_hinten'], [], { ...SIDEL, arm: [90, 160], arm2: [-60, -60] },
+  J => ({ back: floorT(), front: arcA(J.el[0], J.el[1], 26, 200, 150) }));
+ms('doorchest', ['brust'], ['schulter_vorne'], { ankle: [120, 182], leg: [86, 94], torso: -82, arm: [180, -90] },
+  J => ({ back: rect(J.el[0] - 9, 10, 6, 180, 'eq2') }));
+mf('crossbody', ['schulter_hinten'], ['trapez'], { ...FRONT, armR: [-84, 0], armL: [-20, -120] });
+mf('shouldercars', ['schulter_seite', 'schulter_vorne', 'schulter_hinten'], [], { ...FRONT, armR: [150, 0], armL: [6, 0] },
+  J => ({ front: arcA(J.shR[0], J.shR[1], 52, -150, 120) }));
+ms('wallslide', ['schulter_vorne', 'trapez'], ['lat'], { ankle: [110, 182], leg: [90, 90], torso: -90, arm: { to: [150, 46], bend: 1 } },
+  J => ({ back: wall(154), front: lineA([J.hand[0] - 10, J.hand[1] + 30], [J.hand[0] - 10, J.hand[1] - 2]) }));
+ms('latwall', ['lat'], ['beinbeuger', 'trizeps'], { ankle: [92, 182], leg: [90, 90], torso: 0, arm: [-6, -6] },
+  J => ({ back: wall(J.hand[0] + 4) }));
+mf('proneswimmer', ['schulter_hinten', 'trapez'], ['ruecken_unten'], { view: 'back', at: [128, 162], s: .6, rot: -90, noGround: true, armR: [170, 0], armL: [40, 60], legR: [2, 0] },
+  J => ({ back: floorT(), front: arcA(J.shR[0], J.shR[1], 40, 0, 120) }));
+mf('overheadpullapart', ['schulter_hinten', 'trapez'], ['lat'], { ...FRONT, armR: [165, 0] }, J => ({ front: band(J.handR, J.handL) }));
+mf('halo', ['schulter_vorne', 'trapez'], ['trizeps'], { ...FRONT, armR: [150, -130], armL: [40, 140] },
+  J => ({ front: kb([(J.handR[0] + J.handL[0]) / 2, Math.min(J.handR[1], J.handL[1]) - 10]) + arcA(J.head[0], J.head[1], 30, -200, 20) }));
+mf('shoulderrolls', ['trapez'], ['schulter_hinten'], FRONT,
+  J => ({ front: arcA(J.shR[0], J.shR[1] - 4, 9, -160, 160) + arcA(J.shL[0], J.shL[1] - 4, 9, -20, 300) }));
+
+// ---------- Arme ----------
+ms('wristcircles', ['unterarme'], [], { ...STAND, arm: [80, 0] }, J => ({ front: arcA(J.hand[0] + 6, J.hand[1], 9, -160, 160) }));
+ms('wristflexor', ['unterarme'], [], QUAD, J => ({ front: lineA([J.hand[0] + 14, 180], [J.hand[0] - 6, 180]) }));
+ms('wristextensor', ['unterarme'], [], { ...STAND, arm: [0, 0], arm2: [60, -10] }, J => ({ front: arcA(J.hand[0], J.hand[1], 12, -60, 60) }));
+ms('wristrocks', ['unterarme'], [], QUAD, J => ({ front: lineA([J.sh[0] - 14, J.sh[1] - 22], [J.sh[0] + 14, J.sh[1] - 22], true) }));
+ms('pronsup', ['unterarme'], ['bizeps'], { ...STAND, arm: [80, 0] }, J => ({ front: turnA(J.hand[0] - 6, J.hand[1] + 10, 12) }));
+ms('fingerext', ['unterarme'], [], { ...STAND, arm: [80, 0] }, J => ({ front: `<circle cx="${f1(J.hand[0] + 5)}" cy="${f1(J.hand[1])}" r="5" class="band" fill="none"/>` }));
+mf('tricepsoh', ['trizeps'], ['lat'], { ...FRONT, armR: [170, 168], armL: [140, 120] });
+ms('bicepswall', ['bizeps'], ['brust', 'schulter_vorne'], { ankle: [120, 182], leg: [90, 90], torso: -90, arm: [172, 172] }, J => ({ back: wall(J.hand[0] - 10) }));
+ms('fistspread', ['unterarme'], [], { ...STAND, arm: [80, 0] }, J => ({ front: arcA(J.hand[0] + 4, J.hand[1], 10, -70, 70, true) }));
+mf('prayer', ['unterarme'], [], { ...FRONT, armR: [14, -152] });
+
+// ---------- Nacken ----------
+mf('neckrot', ['trapez'], [], { view: 'front', at: [120, 330], s: 1.5, noGround: true, armR: [8, 0], legR: [3, 0], headTurn: 40 }, J => ({ front: turnA(J.head[0], J.head[1] - 22, 22) }));
+mf('necktilt', ['trapez'], [], { view: 'front', at: [120, 330], s: 1.5, noGround: true, armR: [8, 0], legR: [3, 0], headTilt: 24 }, J => ({ front: arcA(J.head[0], J.head[1] + 20, 34, -120, -70, true) }));
+ms('chintuck', ['trapez'], [], { ...STAND, head: -6, zoom: 1.8, zoomAt: [122, 26] }, J => ({ front: lineA([J.sh[0] + 30, J.sh[1] - 18], [J.sh[0] + 16, J.sh[1] - 18]) }));
+ms('nod', ['trapez'], [], { ...STAND, head: 20, zoom: 1.8, zoomAt: [122, 26] }, J => ({ front: arcA(J.sh[0] + 2, J.sh[1] - 22, 20, -50, 30, true) }));
+mf('uppertrap', ['trapez'], [], { view: 'front', at: [120, 330], s: 1.5, noGround: true, armR: [8, 0], legR: [3, 0], headTilt: -28, armL: [145, 118] });
+mf('levator', ['trapez'], [], { view: 'front', at: [120, 330], s: 1.5, noGround: true, armR: [8, 0], legR: [3, 0], headTilt: -18, headTurn: -40, armL: [145, 118] });
+ms('chintuckwall', ['trapez'], [], { ankle: [96, 182], leg: [90, 90], torso: -90, arm: [90, 90], head: -6, zoom: 1.8, zoomAt: [98, 26] },
+  J => ({ back: wall(78), front: lineA([J.sh[0] + 30, J.sh[1] - 18], [J.sh[0] + 16, J.sh[1] - 18]) }));
+// ===== scY.js =====
+/* Yoga-Szenen (eine je Haltung, Schlüssel = id aus YOGA_POSES). Rot = hier spürst du die Haltung, orange = hält und stabilisiert. */
+const SCY = {};
+const ys = (id, p, s, pose, eq) => { SCY[id] = { n: id, ex: [id], p, s, view: 'side', pose, eq }; };
+const yf = (id, p, s, pose, eq) => { SCY[id] = { n: id, ex: [id], p, s, view: pose.view, pose, eq }; };
+// aus einer Mobility-Szene übernehmen (Haltung ggf. angepasst)
+const yr = (id, mob, p, s, patch = {}, eq) => { const m = SCM[mob]; SCY[id] = { ...m, n: id, ex: [id], p: p || m.p, s: s || m.s, pose: { ...m.pose, ...patch }, eq: eq === undefined ? m.eq : eq }; };
+const SEATX = { view: 'front', at: [120, 246], s: .7, armR: [24, -40], legR: [100, -158, .9, .8] };   // Schneidersitz von vorn
+const SEIZA = { hip: [92, 168], torso: -90, leg: [16, 180], foot: 180, arm: hd(128, 166, 1) };        // Fersensitz
+const STAFF = { hip: [90, 178], torso: -90, leg: [0, 0], foot: -80, arm: hd(92, 186, 1) };             // Langsitz
+const SAVA = { hip: [134, 177], ...SUPN, leg: [0, 0], foot: -70, arm: [4, 4] };                         // Rückenlage gestreckt
+const W2 = { view: 'front', at: [120, 203], s: .72, armR: [90, 0], legR: [50, -50], legL: [40, 0] };  // Krieger II
+const CROW = { hip: [108, 118], torso: 26, leg: [38, 200], foot: 200, arm: hd(150, 186, 1) };
+const PLANK = { hip: [108.6, 145.9], torso: -24.3, leg: [155.7, 155.7], foot: 100, arm: [90, 90] };
+const SHST = { hip: [100, 141], torso: 90, curl: 60, leg: [-90, -90], foot: -90, arm: hd(96, 146, 1) };  // Schulterstand
+const breath = J => ({ front: lineA([J.hip[0] + 46, J.hip[1] - 50], [J.hip[0] + 46, J.hip[1] - 76], true) });
+
+// ---------- Aufwärmen ----------
+yr('catcow', 'catcow');
+ys('tabletop', ['bauch'], ['schulter_vorne', 'ruecken_unten'], QUAD);
+yr('threadneedle', 'threadneedle');
+yr('birddog', 'birddog');
+yr('hipcircles', 'hipcars');
+yf('neckstretch', ['trapez'], [], { ...SEATX, headTilt: -24, armL: [145, 118] });
+yr('shouldercircles', 'armcircles');
+yr('wristmob', 'wristrocks');
+yf('palmtree', ['lat', 'bauch'], [], { ...FRONT, lean: 14, armR: [172, 0], armL: [176, 0] }, J => ({ front: arcA(J.hip[0], J.hip[1], 96, -116, -78) }));
+
+// ---------- Stehhaltungen ----------
+yf('mountain', ['bauch'], ['quadrizeps', 'gesaess'], { ...FRONT, armR: [10, 0] });
+ys('warrior1', ['hueftbeuger', 'quadrizeps'], ['schulter_vorne', 'gesaess'], { hip: [104, 128], torso: -90, leg: ft(156), leg2: { to: [40, 182], bend: -1 }, foot2: -20, arm: [-92, -92] });
+yf('warrior2', ['quadrizeps', 'adduktoren'], ['schulter_seite', 'gesaess'], { ...W2, headTurn: 50 });
+yf('reversewarrior', ['lat', 'bauch'], ['quadrizeps'], { ...W2, lean: -18, armR: [168, 0], armL: [20, 0], headTurn: 30 });
+ys('humblewarrior', ['schulter_vorne', 'brust', 'beinbeuger'], ['quadrizeps'], { hip: [104, 128], torso: 72, leg: ft(156), leg2: { to: [40, 182], bend: -1 }, foot2: -20, arm: [-150, -150] });
+yf('sideangle', ['lat', 'adduktoren'], ['quadrizeps'], { ...W2, lean: 50, armR: [50, 0], armL: [178, 0] });
+yf('revsideangle', ['bauch', 'ruecken_unten'], ['quadrizeps', 'adduktoren'], { ...W2, lean: 45, armR: [135, 0], armL: [45, 0], headTurn: -30 }, J => ({ front: turnA(J.hip[0] + 30, J.hip[1] - 40, 22) }));
+yf('triangle', ['beinbeuger', 'adduktoren', 'lat'], ['bauch'], { view: 'front', at: [120, 198], s: .72, lean: 60, armR: [60, 0], armL: [120, 0], legR: [30, 0], legL: [30, 0] });
+yf('revtriangle', ['bauch', 'beinbeuger'], ['ruecken_unten'], { view: 'front', at: [120, 198], s: .72, lean: 60, armR: [120, 0], armL: [60, 0], legR: [30, 0], legL: [30, 0], headTurn: -30 },
+  J => ({ front: turnA(J.hip[0] + 40, J.hip[1] - 30, 22) }));
+ys('chair', ['quadrizeps'], ['gesaess', 'schulter_vorne'], { ankle: [124, 182], leg: [20, 108], torso: -60, arm: [-60, -60] });
+ys('revchair', ['bauch'], ['quadrizeps'], { ankle: [124, 182], leg: [20, 108], torso: -60, arm: [60, -70] }, J => ({ front: turnA(J.mid[0], J.mid[1] - 10, 26) }));
+ys('pyramid', ['beinbeuger'], ['waden'], { hip: [102, 113], torso: 64, curl: 14, leg: { to: [150, 182], bend: -1 }, leg2: { to: [54, 182], bend: -1 }, foot2: -20, arm: hd(146, 186, 1) });
+ys('widefold', ['beinbeuger', 'adduktoren'], ['waden'], { ankle: [116, 182], leg: [90, 90], torso: 50, curl: 30, arm: hd(146, 186, 1) });
+yf('goddess', ['adduktoren', 'quadrizeps'], ['gesaess', 'schulter_seite'], { view: 'front', at: [120, 206], s: .72, armR: [90, 90], legR: [60, -60] });
+ys('highlunge', ['hueftbeuger', 'quadrizeps'], ['gesaess'], { hip: [108, 122], torso: -90, leg: ft(152), leg2: { to: [48, 178], bend: -1 }, foot2: 150, arm: [-92, -92] });
+ys('lowlunge', ['hueftbeuger'], ['quadrizeps'], { hip: [104, 150], torso: -86, leg: ft(152), leg2: [125, 180], foot2: 180, arm: [-96, -96] });
+yr('skandasana', 'cossack', ['adduktoren'], ['quadrizeps'], { armR: [18, -150] });
+
+// ---------- Gleichgewicht ----------
+yf('tree', ['gesaess', 'adduktoren'], ['waden', 'bauch'], { ...FRONT, armR: [165, -20], legR: [70, -150], legL: [2, 0] });
+ys('warrior3', ['gesaess', 'beinbeuger'], ['ruecken_unten', 'schulter_vorne'], { ankle: [110, 182], leg: [86, 94], torso: -2, leg2: [178, 178], foot2: 100, arm: [-2, -2] });
+yf('halfmoon', ['gesaess', 'abduktoren'], ['adduktoren', 'bauch'], { view: 'front', at: [128, 189], s: .72, lean: 85, armR: [85, 0], armL: [95, 0], legR: [8, 0], legL: [88, 0] });
+yf('revhalfmoon', ['bauch', 'beinbeuger'], ['gesaess'], { view: 'front', at: [128, 189], s: .72, lean: 85, armR: [95, 0], armL: [85, 0], legR: [8, 0], legL: [88, 0], headTurn: -30 },
+  J => ({ front: turnA(J.hip[0] - 30, J.hip[1] - 30, 20) }));
+yf('eagle', ['schulter_hinten', 'abduktoren'], ['quadrizeps'], { ...FRONT, armR: [-50, -110, .9, .9], armL: [-30, -120], legR: [-14, -20], legL: [6, 4] });
+ys('dancer', ['hueftbeuger', 'quadrizeps', 'brust'], ['gesaess', 'waden'], { ankle: [120, 182], leg: [88, 92], torso: -50, leg2: [150, -90], foot2: -100, arm: [-40, -40], arm2: [140, 150] });
+ys('handtotoe', ['beinbeuger'], ['gesaess', 'bauch'], { hip: [110, 98], torso: -84, leg: [8, 8], foot: -70, leg2: [92, 90], arm: { to: [160, 96], bend: 1 } }, J => ({ front: band(J.hand, [J.ankle[0] + 10, J.ankle[1] - 4]) }));
+ys('standsplit', ['beinbeuger'], ['hueftbeuger'], { ankle: [130, 182], leg: [90, 90], torso: 80, curl: 14, leg2: [-124, -124], foot2: -120, arm: hd(144, 186, 1) });
+yf('sugarcane', ['quadrizeps', 'hueftbeuger'], ['gesaess'], { view: 'front', at: [128, 189], s: .72, lean: 85, armR: [85, 0], armL: [20, 0], legR: [8, 0], legL: [88, 0, 1, .35] });
+ys('figurefour', ['gesaess'], ['quadrizeps'], { hip: [96, 128], torso: -58, leg: [0, 170], foot: 180, leg2: ft(128), arm: [-10, -10] });
+
+// ---------- Rückbeugen ----------
+ys('cobra', ['bauch'], ['ruecken_unten', 'brust'], { ...PRONE, torso: -30, arm: hd(144, 186, 1) });
+yr('sphinx', 'sphinx');
+ys('updog', ['bauch', 'brust', 'hueftbeuger'], ['ruecken_unten', 'trizeps'], { hip: [96, 166], torso: -45, leg: [176, 176], foot: 180, arm: [90, 90] });
+ys('locust', ['ruecken_unten', 'gesaess'], ['beinbeuger', 'schulter_hinten'], { hip: [96, 174], torso: -10, leg: [188, 188], foot: 180, arm: [176, 176] });
+ys('bow', ['brust', 'hueftbeuger', 'quadrizeps'], ['ruecken_unten', 'gesaess'], { hip: [100, 176], torso: -34, leg: [194, -45], foot: -60, arm: { to: [88, 136], bend: -1 } });
+ys('bridge', ['hueftbeuger', 'brust'], ['gesaess'], { hip: [136, 148], torso: 150, farOff: [-2, -3], leg: ft(168), arm: [10, 10] });
+ys('wheel', ['brust', 'hueftbeuger', 'bauch'], ['trizeps', 'gesaess'], { hip: [118, 110], torso: 150, curl: 20, farOff: [-2, -3], leg: ft(160), arm: hd(60, 186, -1) });
+ys('camel', ['hueftbeuger', 'brust', 'bauch', 'quadrizeps'], ['ruecken_unten'], { hip: [110, 141], torso: -130, curl: -40, leg: [90, 180], foot: 180, arm: { to: [72, 178], bend: 1 } });
+ys('fish', ['brust', 'bauch'], ['trapez'], { hip: [140, 178], ...SUPN, torso: 192, curl: -30, leg: [0, 0], foot: -80, arm: [4, 4] });
+ys('reversetable', ['brust', 'schulter_vorne', 'hueftbeuger'], ['gesaess', 'trizeps'], { hip: [128, 140], ...SUPN, torso: 178, leg: [0, 90], foot: 0, arm: hd(72, 186, 1) });
+ys('upwardplank', ['brust', 'schulter_vorne', 'hueftbeuger'], ['gesaess', 'trizeps'], { hip: [119.8, 146.8], ...SUPN, torso: 204.8, leg: [24.8, 24.8], foot: 60, arm: [90, 90] });
+yf('wildthing', ['brust', 'hueftbeuger'], ['schulter_vorne'], { ...SPL, armR: [170, 0], legL: [-24, -70] });
+ys('kingpigeon', ['hueftbeuger', 'quadrizeps', 'brust'], ['gesaess'], { hip: [100, 168], torso: -96, curl: -22, leg: [178, -96], foot: -90, leg2: [12, 160], foot2: 90, arm: [-120, -160] });
+ys('puppy', ['lat', 'brust', 'schulter_vorne'], ['trizeps'], { hip: [84, 141], torso: 36.6, leg: [90, 180], foot: 180, arm: hd(186, 184, 1) });
+
+// ---------- Vorbeugen ----------
+ys('standfold', ['beinbeuger'], ['waden', 'ruecken_unten'], { ankle: [110, 182], leg: [90, 90], torso: 50, curl: 30, arm: hd(140, 186, 1) });
+ys('halffold', ['beinbeuger'], ['ruecken_unten'], { ankle: [110, 182], leg: [90, 90], torso: 6, arm: hd(118, 146, 1) });
+ys('seatedfold', ['beinbeuger'], ['waden', 'ruecken_unten'], { ...STAFF, torso: -58, curl: 42, zoom: 1.3, zoomAt: [120, 186], arm: hd(152, 172, 1) });
+ys('headtoknee', ['beinbeuger'], ['ruecken_unten'], { ...STAFF, torso: -58, curl: 42, zoom: 1.3, zoomAt: [120, 186], leg2: [10, 176], foot2: 180, arm: hd(152, 172, 1) });
+yf('revheadtoknee', ['lat', 'beinbeuger'], ['adduktoren'], { view: 'front', at: [120, 246], s: .7, lean: 40, armR: [40, 0], armL: [130, 0], legR: [88, 0], legL: [100, -158, .9, .8] });
+yf('wideseatedfold', ['adduktoren', 'beinbeuger'], [], { view: 'front', at: [120, 246], s: .7, headTilt: 0, armR: [26, 0, .7, .7], legR: [78, 0] });
+ys('tortoise', ['ruecken_unten', 'beinbeuger'], ['schulter_hinten'], { ...STAFF, torso: -8, curl: 30, leg: [-14, 14], arm: [150, 150] });
+ys('rabbit', ['ruecken_unten', 'trapez'], ['schulter_hinten'], { hip: [84, 141], torso: 10, curl: 60, leg: [90, 180], foot: 180, arm: [170, 170] });
+ys('halfboundlotusfold', ['beinbeuger', 'gesaess'], [], { hip: [110, 98], torso: 50, curl: 30, leg: [40, 170], foot: 170, leg2: [90, 90], arm: hd(142, 186, 1), arm2: [-160, -160] });
+ys('foldclasp', ['beinbeuger', 'brust', 'schulter_vorne'], [], { ankle: [110, 182], leg: [90, 90], torso: 50, curl: 30, arm: [-112, -112] });
+
+// ---------- Drehungen ----------
+yr('halflordfishes', 'seatedtwist');
+ys('marichi1', ['beinbeuger', 'ruecken_unten'], ['schulter_vorne'], { ...STAFF, torso: -26, curl: 24, leg: ft(136), leg2: [0, 0], foot2: -80, arm: [120, 60] });
+ys('marichi3', ['bauch', 'ruecken_unten'], ['gesaess'], { ...STAFF, leg: ft(136), leg2: [0, 0], foot2: -80, arm: hd(140, 150, 1), arm2: hd(66, 186, 1) }, J => ({ front: turnA(J.mid[0], J.mid[1] - 10, 26) }));
+yf('easytwist', ['bauch'], ['ruecken_unten'], { ...SEATX, headTurn: 35, armR: [30, -50], armL: [12, 0] }, J => ({ front: turnA(J.hip[0], J.hip[1] - 40, 34) }));
+yr('supinetwist', 'lyingtwist');
+yf('reclinedtwist', ['ruecken_unten', 'gesaess'], ['brust', 'beinbeuger'], { view: 'front', at: [128, 162], s: .6, rot: -90, noGround: true, armR: [90, 0], legR: [62, 0], legL: [-40, 0] },
+  J => ({ back: floorT(), front: arcA(J.hip[0] + 34, J.hip[1], 34, 40, -50) }));
+ys('revlowlunge', ['bauch', 'hueftbeuger'], ['quadrizeps'], { hip: [104, 150], torso: -60, leg: ft(152), leg2: [125, 180], foot2: 180, arm: [-90, -90], arm2: hd(150, 186, 1) }, J => ({ front: turnA(J.mid[0], J.mid[1] - 10, 26) }));
+yf('bharadvaja', ['bauch'], ['ruecken_unten'], { view: 'front', at: [120, 246], s: .7, headTurn: 35, armR: [30, -50], legR: [-30, -110, .5, .9], legL: [96, 100, .9, .5] }, J => ({ front: turnA(J.hip[0], J.hip[1] - 40, 34) }));
+ys('heelstwist', ['bauch'], ['ruecken_unten', 'quadrizeps'], { ...SEIZA, arm: hd(128, 160, 1), arm2: hd(66, 186, 1) }, J => ({ front: turnA(J.mid[0], J.mid[1] - 10, 26) }));
+
+// ---------- Hüftöffner ----------
+yr('halfpigeon', 'pigeon');
+ys('lizard', ['hueftbeuger', 'adduktoren'], ['gesaess'], { hip: [104, 146], torso: 0, leg: ft(172), leg2: [125, 180], foot2: 180, arm: [90, 0] });
+yr('boundangle', 'butterfly');
+yf('firelog', ['gesaess', 'abduktoren'], ['adduktoren'], { ...SEATX, armR: [20, -20], legR: [80, -170, .5, 1] });
+yf('cowface', ['trizeps', 'gesaess', 'schulter_vorne'], ['abduktoren'], { ...SEATX, armR: [172, 170], armL: [24, -150], legR: [-10, -150, .5, .9], legL: [60, -120, .6, .9] });
+ys('happybaby', ['adduktoren', 'gesaess'], ['ruecken_unten'], { hip: [136, 177], ...SUPN, leg: [-124, -90], foot: -180, arm: { to: [124, 110], bend: -1 } });
+yr('frog', 'frogrock', null, null, {}, J => ({ back: floorT() }));
+ys('garland', ['adduktoren', 'waden'], ['gesaess'], { ...DSQ, torso: -80, arm: [70, -110] });
+yr('reclinedfigurefour', 'figurefour');
+ys('halfsplit', ['beinbeuger'], ['waden'], { hip: [104, 141], torso: -10, curl: 16, leg: [29, 29], foot: -70, leg2: [90, 180], foot2: 180, arm: hd(150, 186, 1) });
+ys('splits', ['beinbeuger', 'hueftbeuger'], ['quadrizeps'], { hip: [110, 176], torso: -90, leg: [0, 0], foot: -80, leg2: [180, 180], foot2: 180, arm: [-90, -90] });
+yf('gate', ['lat', 'adduktoren'], ['bauch'], { view: 'front', at: [120, 224], s: .72, lean: 30, armR: [40, 0], armL: [130, 0], legR: [60, 0], legL: [0, 0, 1, .3] });
+yf('recboundangle', ['adduktoren'], ['brust'], { view: 'front', at: [128, 162], s: .6, rot: -90, noGround: true, armR: [40, 0], legR: [70, -140, .9, .9] }, () => ({ back: floorT() }));
+
+// ---------- Sitzhaltungen ----------
+yf('easyseat', [], ['ruecken_unten', 'bauch'], SEATX);
+yf('lotus', ['gesaess', 'adduktoren'], ['waden'], { ...SEATX, legR: [95, -172, .9, .8] });
+yf('halflotus', ['gesaess', 'adduktoren'], [], { ...SEATX, legR: [95, -172, .9, .8], legL: [100, -158, .9, .8] });
+ys('thunderbolt', ['quadrizeps'], ['waden'], SEIZA);
+ys('hero', ['quadrizeps'], [], { ...SEIZA, hip: [92, 172] });
+ys('staff', ['beinbeuger'], ['ruecken_unten', 'bauch'], STAFF);
+yf('accomplished', ['gesaess', 'adduktoren'], [], { ...SEATX, armR: [30, -30] });
+ys('lion', [], ['trapez'], SEIZA, J => ({ front: lineA([J.sh[0] + 30, J.sh[1] - 22], [J.sh[0] + 52, J.sh[1] - 22]) }));
+
+// ---------- Armbalancen ----------
+ys('crow', ['bauch', 'schulter_vorne'], ['trizeps', 'unterarme'], CROW);
+ys('sidecrow', ['bauch', 'schulter_vorne'], ['trizeps'], CROW, J => ({ front: turnA(J.hip[0], J.hip[1] - 26, 22) }));
+yf('firefly', ['beinbeuger', 'adduktoren', 'bauch'], ['trizeps'], { view: 'front', at: [120, 243], s: .72, armR: [10, 0], legR: [100, 0] });
+yf('eightangle', ['bauch'], ['trizeps', 'adduktoren'], { view: 'front', at: [120, 243], s: .72, lean: 30, armR: [10, 0], legR: [100, 0], legL: [-50, 0] });
+yf('sideplank', ['bauch', 'schulter_seite'], ['abduktoren'], SPL);
+yf('elephanttrunk', ['bauch', 'beinbeuger'], ['trizeps'], { view: 'front', at: [120, 243], s: .72, armR: [10, 0], legR: [100, 0], legL: [20, -10] });
+ys('flyingpigeon', ['gesaess', 'bauch'], ['trizeps'], { hip: [98, 146], torso: 2, leg: [30, 180], foot: 180, leg2: [192, 192], foot2: 180, arm: { to: [150, 186], bend: -1 } });
+ys('koundinya', ['bauch'], ['trizeps'], { ...CROW, leg: [10, 10], foot: 0, leg2: [190, 190], foot2: 180 });
+ys('peacock', ['unterarme', 'bauch'], ['trizeps', 'ruecken_unten'], { hip: [96, 140], torso: 0, leg: [182, 182], foot: 180, arm: hd(146, 186, -1) });
+
+// ---------- Umkehrhaltungen ----------
+ys('downdog', ['beinbeuger', 'waden', 'lat'], ['schulter_vorne'], DOG);
+ys('threeleggeddog', ['beinbeuger', 'hueftbeuger'], ['lat'], { ...DOG, leg2: [-150, -150], foot2: -150 });
+ys('dolphin', ['schulter_vorne', 'beinbeuger'], ['lat'], { hip: [110, 110], torso: 58, leg: { to: [70, 182], bend: 1 }, foot: 0, arm: [90, 0] });
+ys('headstand', ['schulter_vorne', 'bauch'], ['trapez', 'ruecken_unten'], { hip: [120, 104], torso: 90, leg: [-90, -90], foot: -90, arm: [60, 180] });
+ys('tripodheadstand', ['schulter_vorne', 'bauch'], ['trizeps'], { hip: [120, 104], torso: 90, leg: [-90, -90], foot: -90, arm: [40, 90] });
+ys('shoulderstand', ['trapez'], ['bauch', 'schulter_vorne'], SHST);
+ys('plough', ['beinbeuger', 'ruecken_unten', 'trapez'], [], { ...SHST, leg: [155, 155], foot: 180 });
+ys('forearmstand', ['schulter_vorne', 'bauch'], ['trizeps', 'ruecken_unten'], { hip: [120, 104], torso: 90, leg: [-90, -90], foot: -90, arm: [90, 0] });
+ys('handstand', ['schulter_vorne'], ['trizeps', 'bauch'], { hip: [120, 66], torso: 90, leg: [-90, -90], foot: -90, arm: [94, 94], zoom: .8 });
+ys('scorpion', ['brust', 'bauch', 'hueftbeuger'], ['schulter_vorne'], { hip: [130, 100], torso: 100, curl: -40, leg: [-70, 200], foot: 180, arm: [90, 0] });
+
+// ---------- Rumpf ----------
+ys('plank', ['bauch'], ['schulter_vorne', 'quadrizeps'], PLANK);
+ys('forearmplank', ['bauch'], ['schulter_vorne'], { hip: [108, 162], torso: -8, leg: [170, 172], foot: 95, arm: [90, 0] });
+ys('chaturanga', ['trizeps', 'brust'], ['bauch', 'schulter_vorne'], { hip: [106, 164], torso: -6, leg: [172, 172], foot: 100, arm: hd(152, 186, -1) });
+ys('boat', ['bauch', 'hueftbeuger'], [], { hip: [110, 176], torso: -124, leg: [-46, -46], foot: -40, arm: [0, 0] });
+ys('halfboat', ['bauch', 'hueftbeuger'], [], { hip: [110, 176], torso: -124, leg: [-46, 2], foot: 0, arm: [0, 0] });
+ys('dolphinplank', ['bauch', 'schulter_vorne'], [], { hip: [108, 162], torso: -8, leg: [170, 172], foot: 95, arm: [90, 0] });
+yf('forearmsideplank', ['bauch', 'abduktoren'], ['schulter_seite'], { ...SPL, at: [116, 222], rot: -72, armL: [18, 0, 1, .25], armR: [108, 0] });
+ys('kneetonose', ['bauch'], ['schulter_vorne', 'hueftbeuger'], { ...PLANK, leg: [40, 150], foot: 100, leg2: [155.7, 155.7] });
+
+// ---------- Boden und Entspannung ----------
+yr('child', 'childpose');
+ys('savasana', [], [], SAVA);
+ys('recliningthero', ['quadrizeps', 'hueftbeuger'], ['bauch'], { hip: [118, 174], ...SUPN, torso: 204, leg: [4, 180], foot: 180, arm: [90, 180], zoom: 1.25, zoomAt: [118, 186] });
+yr('supinebigtoe', 'strapham');
+ys('kneestochest', ['ruecken_unten', 'gesaess'], [], { hip: [134, 177], ...SUPN, leg: [-112, -10], foot: -10, arm: { to: [148, 136], bend: -1 } });
+ys('windrelieving', ['gesaess', 'ruecken_unten'], ['hueftbeuger'], { hip: [134, 177], ...SUPN, leg: [-112, -10], foot: -10, leg2: [0, 0], foot2: -70, arm: { to: [148, 136], bend: -1 } });
+ys('crocodile', [], ['ruecken_unten'], { ...PRONE, arm: { to: [166, 176], bend: -1 } });
+ys('onelegbridge', ['gesaess'], ['beinbeuger'], { hip: [136, 152], torso: 152, farOff: [-2, -3], leg: ft(168), leg2: [-60, -60], foot2: -60, arm: hd(126, 186, -1) });
+
+// ---------- Yin ----------
+ys('caterpillar', ['ruecken_unten', 'beinbeuger'], [], { ...STAFF, torso: -58, curl: 42, leg: [-6, 6], arm: hd(150, 172, 1), zoom: 1.3, zoomAt: [120, 186] });
+yf('yinbutterfly', ['adduktoren', 'ruecken_unten'], [], { view: 'front', at: [120, 246], s: .7, headTilt: 0, armR: [14, -20], legR: [105, -150, .9, .8] });
+ys('halfbutterfly', ['beinbeuger'], ['ruecken_unten'], { ...STAFF, torso: -58, curl: 42, leg: [-4, 4], leg2: [10, 176], foot2: 180, arm: hd(152, 172, 1), zoom: 1.3, zoomAt: [120, 186] });
+ys('dragon', ['hueftbeuger'], ['adduktoren'], { hip: [104, 150], torso: -50, leg: ft(160), leg2: [125, 180], foot2: 180, arm: hd(150, 186, 1) });
+ys('swan', ['gesaess', 'hueftbeuger'], [], { hip: [100, 168], torso: -94, leg: [178, 180], foot: 180, leg2: [12, 160], foot2: 90, arm: hd(126, 186, 1) });
+SCY.saddle = { ...SCY.recliningthero, n: 'saddle', ex: ['saddle'] };
+yf('shoelace', ['gesaess', 'abduktoren'], [], { ...SEATX, armR: [20, -30], legR: [-10, -150, .5, .9], legL: [60, -120, .6, .9] });
+ys('seal', ['bauch', 'ruecken_unten'], [], { ...PRONE, torso: -40, arm: hd(150, 186, 1) });
+SCY.dragonfly = { ...SCY.wideseatedfold, n: 'dragonfly', ex: ['dragonfly'] };
+yf('banana', ['lat', 'abduktoren'], ['bauch'], { view: 'front', at: [128, 162], s: .6, rot: -90, noGround: true, lean: -18, armR: [170, 0], legR: [-14, 0], legL: [14, 0] }, () => ({ back: floorT() }));
+ys('legsupwall', ['beinbeuger'], [], { hip: [150, 177], ...SUPN, leg: [-90, -90], foot: -180, arm: [4, 4] }, () => ({ back: wall(160) }));
+ys('supportedbridge', ['hueftbeuger', 'ruecken_unten'], [], { hip: [136, 160], torso: 162, farOff: [-2, -3], leg: ft(170), arm: [10, 10] }, J => ({ back: rect(J.hip[0] - 12, J.hip[1] + 6, 24, 190 - J.hip[1] - 6, 'pad', 2) }));
+ys('toesquat', ['waden'], [], { ...SEIZA, hip: [92, 160], foot: 120 });
+ys('supportedchild', ['ruecken_unten', 'lat'], [], { hip: [80, 166], torso: -6, curl: 10, leg: [22, 180], foot: 180, arm: hd(180, 184, 1), zoom: 1.35, zoomAt: [120, 188] }, () => ({ back: rect(96, 168, 70, 18, 'eq3', 9) }));
+
+// ---------- Atmung ----------
+yf('nadishodhana', [], ['brust'], { ...SEATX, armR: [26, -170] });
+yf('ujjayi', [], ['brust', 'bauch'], SEATX, breath);
+yf('kapalabhati', ['bauch'], [], SEATX, J => ({ front: lineA([J.hip[0] + 44, J.hip[1] - 24], [J.hip[0] + 24, J.hip[1] - 24]) }));
+yf('bhastrika', ['bauch'], ['brust'], { ...SEATX, armR: [170, 0] }, breath);
+yf('bhramari', [], ['brust'], { ...SEATX, armR: [100, -150] });
+yf('dirgha', ['bauch', 'brust'], [], { ...SEATX, armR: [20, -130], armL: [14, -100] }, breath);
+yf('boxbreath', [], ['brust', 'bauch'], SEATX, J => { const x = J.hip[0] + 50, y = J.hip[1] - 80, d = 24;
+  return { front: lineA([x, y + d], [x, y]) + lineA([x, y], [x + d, y]) + lineA([x + d, y], [x + d, y + d]) + lineA([x + d, y + d], [x, y + d]) }; });
+yf('sitali', [], ['brust'], SEATX, breath);
+yf('meditation', [], [], SEATX);
+ys('bodyscan', [], [], SAVA, J => ({ front: lineA([J.sh[0] - 30, 150], [J.ankle[0] + 10, 150]) + `<circle cx="${f1(J.sh[0] - 22)}" cy="150" r="3" class="mvh"/>` }));
 
 // ===== Schnittstelle für die App =====
 const BYNAME = new Map();
@@ -533,7 +977,18 @@ window.exFigSvg = (name, mus, label = '') => {
   try { svg = sceneSvg(s2); } catch (e) { return ''; }
   if (sc.pose && sc.pose.noGround) svg = svg.replace(/<line x1="6" y1="190"[^>]*\/>/, '');
   const id = 'xf' + (++N);
-  return svg.replace(/(#|id=")t(lo|up)\b/g, `$1${id}$2`)
+  return svg.replace(/(#|id=")t(lo|up|nk)\b/g, `$1${id}$2`)
     .replace('<svg ', `<svg class="xfig" role="img" aria-label="${String(label).replace(/"/g, '&quot;')}" `);
 };
+// v396: Mobility (SCM, Schlüssel = MOB_EX.id) und Yoga (SCY, Schlüssel = YOGA_POSES.id): Bild + Bereiche für die Legende
+const sceneOut = (sc, label) => {
+  let svg;
+  try { svg = sceneSvg(sc); } catch (e) { return null; }
+  if (sc.pose && sc.pose.noGround) svg = svg.replace(/<line x1="6" y1="190"[^>]*\/>/, '');
+  const id = 'xf' + (++N);
+  svg = svg.replace(/(#|id=")t(lo|up|nk)\b/g, `$1${id}$2`).replace('<svg ', `<svg class="xfig" role="img" aria-label="${String(label).replace(/"/g, '&quot;')}" `);
+  return { svg, p: sc.p || [], s: sc.s || [], arrows: svg.includes('class="mv"') };
+};
+window.exFigMob = (id, label = '') => SCM[id] ? sceneOut(SCM[id], label) : null;
+window.exFigYoga = (id, label = '') => SCY[id] ? sceneOut(SCY[id], label) : null;
 })();

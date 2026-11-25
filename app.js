@@ -6992,6 +6992,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 396, date: '2026-11-25', items: [
+    ['Figuren jetzt auch bei Mobility und Yoga: Öffnest du eine Übung, zeigt oben eine Figur die Haltung, blaue Pfeile zeigen die Bewegung. Die Legende sagt dazu, wo es dehnt, was mitarbeitet oder wo du die Haltung spürst.'],
+  ] },
   { v: 393, date: '2026-11-25', items: [
     ['Neue Übungsfiguren: Zu fast jeder Übung zeigt eine Figur jetzt die Haltung mitsamt Gerät, der Zielmuskel ist rot, mitarbeitende Muskeln sind orange. Du siehst sie oben in der Übungsbeschreibung (Bibliothek und „i“ im Training), die Muskelkarte bleibt darunter. Im Training steht außerdem eine kleine Figur neben jeder Übung.'],
   ] },

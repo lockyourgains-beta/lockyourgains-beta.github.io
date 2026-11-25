@@ -1282,7 +1282,9 @@ function yogaPoseStats(id) {
 }
 function yogaPoseDetail(p) {
   const st = yogaPoseStats(p.id);
+  const fig = typeof exFigYoga === 'function' ? exFigYoga(p.id, p.de) : null;  // v396
   return `<div class="yg-detail">
+      ${typeof figLegendHtml === 'function' ? figLegendHtml(fig, 'yoga') : ''}
       <p class="hint nut-small"><span>${YOGA_LVL[p.lvl]}</span> | <span>Richtwert ${p.hold} ${p.unit === 'r' ? 'Runden' : 'Sekunden'}${p.side ? ' je Seite' : ''}</span></p>
       ${typeof YOGA_DESC !== 'undefined' && YOGA_DESC[p.id] ? '' : `<p class="yg-how">${esc(p.how)}</p>`}
       <p class="hint nut-small">${esc(p.eff)}</p>

@@ -4975,3 +4975,13 @@ html[data-look="viking"][data-theme] :is(.ex-card.tint-0, .ex-card.tint-1, .ex-c
 .exfig-mini { display: block; flex: none; width: 76px; border-radius: 10px; background: color-mix(in srgb, var(--text) 4%, var(--card)); }
 .lib-link:has(.exfig-mini), .exfig-row { display: inline-flex; align-items: center; gap: 10px; text-align: left; }
 .exfig-ttl { min-width: 0; }
+
+/* ---------- v396: Figuren bei Mobility und Yoga ---------- */
+.xfig .mv { stroke: #3b82f6; stroke-width: 1.8; fill: none; stroke-linecap: round; }
+.xfig .mvh { fill: #3b82f6; }
+.xfig .stk { stroke: #a16207; stroke-width: 3; stroke-linecap: round; }
+.xfig .mat { fill: color-mix(in srgb, var(--accent) 35%, var(--card)); }
+.xfig .matT { fill: color-mix(in srgb, var(--text) 6%, var(--card)); }
+.xfig-box { margin: 4px 0 12px; }
+.xfig-box .xfig { max-width: 380px; margin: 0 auto; }
+.mm-dot.mv { background: #3b82f6; }
