@@ -6978,6 +6978,9 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 392, date: '2026-11-25', items: [
+    ['Zykluskalender: Neuer, freiwilliger Zyklus-Spielraum in der Zyklus-Karte im Reiter Ernährung. In den 7 Tagen vor der Periode liegt dein Tagesziel 100 kcal höher, nach der Periode zieht die App das an genauso vielen Tagen wieder ab. Über den Zyklus bleibt die Summe gleich. Mit hormoneller Verhütung bleibt er aus.'],
+  ] },
   { v: 391, date: '2026-11-25', items: [
     ['Ernährungsplan und Inspiration: Mengen lassen sich jetzt ändern. Einfach die Menge einer Zutat antippen, neue Menge eintragen (0 nimmt die Zutat heraus). Die übrigen Zutaten bleiben, wie sie sind.'],
     ['Zutaten tauschen geht jetzt auch in der Inspiration. Neben den passenden Vorschlägen gibt es unter „Weitere Lebensmittel“ alles aus derselben Gruppe, die Menge rechnet die App passend um. Beim Einplanen werden die Änderungen übernommen.'],

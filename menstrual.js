@@ -58,6 +58,62 @@ function mcWater(date) {
   return !!i && !i.pred && (i.day >= i.len - 5 || i.day <= 2);
 }
 
+/* ----- v392 (User-Wunsch 2026-11-25): Zyklus-Spielraum fürs Tagesziel -----
+   Freiwillig (data.mcal.flex, ab data.mcal.flexFrom). In den letzten MC_FLEX_DAYS Tagen vor der Periode (Lutealphase) +MC_FLEX kcal,
+   vor allem als Kohlenhydrate; nach dem Ende der Periode an genauso vielen Tagen −MC_FLEX kcal. Über den Zyklus gleicht sich das aus.
+   Mit hormoneller Verhütung (data.mcal.train.hormonal) aus, da es keinen natürlichen Zyklus gibt. Begründung: In der Lutealphase ist der
+   Grundumsatz bei vielen Frauen leicht erhöht, Hunger und Appetit nehmen zu (kleiner Effekt, große Unterschiede zwischen Frauen). */
+const MC_FLEX = 100, MC_FLEX_DAYS = 7;
+const mcHormonal = () => !!(mcCal().train && mcCal().train.hormonal);
+const mcFlexSet = () => mcOn() && !!mcCal().flex;
+const mcFlexOn = () => mcFlexSet() && !mcHormonal();
+function mcFlexPlus(date) {
+  const from = mcCal().flexFrom || '';
+  if (!mcFlexOn() || date < from) return false;
+  const i = mcInfo(date);
+  return !!i && i.phase !== 'late' && i.day > i.len - MC_FLEX_DAYS && i.day <= i.len;
+}
+// Spielraum-Tage direkt vor dem Beginn einer Periode (so viele Ausgleichstage folgen danach)
+function mcFlexCount(start) {
+  let n = 0;
+  for (let d = 1; d <= MC_FLEX_DAYS; d++) if (mcFlexPlus(addDaysISO(start, -d))) n++;
+  return n;
+}
+function mcFlexKcal(date) {
+  if (!mcFlexOn()) return 0;
+  if (mcFlexPlus(date)) return MC_FLEX;
+  const i = mcInfo(date), p = mcCal().period || 5;
+  if (!i || i.phase === 'late' || i.day <= p) return 0;
+  return i.day <= p + mcFlexCount(i.start) ? -MC_FLEX : 0;
+}
+// Zeile im Ernährungstagebuch
+function mcFlexLine(date) {
+  const k = mcFlexKcal(date);
+  if (!k) return '';
+  return k > 0 ? `<p class="nut-cardio mc-flex-line">🌙 Zyklus-Spielraum: +${k} kcal im Tagesziel, vor allem als Kohlenhydrate. Nach der Periode gleicht die App das wieder aus.</p>`
+    : `<p class="nut-cardio mc-flex-line">🌙 Ausgleich für den Zyklus-Spielraum: −${-k} kcal im Tagesziel.</p>`;
+}
+const MC_FLEX_HELP = `In der zweiten Zyklushälfte ist der Grundumsatz bei vielen Frauen etwas höher, und Hunger und Lust auf Süßes nehmen oft zu.
+  Mit dem Spielraum liegt dein Tagesziel in den ${MC_FLEX_DAYS} Tagen vor der Periode um ${MC_FLEX} kcal höher, vor allem als Kohlenhydrate.
+  Nach der Periode zieht die App dieselbe Menge an genauso vielen Tagen wieder ab. Über den ganzen Zyklus bleibt die Summe gleich und damit auch dein Fortschritt.
+  Der Effekt ist klein und von Frau zu Frau verschieden. Der Spielraum soll vor allem helfen, die Tage mit mehr Hunger gut zu überstehen.
+  Mit hormoneller Verhütung (Pille, Hormonspirale, Implantat) gibt es keinen natürlichen Zyklus, dann bleibt der Spielraum aus.`;
+function mcFlexHtml() {
+  if (!(data.nutrition && nutReady(data.nutrition))) return '';
+  const on = mcFlexSet(), horm = mcHormonal(), k = mcFlexKcal(todayISO());
+  return `<div class="mc-flex">
+      <div class="nut-td-line"><span>🌙 Zyklus-Spielraum</span>
+        <div class="seg two"><button class="${on ? 'on' : ''}" data-action="mc-flex" data-v="1">Ja</button>
+        <button class="${on ? '' : 'on'}" data-action="mc-flex" data-v="0">Nein</button></div></div>
+      ${on ? `<div class="nut-td-line mc-horm"><span>Hormonelle Verhütung?</span>
+        <div class="seg two"><button class="${horm ? 'on' : ''}" data-action="mc-horm" data-v="1">Ja</button>
+        <button class="${horm ? '' : 'on'}" data-action="mc-horm" data-v="0">Nein</button></div></div>
+        <p class="hint nut-small">${horm ? 'Mit hormoneller Verhütung bleibt der Spielraum aus.'
+          : k > 0 ? `Heute: +${k} kcal im Tagesziel.` : k < 0 ? `Heute: −${-k} kcal Ausgleich im Tagesziel.` : 'Heute: kein Spielraum, das Tagesziel gilt wie berechnet.'}</p>` : ''}
+      <details class="nut-more"><summary>ⓘ Was ist das?</summary><p class="hint nut-small">${MC_FLEX_HELP}</p></details>
+    </div>`;
+}
+
 // Karte im Ernährungs-Reiter
 function mcCard() {
   if (!mcAvailable()) return '';
@@ -77,6 +133,7 @@ function mcCard() {
         ${water ? '<br>💧 In diesen Tagen lagert der Körper oft 0,5–2 kg Wasser ein. Die App lässt deine Gewichtswerte von heute beim Gewichtsverlauf und beim gemessenen Bedarf weg. Das ist kein Fett.' : ''}</p>
       <div class="row"><button class="btn" data-action="mc-open">📅 Kalender</button>
         ${i.phase === 'mens' && i.day <= 1 ? '' : '<button class="btn" data-action="mc-today">🩸 Periode heute begonnen</button>'}</div>
+      ${mcFlexHtml()}
     </div>`;
 }
 
@@ -532,4 +589,16 @@ Object.assign(actions, {
     const lvl = Number(el.dataset.l), i = mcInfo();
     startDay(id, { ...readiness, mc: { win, lvl, pen: MC_LEVELS[lvl].reps, cut: MC_LEVELS[lvl].sets, cs: i ? i.start : null, day: i ? i.day : null } });
   },
+});
+
+// v392: Zyklus-Spielraum an/aus, hormonelle Verhütung (gleiche Angabe wie bei „Zyklus und Training“)
+Object.assign(actions, {
+  'mc-flex': el => {
+    const c = mcEnsure(), on = el.dataset.v === '1';
+    if (on && !c.flex) c.flexFrom = todayISO();
+    c.flex = on;
+    saveData(); render();
+    toast(on ? '🌙 Zyklus-Spielraum an' : 'Zyklus-Spielraum aus');
+  },
+  'mc-horm': el => { const t = mcTrainEnsure(); t.hormonal = el.dataset.v === '1'; if (t.hormonal) t.win.ovu = 0; saveData(); render(); },
 });

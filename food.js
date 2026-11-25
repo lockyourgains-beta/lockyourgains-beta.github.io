@@ -910,7 +910,7 @@ function renderFood(p) {
     </div>
     <div class="row food-nav-btns"><button class="btn" data-action="food-cal">📅 Kalender</button>
       <button class="btn" data-action="food-stats">📊 Woche & Monat</button></div>
-    <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) + foodTrainLine(date, foodGoal(date)) : foodSumHtml(t)}
+    <div class="card nut-intake food-eaten">${foodGoal(date) ? foodEatenHtml(date, foodGoal(date)) + foodTrainLine(date, foodGoal(date)) + (typeof mcFlexLine === 'function' ? mcFlexLine(date) : '') : foodSumHtml(t)}
       ${date === todayISO() && typeof nutGoalToolsHtml === 'function' ? nutGoalToolsHtml() : ''}</div>
     ${date === todayISO() ? foodOpenCard() : ''}`;
   // v336 (User-Wunsch): Mahlzeiten direkt unter Kalorien und Makros; Vitamine, Ballaststoffe/Zucker und „Aus Health“/„Von Hand“ darunter

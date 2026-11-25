@@ -4944,3 +4944,6 @@ html[data-look="viking"][data-theme] :is(.ex-card.tint-0, .ex-card.tint-1, .ex-c
 
 .inspo-list .hint .link-btn { margin: 0; padding: 0 0 0 4px; font-size: inherit; font-weight: 650; }
 .mg-alt-panel > .btn.small { display: inline-flex; width: auto; min-height: 36px; padding: 6px 14px; font-size: 15px; }
+.mc-flex { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.mc-flex .nut-td-line + .hint { margin-top: 4px; }
+.mc-flex .mc-horm { margin-top: 8px; }

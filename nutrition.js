@@ -328,7 +328,9 @@ function nutForDay(c, date = todayISO()) {
   // importierter Ernährungsplan (nutplan.js) ist maßgeblich
   if (typeof nutPlanActive === 'function' && nutPlanActive()) c = nutPlanTarget(date);
   const x = c ? nutCardio(date) : 0, t = c ? nutTrainBonus(date) : 0;
-  return x || t ? { ...c, kcal: c.kcal + x + t, carbs: c.carbs + Math.round((x + t) / 4 / 5) * 5, cardio: x, train: t } : c;
+  // v392: Zyklus-Spielraum (menstrual.js), nicht bei importiertem Ernährungsplan
+  const m = c && typeof mcFlexKcal === 'function' && !(typeof nutPlanActive === 'function' && nutPlanActive()) ? mcFlexKcal(date) : 0;
+  return x || t || m ? { ...c, kcal: c.kcal + x + t + m, carbs: c.carbs + Math.round((x + t + m) / 4 / 5) * 5, cardio: x, train: t, mcflex: m } : c;
 }
 
 // v369 (User-Wunsch 2026-11-24): Frage samt Erklärung beim Einrichten des Ernährungsziels (Schritt „Ziel & Tempo“),
