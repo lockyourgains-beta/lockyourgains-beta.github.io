@@ -829,9 +829,11 @@ const wizCard = (icon, title, explain, body, next = true, after = '') => `<div c
   </div>${after}${navRow(wizPrev(), next === true ? wizNext() : next || null)}`;
 
 // next: Schritt (Text) oder { action, label } (v360: eigener Knopf, z. B. „Plan erstellen“ im Zeit-Pfad)
+// v400 (User 2026-11-26): überall erst auswählen, dann mit „Weiter“ bestätigen – wizGo = Weiter für Schritte mit einer Auswahl
+const wizGo = ok => ({ action: 'wiz-go', label: 'Weiter', off: !ok });
 const navRow = (back, next, nextLabel = 'Weiter') => `<div class="row">
   <button class="btn" data-action="${back === 'cancel' ? 'wiz-cancel' : 'wiz-step'}" data-to="${back}">${back === 'cancel' ? 'Abbrechen' : 'Zurück'}</button>
-  ${next && typeof next === 'object' ? `<button class="btn primary" data-action="${next.action}">${next.label}</button>`
+  ${next && typeof next === 'object' ? `<button class="btn primary" data-action="${next.action}" ${next.off ? 'disabled' : ''}>${next.label}</button>`
     : next ? `<button class="btn primary" data-action="wiz-step" data-to="${next}">${nextLabel}</button>` : ''}</div>`;
 
 const weekHead = () => '<tr><th></th><th>Intro</th><th>W2</th><th>W3</th><th>W4</th></tr>';
@@ -895,7 +897,7 @@ function renderWizLevel() {
       <p class="hint wiz-q-explain">Danach richtet die App deinen Plan aus: wie viele Trainingstage sie empfiehlt, mit wie vielen Sätzen
         du startest und ${feat('tr-rir-input') ? 'wie nah du ans Muskelversagen gehst' : 'wie anstrengend die Sätze werden'}. Ehrlich einschätzen lohnt sich, steigern kannst du jederzeit.</p>
       ${opts}
-    </div>${navRow(wizPrev(), null)}`;
+    </div>${navRow(wizPrev(), wizGo(!!wiz.level))}`;
 }
 
 // Schritt „Geräte“ (Einfach und Standard): bei „Nur Maschinen“ wählt die App nur Maschinen, Kabelzug und Multipresse
@@ -908,9 +910,9 @@ function renderWizEquip() {
       ${opt('free', '🏋️', 'Freie Gewichte und Maschinen', 'Lang- und Kurzhanteln, Maschinen und Kabelzug. Die App nimmt je Muskelgruppe die passendste Übung.')}
       ${true ? opt('machine', '⚙️', 'Nur Maschinentraining', 'Nur Geräte mit geführter Bewegung, Kabelzüge und die Multipresse, keine Lang- und Kurzhanteln. Leichter zu lernen und gut für den Start.') : ''}
       ${opt('home', '🏠', 'Zu Hause', 'Mit dem, was du daheim hast: Kurzhanteln, Kettlebells, Widerstandsbänder, Klimmzugstange oder ganz ohne Geräte. Als Nächstes trägst du deine Ausrüstung ein.')}
-      ${typeof caliOn === 'function' && caliOn() ? `<button class="split-opt cat" data-action="cali-open" data-from="wizard">
+      ${typeof caliOn === 'function' && caliOn() ? `<button class="split-opt cat ${wiz.equip === 'cali' ? 'on' : ''}" data-action="wiz-equip" data-k="cali">
         <span class="cat-icon">🤸</span><b>Calisthenics</b><small>Training mit dem eigenen Körpergewicht, Schritt für Schritt bis zu Skills wie Muscle-up, Handstand und Front Lever.</small></button>` : ''}
-    </div>${navRow(wizPrev(), null)}`;
+    </div>${navRow(wizPrev(), wizGo(!!wiz.equip))}`;
 }
 
 /* --- Heim-Ausrüstung (Assistent und Plan-Reiter): data.home --- */
@@ -1007,7 +1009,7 @@ function renderWizMode() {
       ${opt('app', '📈', 'Automatisch erstellter Plan', 'Die App erstellt mit deiner Hilfe automatisiert einen Plan, der auf dich abgestimmt ist und den du später immer weiter für dich komplett individualisieren kannst.')}
       ${opt('import', '📄', 'Plan aus Excel / Google Sheets', 'Dein Plan steht schon in einer Tabelle, z. B. vom Trainer? Die App liest Tage, Übungen, Sätze, Wiederholungen und Gewichte ein.')}
       ${opt('own', '✍️', 'Eigenen Plan übernehmen', 'Du hast schon einen Plan? Trag deine Tage und Übungen mit Sätzen × Wdh. ein.')}
-    </div>${navRow(wizPrev(), null)}`;
+    </div>${navRow(wizPrev(), wizGo(!!wiz.mode))}`;
 }
 
 // v360 (User): Ziel beim automatisch erstellten Plan, danach zwei Pfade
@@ -1019,7 +1021,7 @@ function renderWizGoal() {
       <p class="hint wiz-q-explain">Danach richtet die App deinen Plan und die Fragen aus. Später im Plan lässt sich alles ändern.</p>
       ${opt('max', '💪', 'Bestmöglicher Muskelaufbau', 'Der optimale Plan nach aktuellen wissenschaftlichen Erkenntnissen. Du legst Trainingstage, Dauer, Aufteilung und Schwerpunkte fest, die App holt für deinen Muskelaufbau das Maximum heraus.')}
       ${opt('time', '⏱️', 'Optimale Ergebnisse für deinen Zeitaufwand', 'Nach dem Pareto-Prinzip: Mit deutlich weniger Aufwand bekommst du trotzdem gute Ergebnisse. Weniger Sätze, dafür intensiver, vor allem mit Übungen, die viele Muskeln auf einmal trainieren. Du beantwortest nur wenige Fragen, den Rest stellt die App passend für dich zusammen.')}
-    </div>${navRow(wizPrev(), null)}`;
+    </div>${navRow(wizPrev(), wizGo(!!wiz.goal))}`;
 }
 
 // v270 (User 2026-11-14): direkt nach der Auswahl – Steigerungslogik der App (vorausgewählt) oder immer derselbe Plan ohne Vorgaben.
@@ -1197,9 +1199,9 @@ function renderWizSessions() {
     return `<div class="card wiz-q">
         <div class="wiz-q-head"><span class="wiz-q-icon" aria-hidden="true">📆</span><h2>Wie viele Trainingstage hat dein Plan?</h2></div>
         <p class="hint wiz-q-explain">Gemeint sind verschiedene Trainingstage, z. B. Push, Pull und Beine = 3.</p>
-        <div class="sessions-grid">${[1, 2, 3, 4, 5, 6].map(n => `<button class="sessions-opt ${wiz.own.length === n ? 'on' : ''}"
+        <div class="sessions-grid">${[1, 2, 3, 4, 5, 6].map(n => `<button class="sessions-opt ${(wiz.ownN || wiz.own.length) === n ? 'on' : ''}"
           data-action="wiz-sessions" data-n="${n}"><b>${n}</b><small>${n === 1 ? 'Tag' : 'Tage'}</small></button>`).join('')}</div>
-      </div>${navRow(wizPrev(), null)}`;
+      </div>${navRow(wizPrev(), wizGo(!!(wiz.ownN || wiz.own.length)))}`;
   }
   // Experte: keine Empfehlung – wer so lange trainiert, weiß selbst, wie oft es passt
   const [lo, hi] = appMode() === 'x' ? [0, -1] : wizLevel().days;
@@ -1209,7 +1211,7 @@ function renderWizSessions() {
         pro Woche</b> ideal (markiert).` : ''} Wähle lieber eine Zahl, die du auch auf Dauer schaffst.</p>
       <div class="sessions-grid">${(wizTimePath() ? [1, 2, 3, 4, 5] : [1, 2, 3, 4, 5, 6]).map(n => `<button class="sessions-opt ${wiz.sessions === n ? 'on' : ''} ${n >= lo && n <= hi ? 'rec' : ''}"
         data-action="wiz-sessions" data-n="${n}"><b>${n}</b><small>${n === 1 ? 'Tag' : 'Tage'}</small>${n >= lo && n <= hi ? '<em>empfohlen</em>' : ''}</button>`).join('')}</div>
-    </div>${needsCoach() ? coachNote() : ''}${navRow('level', null)}`;
+    </div>${needsCoach() ? coachNote() : ''}${navRow('level', wizGo(!!wiz.sessions))}`;
 }
 
 // Wie oft kommen die großen Muskelgruppen pro Woche dran? Schnitt über Brust, Rücken, Schultern und Beine (nur die, die
@@ -1253,8 +1255,8 @@ function renderWizSplit() {
       <small>${s.tag} | ${s.days.map(d => d[0]).join(' | ')}${s.note ? `<br>${s.note}` : ''}<br>${freqLine(s)}${(thin => thin.length
         ? `<br><span class="freq-bad">⚠️ Mit deiner Ausrüstung wäre ${thin.map(x => `„${x}“`).join(', ')} sehr kurz, besser Ganzkörper oder Ober-/Unterkörper</span>` : '')(wizHome() ? homeThinDays(s) : [])}</small>
     </button>`).join('') +
-    (feat('wiz-custom') ? `<button class="split-opt cat" data-action="wiz-custom">
-      <span class="cat-icon">🛠️</span><b>Eigene Aufteilung</b><small>Trainingstage selbst zusammenstellen</small></button>` : ''), false);
+    (feat('wiz-custom') ? `<button class="split-opt cat ${wiz.cat === 'custom' ? 'on' : ''}" data-action="wiz-custom">
+      <span class="cat-icon">🛠️</span><b>Eigene Aufteilung</b><small>Trainingstage selbst zusammenstellen</small></button>` : ''), wizGo(!!(wiz.split || wiz.cat === 'custom')));
 }
 
 // v355 (User): Mobility vor dem Training. v358 (User-Wunsch): Regler 0–3 statt ja/nein (0 = selbst hinzufügen, 1–3 = 2/4/6 Übungen je Tag)
@@ -1555,6 +1557,7 @@ function renderWizard() {
           Darunter steht, auf wie viele Trainings pro Woche sich die Sätze verteilen. Die Werte hat die App aus deiner Erfahrung,
           deinen Trainingstagen und dem Fokus berechnet (⭐ Priorität = +2 Sätze pro Woche, 😌 Low = −2).
           Gewählte Variante: <b>${wizStyle().label}</b>${wiz.style === 'high' ? ' (+20 % Sätze)' : wiz.style === 'low' ? ' (−20 % Sätze)' : ''}.</p>
+        <p class="hint">Gezählt werden nur die Sätze von Übungen, deren Zielmuskel die jeweilige Muskelgruppe ist. Mitarbeitende Muskeln zählen nicht mit, z. B. der Trizeps beim Bankdrücken. Das Volumen ist also ohne Überlappung gerechnet.</p>
         <table class="rir vol view">${weekHead()}`;
       for (const g of groups) {
         h += `<tr class="vol-g"><td colspan="5"><b>${MUSCLES[g]}</b>${focusBadge(g)}</td></tr>
@@ -2067,17 +2070,13 @@ Object.assign(actions, {
       wiz.sessions = null; wiz.cat = null; wiz.split = null; wiz.days = [];
       wizResetPlan();
     }
-    const f = wizFlow();
-    wiz.step = f[f.indexOf('level') + 1];
-    go('wizard');
+    render();
   },
   // Geräte: freie Gewichte + Maschinen oder nur Maschinen -> Übungen werden danach neu gewählt
   'wiz-equip': el => {
     if (wiz.equip !== el.dataset.k) { wiz.equip = el.dataset.k; wiz.picks = {}; wiz.swaps = {}; wiz.mobEq = null; }
     if (wiz.equip === 'home') homeData();
-    const f = wizFlow();
-    wiz.step = f[f.indexOf('equip') + 1];
-    go('wizard');
+    render();
   },
   // Heim-Ausrüstung (Assistent und Plan-Reiter)
   'heq-w': el => {
@@ -2111,25 +2110,31 @@ Object.assign(actions, {
   'wiz-mode': el => {
     wiz.mode = el.dataset.m;  // v270: auch „Tabelle“ fragt erst nach der Steigerung (progchoice), dann trainplan.js
     if (wiz.mode !== 'app') { wiz.goal = null; wiz.style = 'mid'; }
-    const f = wizFlow();
-    wiz.step = f[f.indexOf('mode') + 1];  // als Nächstes: womit trainieren
-    go('wizard');
+    render();
   },
   // Trainings pro Woche wählen -> passende Vorlagen (eigener Plan: so viele Tage zum Ausfüllen)
   'wiz-sessions': el => {
-    if (wiz.mode === 'own') {
-      const n = Number(el.dataset.n);
+    if (wiz.mode === 'own') { wiz.ownN = Number(el.dataset.n); render(); return; }
+    const n = Number(el.dataset.n);
+    if (wiz.sessions !== n) { wiz.sessions = n; wiz.cat = null; wiz.split = null; wiz.days = []; wizResetPlan(); }
+    render();
+  },
+  // v400: „Weiter“ für Schritte mit einer Auswahl (Erfahrung, Ausstattung, Plan-Art, Ziel, Trainingstage, Aufteilung)
+  'wiz-go': () => {
+    const st = wiz.step;
+    if (st === 'sessions' && wiz.mode === 'own') {
+      const n = wiz.ownN || wiz.own.length;
+      if (!n) return;
       while (wiz.own.length < n) wiz.own.push({ name: `Tag ${String.fromCharCode(65 + wiz.own.length)}`, exercises: [ownBlank()] });
       wiz.own.length = n;
       Object.assign(wiz, { oi: 0, step: 'ownday' });
       go('wizard');
       return;
     }
-    wiz.sessions = Number(el.dataset.n);
-    wiz.cat = null; wiz.split = null; wiz.days = [];
-    wizResetPlan();
+    if (st === 'split') { if (wiz.split || wiz.cat === 'custom') wizAfterSplit(); return; }
+    if (st === 'equip' && wiz.equip === 'cali') { wiz.equip = null; actions['cali-open']({ dataset: { from: 'wizard' } }); return; }  // Calisthenics hat einen eigenen Ablauf
     const f = wizFlow();
-    wiz.step = f[f.indexOf('sessions') + 1] || 'split';  // als Nächstes die Trainingsdauer
+    wiz.step = f[f.indexOf(st) + 1] || (st === 'sessions' ? 'split' : st);
     go('wizard');
   },
   // Vorlage wählen: Tage neu setzen, Volumen/RIR/Übungen werden danach neu vorgeschlagen
@@ -2158,12 +2163,12 @@ Object.assign(actions, {
     wiz.split = el.dataset.id;
     wiz.cat = SPLITS.find(s => s.id === wiz.split).tag;
     wiz.days = splitDays(wiz.split);
-    wizAfterSplit();
+    render();
   },
   // Eigene Aufteilung: Trainingstage selbst zusammenstellen
   'wiz-custom': () => {
     wiz.cat = 'custom'; wiz.split = null; wiz.days = [];
-    wizAfterSplit();
+    render();
   },
   // eigener Plan: Übungen eines Tages
   'own-add-ex': () => {
@@ -2219,9 +2224,7 @@ Object.assign(actions, {
       if (!wiz.mobSet) wiz.mob = k === 'time' ? 1 : 2;
       wizResetPlan();
     }
-    const f = wizFlow();
-    wiz.step = f[f.indexOf('goal') + 1];
-    go('wizard');
+    render();
   },
   // v360: Zeit-Pfad fertig: Aufteilung wählen, Übungen automatisch, dann die Vorschau (Einfach: direkt speichern)
   'wiz-time-go': () => wizTimeGo(),

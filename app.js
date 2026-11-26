@@ -1955,6 +1955,7 @@ function volumeEditor() {
   let h = `<details class="award-cat vol-editor" open><summary>Sätze pro Muskelgruppe</summary>
     <div class="card">
     <p class="hint">Am einfachsten die Sätze <b>pro Woche</b> eintragen, die App verteilt sie auf die Trainings. Oder direkt die Sätze <b>pro Training</b> ändern. Die Übungen passen sich automatisch an.</p>
+    <p class="hint">Gezählt werden nur die Sätze von Übungen, deren Zielmuskel die jeweilige Muskelgruppe ist. Mitarbeitende Muskeln zählen nicht mit, z. B. der Trizeps beim Bankdrücken. Das Volumen ist also ohne Überlappung gerechnet.</p>
     <table class="rir vol"><tr><th></th><th>Intro</th><th>W2</th><th>W3</th><th>W4</th></tr>`;
   for (const g of groups) {
     h += `<tr class="vol-g"><td colspan="5"><button class="vol-del" data-action="vol-del" data-g="${g}"
@@ -2541,13 +2542,13 @@ const ofVariant = (sets, v) => (sets || []).filter(s => variantOf(s) === v && !s
 /* ---------- Intensitätstechniken (v211, User-Wunsch 2026-11-11) ----------
    Reduktionssatz (drop) und Myo-Satz (myo) sind Ausführungen eines Satzes wie „langsam“: Der Hauptsatz behält seine Vorgabe
    und wird nur mit Sätzen derselben Technik verglichen. Daran hängen Teil-Sätze s.subs = [{ weight, reps }]:
-   Reduktion = 1–2 Stufen ohne Pause, je etwa 20 % leichter, bis knapp vors Versagen; Myo = 3–5 Mini-Sätze mit demselben
+   Reduktion = 1–2 Stufen ohne Pause, je etwa 20 % leichter, bis knapp vors Versagen; Myo = 2–5 Mini-Sätze (Standard 2) mit demselben
    Gewicht, je 3–5 Wdh. nach 20 s (3–5 Atemzüge). Die App plant Techniken nie selbst: Plan/Assistent (ex.tech =
    { k, at: 'last'|'all', n }) gilt dauerhaft mit Steigerung, sonst nur im einzelnen Training. Nicht im Deload, nicht im
    Modus Einfach. Vorermüdung: Reduktion zählt wie 1,5 Sätze, Myo wie 2 Sätze (User-Regel 2026-11-11). */
 const TECHS = { drop: 'Reduktionssatz', myo: 'Myo-Satz' };
 const isTech = v => v === 'drop' || v === 'myo';
-const TECH_N = { drop: [1, 2], myo: [3, 4, 5] }, TECH_DEF_N = { drop: 1, myo: 4 };
+const TECH_N = { drop: [1, 2], myo: [2, 3, 4, 5] }, TECH_DEF_N = { drop: 1, myo: 2 };  // v401 (User 2026-11-26): Myo standardmäßig 2 Mini-Sätze, mit ＋ bis 5
 const TECH_FAT = { drop: 0.5, myo: 1 };    // zusätzliche Satz-Einheiten für die Vorermüdung
 const TECH_MIN = { drop: 1, myo: 0.5 };    // Minuten je Teil-Satz (Dauer-Schätzung)
 const DROP_FACTOR = 0.8, MYO_REST_S = 20, MYO_MIN = 3, MYO_MAX = 5, MYO_FIRST = 4;
@@ -2692,7 +2693,7 @@ const TECH_INFO = {
     app: 'Der Hauptsatz behält seine Vorgabe und wird nur mit Reduktionssätzen verglichen. Für jede Stufe schlägt die App etwa 20 % weniger Gewicht vor, als Ziel die Wiederholungen vom letzten Mal plus eine. Zwischen den Stufen läuft keine Pause. Für die Vorermüdung zählt ein Reduktionssatz wie 1,5 Sätze.',
   },
   myo: {
-    what: 'Ein Aktivierungssatz bis kurz vors Muskelversagen, dann nur 3–5 Atemzüge Pause (etwa 20 Sekunden) und ein Mini-Satz mit 3–5 Wiederholungen, mit demselben Gewicht. Das wiederholst du drei- bis fünfmal.',
+    what: 'Ein Aktivierungssatz bis kurz vors Muskelversagen, dann nur 3–5 Atemzüge Pause (etwa 20 Sekunden) und ein Mini-Satz mit 3–5 Wiederholungen, mit demselben Gewicht. Die App plant zwei Mini-Sätze ein, mit ＋ kannst du bis zu fünf machen.',
     why: 'Nach dem Aktivierungssatz arbeitet der Muskel schon mit allen Fasern. Jede Wiederholung der Mini-Sätze ist deshalb eine besonders wirksame. Ein Myo-Satz bringt ungefähr so viel Reiz wie zwei bis drei normale Sätze, in zwei bis drei Minuten statt zehn bis zwölf.',
     warn: '<b>Wichtig:</b> Ein Myo-Satz bringt deutlich mehr Reiz, aber auch deutlich mehr Ermüdung als ein normaler Satz. Setz ihn bewusst ein, eher für einzelne Übungen und eher zusätzlich zu wenigen normalen Sätzen statt zu vielen.',
     when: 'Wenn die Zeit knapp ist. Gut bei Isolations- und Maschinenübungen mit mittleren bis höheren Wiederholungen (Aktivierungssatz etwa 12–20 Wdh.), z. B. Seitheben, Beinstrecker, Curls oder Kabelübungen.',
@@ -2751,7 +2752,11 @@ function techPlanHtml(ex, i) {
         (gilt dann dauerhaft, mit Steigerung) oder im Training für einzelne Sätze (Satznummer antippen).</p>
       <p><b>Reduktionssatz:</b> ${TECH_INFO.drop.what}</p><p><b>Myo-Satz:</b> ${TECH_INFO.myo.what}</p></details>`;
   h += `<div class="variants plan"><span>In</span>${chip('plan-tech-at', 'last', 'Letzter Satz', t.at !== 'all')}${chip('plan-tech-at', 'all', 'Alle Sätze', t.at === 'all')}</div>
-    <div class="variants plan"><span>${t.k === 'drop' ? 'Reduktionen' : 'Mini-Sätze'}</span>${TECH_N[t.k].map(n => chip('plan-tech-n', n, String(n), t.n === n)).join('')}</div>`;
+    ${t.k === 'myo' ? (n => `<div class="variants plan tech-n"><span>Mini-Sätze</span>
+      <button class="icon-btn" data-action="plan-tech-n" data-i="${i}" data-v="${n - 1}" aria-label="Weniger Mini-Sätze" ${n <= TECH_N.myo[0] ? 'disabled' : ''}>−</button>
+      <b class="tech-n-val">${n}</b>
+      <button class="icon-btn" data-action="plan-tech-n" data-i="${i}" data-v="${n + 1}" aria-label="Mehr Mini-Sätze" ${n >= Math.max(...TECH_N.myo) ? 'disabled' : ''}>＋</button></div>`)(t.n || TECH_DEF_N.myo)
+      : `<div class="variants plan"><span>Reduktionen</span>${TECH_N[t.k].map(n => chip('plan-tech-n', n, String(n), t.n === n)).join('')}</div>`}`;
   if (techRisky(ex)) h += `<p class="complaint-note">⚠️ ${esc(ex.name)} ist eine Grundübung. Hier leidet bei einem ${TECHS[t.k]} schnell die Technik. Besser bei Maschinen-, Kabel- oder Isolationsübungen einsetzen.</p>`;
   if (t.k === 'myo') h += `<p class="hint tech-warn">⚠️ ${TECH_INFO.myo.warn}</p>`;
   return h + techInfoHtml(t.k);
@@ -4535,11 +4540,12 @@ function modeAskCard() {
   if (p.mode || (!data.sessions.length && !data.plans.length)) return '';
   return `<div class="card hints mode-ask"><p><b>✨ Neu: Wähle, wie viel die App zeigt</b></p>
       <div class="mode-opts">${Object.entries(APP_MODES).map(([k, x]) =>
-        `<button class="split-opt ${k === 'x' ? 'on' : ''}" data-action="mode-set" data-m="${k}"><b>${x.icon} ${x.label}</b><small>${x.text}</small></button>`).join('')}</div>
+        `<button class="split-opt ${modeAskSel === k ? 'on' : ''}" data-action="mode-ask-pick" data-m="${k}"><b>${x.icon} ${x.label}</b><small>${x.text}</small></button>`).join('')}</div>
       <p class="hint">Bisher siehst du alles (Experte). Deine Daten und dein Plan bleiben in jedem Modus gleich, auch die Steigerung im
         Training. Wechseln kannst du jederzeit in den Optionen.</p>
-      <button class="btn" data-action="mode-set" data-m="x">So lassen</button></div>`;
+      <button class="btn primary" data-action="mode-set" data-m="${modeAskSel}">${modeAskSel === 'x' ? 'So lassen' : 'Weiter'}</button></div>`;
 }
+let modeAskSel = 'x';  // v400: erst auswählen, dann bestätigen
 
 // Einfach/Standard: nach dem zweiten abgeschlossenen Zyklus einmal anbieten, mehr Einstellungen zu zeigen
 function modeUpCard() {
@@ -5006,11 +5012,7 @@ function renderTraining() {
     : draft.deload
     ? `<p class="deload-note">${feat('tr-rir-input') ? `Deload-Woche: halbe Sätze, 15 % weniger Gewicht oder weniger Wdh. als in der letzten Trainingswoche, mindestens ${DELOAD_RIR} Wdh. im Tank. Keine Steigerung.`
       : 'Deload-Woche: halbe Sätze und etwas leichter. Jeder Satz sollte sich locker anfühlen.'}</p>`
-    : draft.intro
-      ? `<p class="intro-note">Intro-Woche: ${draft.cycleNo === 1 ? 'Du steigst etwas leichter ein und findest deine Gewichte.'
-        : `Start-Sätze laut Plan. ${shiftText(draft.cycleStart, 1)
-          || (feat('tr-rir-input') ? `Vergleich ist die Intro-Woche des letzten Zyklus, je Satz +1 Wdh. pro ${cmpWeeksPerRep()} Wochen Abstand.` : '')}`}</p>`
-      : '';
+    : '';  // v401 (User 2026-11-26): keine Erklärung zur Intro-Woche mehr im aktiven Training
   // Uhr und „Letztes Mal“ stehen seit v200 in der Kopfleiste bzw. im Menü „⋯“
   h = timeCutNote() + h;
   h += draft.own
@@ -5484,7 +5486,10 @@ function renderPlan() {
         return list.length ? `Woche 1: ${esc(wk(1))} | Woche 2: ${esc(wk(2))} …` : '';
       })()} Kommt ein Tag 2× in einer Woche dran, liegt das 2. Training nie über dem Plan des 1.</p>
     </div>` : ''}
-    <h2>Steigerung</h2>${overloadHtml()}
+    <h2>Steigerung</h2>${active.ownWas ? `<div class="card">
+      <p class="per-week-title">📈 Steigerung durch die App ist an</p>
+      <p class="hint">Du hast für deinen eigenen Plan die Steigerung der App eingeschaltet. Willst du doch wieder ohne Vorgaben trainieren, schaltest du sie hier aus.</p>
+      <button class="btn outline" data-action="plan-own-on">✋ Doch ohne Steigerung der App</button></div>` : ''}${overloadHtml()}
     ${periodCard(c, active)}`;
   return h;
 }
@@ -5708,7 +5713,7 @@ function volumeSummary(day) {
   }
   const total = m => [...m.values()].reduce((a, b) => a + b, 0);
   h += '<tr class="total"><td>Gesamt</td>' + weeks.map(m => `<td>${total(m)}</td>`).join('') + `<td>${total(deload)}</td></tr>`;
-  return h + '</table></div></div>';
+  return h + '</table></div><p class="hint nut-small">Nur Sätze von Übungen mit dieser Muskelgruppe als Zielmuskel, ohne Überlappung durch mitarbeitende Muskeln.</p></div>';
 }
 
 // Nur bei Eigengewichtsübungen: nur Körpergewicht (Steigerung über die Wdh.) oder mit Zusatzgewicht (Gewichtsprogression)
@@ -6293,7 +6298,7 @@ function libProfileCard(name) {
       <p class="hint">${esc(pf.why)}</p>
       <details class="lib-prof-more"><summary>Was bedeutet das?</summary>
         <p class="hint">Übungen mit der größten Last in der Dehnung bringen nach aktuellen Studien oft etwas mehr Muskelwachstum. Sie belasten
-          Sehnen und Gelenke in den Endpositionen aber stärker und machen mehr Muskelkater. Übungen mit der größten Last in der Kontraktion sind
+          Sehnen und Gelenke in den Endpositionen aber stärker und verursachen mehr Muskelkater. Übungen mit der größten Last in der Kontraktion sind
           schonender und erholen sich schneller. Ausgeglichen heißt, der Widerstand verteilt sich über die ganze Bewegung.</p>
         <p class="hint">Am besten deckt jeder Muskel über die Woche beide Bereiche ab. Das berücksichtigt die App, wenn sie einen Plan
           automatisch zusammenstellt. Bei Kabel und Maschinen hängt das Profil auch von Kabelhöhe und Maschine ab.</p>
@@ -6995,6 +7000,17 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 401, date: '2026-11-26', items: [
+    ['Myo-Satz: Die App plant jetzt standardmäßig 2 Mini-Sätze ein. Im Plan stellst du mit − und ＋ mehr ein (bis 5), im Training kommt mit „+ Mini-Satz“ einer dazu.'],
+    ['Training: Die Erklärung zur Intro-Woche steht nicht mehr oben im laufenden Training.'],
+    ['Eigener Plan: Hast du „Doch die Steigerung der App nutzen“ gewählt, steht an derselben Stelle jetzt „Doch ohne Steigerung der App“. Damit kehrst du zum eigenen Plan ohne Vorgaben zurück.'],
+  ] },
+  { v: 400, date: '2026-11-26', items: [
+    ['Einheitliche Auswahl: Im Plan-Assistenten wählst du jetzt überall erst aus und bestätigst dann mit „Weiter“, auch bei Erfahrung, Ausstattung, Plan-Art, Ziel, Trainingstagen und Aufteilung. So kannst du deine Wahl vorher noch einmal ansehen.'],
+  ] },
+  { v: 399, date: '2026-11-26', items: [
+    ['Sätze pro Muskelgruppe: Ein Hinweis erklärt jetzt, dass nur Übungen mit dieser Muskelgruppe als Zielmuskel zählen. Mitarbeitende Muskeln wie der Trizeps beim Bankdrücken zählen nicht mit, das Volumen ist also ohne Überlappung gerechnet.'],
+  ] },
   { v: 398, date: '2026-11-26', items: [
     ['Routinen für Yoga und Mobility: Oben im Yoga- und im Mobility-Bereich gibt es jetzt fertige Routinen mit eigener Seite. Dort steht, wofür die Routine gut ist, wie sie abläuft und welche Übungen dazugehören, jeweils mit Figur und Anleitung. Mit „▶ Routine starten“ läuft sie geführt mit Häkchen und Timer.'],
     ['Eigene Routinen: Stell dir mit „＋ Eigene Routine zusammenstellen“ deine eigenen zusammen, ändere die Reihenfolge und die Zeit je Übung oder passe eine fertige Routine an. Bei Mobility kannst du auch die aktuelle Einheit als Routine speichern.'],
@@ -9545,10 +9561,20 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
     const p = activePlan();
     if (!askOk(`„${p.name}“ ab jetzt mit der Steigerung der App trainieren?\n\nDann gibt es Zyklen mit Intro-, Aufbau- und Deload-Woche, und die App schlägt Woche für Woche mehr Gewicht bzw. Wiederholungen vor.`)) return;
     delete p.own;
+    p.ownWas = true;  // v401: Rückweg zum eigenen Plan anbieten
     p.progression = { volume: true, load: true };
     setRound(newCycleId(), 1, (data.cycle.no || 0) + 1);
     saveData(); render();
     toast('Steigerung eingeschaltet, es beginnt die Intro-Woche');
+  },
+  'plan-own-on': () => {  // v401: Steigerung der App wieder aus (eigener Plan ohne Vorgaben)
+    const p = activePlan();
+    if (!askOk(`„${p.name}“ wieder ohne Steigerung der App trainieren?\n\nDann gibt es keine Zyklen und keine Deload-Woche mehr. Im Training stehen wieder deine Werte vom letzten Mal. Bisherige Trainings bleiben erhalten.`)) return;
+    p.own = true;
+    delete p.ownWas;
+    p.progression = { volume: false, load: false };
+    saveData(); render();
+    toast('Eigener Plan ohne Steigerung der App');
   },
   'plan-rename': async el => {
     const p = data.plans.find(x => x.id === el.dataset.id);
@@ -9955,6 +9981,7 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
     toast(`Modus „${APP_MODES[el.dataset.m].label}“`);
     render();
   },
+  'mode-ask-pick': el => { modeAskSel = el.dataset.m; render(); },
   'mode-up-no': () => { data.profile = { ...(data.profile || {}), modeUpSeen: appMode() }; saveData(); render(); },
   'backup-later': () => { data.backupSnooze = new Date().toLocaleDateString('sv-SE'); saveData(); render(); },
   'install-later': () => { data.installSnooze = todayISO(); saveData(); render(); },
@@ -10842,7 +10869,7 @@ actions['plan-tech'] = el => {
   saveData(); render();
 };
 actions['plan-tech-at'] = el => { const ex = findDay(current.params.id).exercises[+el.dataset.i]; ex.tech.at = el.dataset.v; saveData(); render(); };
-actions['plan-tech-n'] = el => { const ex = findDay(current.params.id).exercises[+el.dataset.i]; ex.tech.n = +el.dataset.v; saveData(); render(); };
+actions['plan-tech-n'] = el => { const ex = findDay(current.params.id).exercises[+el.dataset.i], v = +el.dataset.v; if (!TECH_N[ex.tech.k].includes(v)) return; ex.tech.n = v; saveData(); render(); };
 actions['sub-add'] = el => {
   const s = draft.entries[+el.dataset.ei].sets[+el.dataset.si];
   s.subs.push({ weight: '', reps: '', goal: variantOf(s) === 'myo' ? String(MYO_MIN) : '' });
