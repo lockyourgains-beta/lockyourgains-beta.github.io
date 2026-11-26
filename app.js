@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Fehlerprotokoll (v205, User-Wunsch 2026-11-11) ---------- */
@@ -1869,14 +1869,36 @@ function dayGroups(day) {
 }
 
 // Ziel-Wdh. (unteres Ende des Bereichs) laut Tag-Typ, sonst laut Plan
-function repsFor(day, ex) {
+// v403 (User 2026-11-26): eigener Wdh.-Bereich je Übung (ex.repRange) und je Trainingstag (day.repRange), jeweils [von, bis].
+// Vorrang: Übung vor Tag vor dem festen Bereich des Tages (niedrig/hoch). Gestartet und gesteigert wird wie bisher ab dem unteren Ende.
+const okRange = r => Array.isArray(r) && r.length === 2 && r[0] >= 1 && r[1] >= r[0];
+function repRangeFor(day, ex) {
+  if (ex && okRange(ex.repRange)) return ex.repRange;
+  if (day && okRange(day.repRange) && dayIntensity(day)) return day.repRange;
   const int = dayIntensity(day);
-  return int ? repRanges()[int][kindOf(ex)][0] : ex.reps;
+  return int ? repRanges()[int][kindOf(ex)] : null;
+}
+function repsFor(day, ex) {
+  const r = repRangeFor(day, ex);
+  return r ? r[0] : ex.reps;
 }
 
 function repRangeText(day, ex) {
-  const [lo, hi] = repRanges()[dayIntensity(day)][kindOf(ex)];
-  return `${lo}–${hi}`;
+  const r = repRangeFor(day, ex);
+  return r ? `${r[0]}–${r[1]}` : String(ex.reps);
+}
+// Eingabe „Eigener Bereich“ (Übung im Plan bzw. Trainingstag)
+function rangeInputHtml(kind, r, i = '') {
+  const inp = (k, v) => `<input class="inp rr-in" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" data-field="rr" data-w="${kind}" data-k="${k}" data-i="${i}" value="${v}">`;
+  return `<div class="rr-row"><span>von</span>${inp(0, r[0])}<span>bis</span>${inp(1, r[1])}<span>Wdh.</span></div>`;
+}
+function exRangeHtml(day, ex, i) {
+  if (!feat('day-reprange') || !ex.name.trim() || holdSec(ex.name)) return '';
+  const own = okRange(ex.repRange);
+  if (!own) return `<button class="link-btn rr-open" data-action="ex-rr" data-i="${i}">✎ Eigener Wdh.-Bereich für diese Übung</button>`;
+  return `<div class="rr-box"><p class="lbl">Eigener Wdh.-Bereich</p>${rangeInputHtml('ex', ex.repRange, i)}
+      <p class="hint nut-small">Gilt nur für diese Übung. Die App startet am unteren Ende und steigert wie gewohnt.${ex.repRange[0] < minReps() ? ` Vorschläge gehen nie unter ${minReps()} Wdh.` : ''}</p>
+      <button class="link-btn" data-action="ex-rr-off" data-i="${i}">↺ Bereich des Tages verwenden</button></div>`;
 }
 
 const VOL_WEEKS = 4;  // Eckwerte Intro, W2, W3, W4 – bei anderer Zykluslänge als Kurve (siehe curveAt)
@@ -5997,11 +6019,13 @@ function renderDay({ id }) {
   let h = `<label class="lbl">Name des Trainingstags
       <input class="inp" type="text" data-field="day-name" value="${esc(day.name)}">
     </label>
-    ${feat('day-reprange') ? `<div class="variants plan daytype"><span>Wiederholungsbereich</span>${Object.entries({ heavy: 'Niedrig', light: 'Hoch', '': 'Frei' })
+    ${feat('day-reprange') ? `<div class="variants plan daytype"><span>Wiederholungsbereich</span>${Object.entries({ heavy: 'Niedrig', light: 'Hoch', custom: 'Eigener', '': 'Frei' })
       .filter(([t]) => t || feat('day-free') || !dayIntensity(day)).map(([t, label]) =>
-      `<button class="vchip ${(dayIntensity(day) || '') === t ? 'on' : ''}" data-action="day-type" data-t="${t}">${label}</button>`).join('')}
-    </div>` : ''}
-    <p class="hint explain">${!feat('day-reprange') ? 'Sätze, Wiederholungen und Gewichte rechnet die App automatisch aus.' : dayIntensity(day)
+      `<button class="vchip ${(dayIntensity(day) && okRange(day.repRange) ? 'custom' : dayIntensity(day) || '') === t ? 'on' : ''}" data-action="day-type" data-t="${t}">${label}</button>`).join('')}
+    </div>${dayIntensity(day) && okRange(day.repRange) ? rangeInputHtml('day', day.repRange) : ''}` : ''}
+    <p class="hint explain">${!feat('day-reprange') ? 'Sätze, Wiederholungen und Gewichte rechnet die App automatisch aus.' : dayIntensity(day) && okRange(day.repRange)
+      ? 'Eigener Bereich: gilt für alle Übungen dieses Tages. Einzelne Übungen kannst du darunter abweichend einstellen. Sätze und Tank rechnet die App weiter automatisch, gestartet wird am unteren Ende.'
+      : dayIntensity(day)
       ? `${{ heavy: 'Niedrig: mehr Gewicht, weniger Wiederholungen', light: 'Hoch: weniger Gewicht, mehr Wiederholungen' }[dayIntensity(day)]}. Beides sind intensive Trainingstage, nur mit unterschiedlicher Belastung.
         Sätze und Wiederholungen werden automatisch aus Muskelgruppe, Übungsart und Zykluswoche berechnet.`
       : 'Frei: Sätze und Wiederholungen legst du pro Übung selbst fest.'}</p>
@@ -6045,6 +6069,7 @@ function renderDay({ id }) {
            ${dayIntensity(day)
              ? `<p class="auto-info">Wdh.: ${repRangeText(day, ex)} (Start bei ${repsFor(day, ex)}) | Muskelgruppe ohne Volumen-Vorgabe, Sätze von Hand</p>`
              : stepperRow('Wdh. pro Satz', 'reps', i, ex.reps)}`}
+      ${exRangeHtml(day, ex, i)}
       ${feat('tr-tank-target') ? `<p class="hint kind-hint">Ziel im Tank diese Woche: <b>${weekRirText(kindOf(ex), groupOf(ex))}</b></p>` : ''}
       ${feat('tr-variants') ? `${execPlanHtml(ex, i, isAuto ? Math.max(...autoWeeks.map(m => m.get(ex.id) || 0)) : setsMaxOf(ex))}${ex.name.trim() ? techPlanHtml(ex, i) : ''}` : ''}
       ${feat('tr-topset') && ex.name.trim() && !isBodyweight(ex) ? schemeRowHtml(ex, i) : ''}
@@ -7000,6 +7025,21 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 405, date: '2026-11-26', items: [
+    ['Optionen → Aussehen: Die Stile heißen jetzt Designs, aufgeteilt in Normal und Spezial.'],
+    ['Einführung: Ein neuer Hinweis erklärt, wie du Erklärungen und Infos aufklappst und wieder schließt.'],
+    ['Ernährung: „Mehr Kalorien an Trainingstagen“ stellst du beim Einrichten deines Ernährungsziels ein und änderst es im Tagebuch unter „Kalorien und Makros anpassen“. Unten im Reiter Ernährung steht die Einstellung nicht mehr.'],
+  ] },
+  { v: 404, date: '2026-11-26', items: [
+    ['Hackenschmidt-Kniebeugen (auch rückwärts) zählen jetzt als Grundübung, mit den Wiederholungen und Pausen dafür.'],
+    ['Plan-Assistent: Bei den Hilfsmitteln für Mobility ist anfangs nichts ausgewählt. Tippe einfach an, was du hast.'],
+  ] },
+  { v: 403, date: '2026-11-26', items: [
+    ['Eigene Wiederholungsbereiche: Im Plan kannst du für einen Trainingstag „Eigener“ wählen und den Bereich selbst festlegen, z. B. 12–15 Wdh. Mit „✎ Eigener Wdh.-Bereich für diese Übung“ geht das auch für einzelne Übungen. Die App startet am unteren Ende und steigert wie gewohnt, Sätze und Tank rechnet sie weiter automatisch.', 'day-reprange'],
+  ] },
+  { v: 402, date: '2026-11-26', items: [
+    ['Plan-Assistent: Neuer Schritt „Deine Trainingstage“ direkt nach der Aufteilung. Dort legst du fest, wie viele verschiedene Tage dein Plan hat und ob du abwechselnd, nur im niedrigen oder nur im hohen Wiederholungsbereich trainierst. Eine Vorschau zeigt sofort, wie deine Woche aussieht. Die Frage am Ende entfällt.'],
+  ] },
   { v: 401, date: '2026-11-26', items: [
     ['Myo-Satz: Die App plant jetzt standardmäßig 2 Mini-Sätze ein. Im Plan stellst du mit − und ＋ mehr ein (bis 5), im Training kommt mit „+ Mini-Satz“ einer dazu.'],
     ['Training: Die Erklärung zur Intro-Woche steht nicht mehr oben im laufenden Training.'],
@@ -9595,10 +9635,16 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
   'day-type': el => {
     const day = findDay(current.params.id);
     if (!day.groups) day.groups = dayGroups(day);  // geplante Muskelgruppen beim Umstellen behalten
-    day.intensity = el.dataset.t || null;
+    const t = el.dataset.t;
+    if (t === 'custom') {  // v403: eigener Bereich für den ganzen Tag (Logik läuft als niedriger bzw. bisheriger Bereich weiter)
+      day.intensity = dayIntensity(day) || 'heavy';  // auch bei älteren Tagen mit type (wird unten gelöscht)
+      if (!okRange(day.repRange)) day.repRange = [...repRanges()[dayIntensity(day)].normal];
+    } else { day.intensity = t || null; delete day.repRange; }
     delete day.type;
     saveData(); render();
   },
+  'ex-rr': el => { const day = findDay(current.params.id), ex = day.exercises[+el.dataset.i]; ex.repRange = [...(repRangeFor(day, { ...ex, repRange: null }) || [ex.reps || 10, (ex.reps || 10) + 2])]; saveData(); render(); },
+  'ex-rr-off': el => { const ex = findDay(current.params.id).exercises[+el.dataset.i]; delete ex.repRange; saveData(); render(); },
   'load-template': async () => {
     let replace = false;
     if (data.days.length) {
@@ -10024,6 +10070,22 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
 
 // Eingabefelder schreiben direkt in die Daten (ohne neu zu zeichnen)
 const fields = {
+  'rr': el => {  // v403: eigener Wdh.-Bereich (Tag oder Übung)
+    const day = findDay(current.params.id);
+    if (!day) return;
+    const obj = el.dataset.w === 'day' ? day : day.exercises[+el.dataset.i];
+    if (!obj || !Array.isArray(obj.repRange)) return;
+    const v = parseNum(el.value);
+    if (!(v >= 1 && v <= 50)) return;
+    obj.repRange[+el.dataset.k] = Math.round(v);
+    if (obj.repRange[1] < obj.repRange[0]) {  // Gegenstück mitziehen und im anderen Feld anzeigen
+      const o = el.dataset.k === '0' ? 1 : 0;
+      obj.repRange[o] = obj.repRange[+el.dataset.k];
+      const other = el.parentElement && el.parentElement.querySelector(`[data-k="${o}"]`);
+      if (other && other !== document.activeElement) other.value = obj.repRange[o];
+    }
+    saveData();
+  },
   'voice-sel': el => { data.profile = { ...(data.profile || {}), voice: el.value }; saveData(); voiceSay([VOICE_SAMPLES[LANG === 'en' ? 'en' : 'de'][0]]); },  // v397
   'compl-note': el => { if (complEdit) complEdit.note = el.value; },  // Beschwerde-Tagebuch (v209), gespeichert mit „Heute eintragen“
   'day-name': el => { findDay(current.params.id).name = el.value; saveData(); },
@@ -10553,15 +10615,16 @@ function appearanceCard() {
       <p class="lbl">Sprache</p>${langPickHtml()}
       <p class="lbl">Einheit</p>${unitPickHtml()}
       <p class="hint nut-small" data-nounit>Gewichte in kg oder lb. Bei lb sind auch Körpergröße und Maße in Zoll und Lebensmittel-Mengen in Unzen (oz). Deine Daten bleiben erhalten, du kannst jederzeit wechseln.</p>
-      <p class="lbl">Stil</p>
+      <h3 class="look-h">Designs</h3>
+      <p class="lbl">Normal</p>
       <div class="variants look-pick">${Object.entries(LOOKS).filter(([k]) => !lookSpecial(k)).map(look).join('')}</div>
-      ${special ? `<p class="hint look-special-note">Im Stil „${LOOKS[currentLook()]}“ sind Farben und Darstellung fest vorgegeben. Farbwelt und Hell oder Dunkel kannst du wieder wählen, sobald du einen der Stile oben nimmst.</p>` : `<p class="lbl">Farbwelt</p>
+      ${special ? `<p class="hint look-special-note">Im Design „${LOOKS[currentLook()]}“ sind Farben und Darstellung fest vorgegeben. Farbwelt und Hell oder Dunkel kannst du wieder wählen, sobald du ein normales Design nimmst.</p>` : `<p class="lbl">Farbwelt</p>
       <div class="color-grid">${Object.entries(PROFILE_COLORS).map(([k, c]) => tile(k, c)).join('')}</div>
       <p class="lbl">Darstellung</p>
       <div class="seg three">${Object.entries(THEME_MODES).map(([k, l]) =>
         `<button class="${((p.theme || '') === k) ? 'on' : ''}" data-action="profile-theme" data-k="${k}">${l}</button>`).join('')}
       </div>
-      <p class="hint explain">Im Stil Standard färben die meisten Farbwelten auch den Hintergrund ein, in allen anderen Stilen bleibt er neutral.
+      <p class="hint explain">Im Design Standard färben die meisten Farbwelten auch den Hintergrund ein, in allen anderen Designs bleibt er neutral.
         „Automatisch“ folgt der Einstellung deines Handys (hell/dunkel),
         „Hell“ und „Dunkel“ gelten immer. Jede Farbwelt gibt es in beiden Varianten.</p>`}
       <p class="lbl">Spezial</p>

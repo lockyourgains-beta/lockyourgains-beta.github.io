@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Mikronährstoffe im Ernährungstagebuch (v214, User-Wunsch 2026-11-11) ----------

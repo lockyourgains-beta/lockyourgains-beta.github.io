@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Mobility (v355, User-Wunsch 2026-11-23) ----------
    Bibliothek mit Mobility-Übungen (MOB_EX, nach Körperregion) zum Aufwärmen vor dem Krafttraining.
    Plan: plan.mob = Stufe 0–3 (v358, User-Wunsch: Regler statt ja/nein; Frage im Plan-Assistenten, im Plan je Trainingstag änderbar):

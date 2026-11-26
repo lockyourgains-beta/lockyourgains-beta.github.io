@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Zykluskalender (nur für Frauen, freiwillig) ----------
    data.mcal = { on, starts: ['JJJJ-MM-TT', …] (erster Tag der Periode), len: übliche Zykluslänge, period: Dauer der Periode }
    Eingetragen wird nur der Beginn der Periode – Zyklustag, Phasen und die nächste Periode rechnet die App aus.

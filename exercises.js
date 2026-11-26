@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 // Vorschlagsliste für die Übungseingabe: [Name, Übungsart, Muskelgruppe]
@@ -215,8 +215,8 @@ const EXERCISE_LIST = [
   ['Kniebeugen Multipresse', N, 'quadrizeps'],
   ['Frontkniebeugen', G, 'quadrizeps'],
   ['Goblet Squats', N, 'quadrizeps'],
-  ['Hackenschmidt-Kniebeugen (Hack Squat)', N, 'quadrizeps'],
-  ['Hackenschmidt rückwärts (Reverse Hack)', N, 'quadrizeps'],
+  ['Hackenschmidt-Kniebeugen (Hack Squat)', G, 'quadrizeps'],  // v404 (User 2026-11-26): Grundübung
+  ['Hackenschmidt rückwärts (Reverse Hack)', G, 'quadrizeps'],
   ['Pendulum Squat', N, 'quadrizeps'],
   ['Belt Squat', N, 'quadrizeps'],
   ['Beinpresse', N, 'quadrizeps'],

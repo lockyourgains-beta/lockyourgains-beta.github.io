@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 /* Muskelkarte (v314, User-Wunsch 2026-11-17): Körper von vorne und hinten, Zielmuskel rot (leuchtet), mitbeteiligte Muskeln orange.
    Zielmuskel = Muskelgruppe der Übung (groupOf), „mit dabei“ aus dem Bibliothekstext (FIG_TEXT/SHORT_EX, Feld also).

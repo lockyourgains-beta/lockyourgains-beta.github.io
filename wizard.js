@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Plan-Assistent: neuen Plan aus Trainingstagen, Schwerpunkten, Volumen und RIR erstellen ---------- */
@@ -795,9 +795,10 @@ function wizFlow() {
   const noProg = wiz.ownProg === 'own';  // v270: ohne Steigerung – keine Fragen zum Tank
   // v360 (User): Intensitätsverlauf und Volumen-Variante sind keine eigenen Schritte mehr (Volumen-Variante steckt in progchoice)
   const full = feat('wiz-full');  // v317: Experte fragt alles, Standard nur das Nötige (Rest mit Standardwerten)
-  if (custom) steps.push('days', 'freq');
+  // v402 (User 2026-11-26): „Deine Trainingstage“ = Anzahl verschiedener Tage + Wiederholungsbereich in einem Schritt (statt freq + intq am Ende)
+  if (custom) steps.push('days', 'dayset');
   else {
-    if (tpl && tpl.pairs && feat('wiz-freq')) steps.push('freq');
+    if ((tpl && tpl.pairs && feat('wiz-freq')) || wizIntAsk()) steps.push('dayset');
     if (feat('wiz-days')) steps.push('days');
   }
   // Einstiegswoche wird erst beim ersten Training gefragt (plan.askEntry); nach dem Fokus kommt die Frage
@@ -1263,7 +1264,7 @@ function renderWizSplit() {
 const wizMobL = () => mobLevel({ mob: wiz.mob });
 // v375 (User-Wunsch 2026-11-24): Hilfsmittel für Mobility, vorausgewählt nach Studio oder Heim-Ausrüstung
 function wizMobEqHtml() {
-  if (!wiz.mobEq) wiz.mobEq = [...(mobEqSet() || mobEqDefault(wiz.equip))];
+  if (!wiz.mobEq) wiz.mobEq = [...(mobEqSet() || [])];  // v404 (User 2026-11-26): erst nichts ausgewählt, man tippt an, was man hat
   return `<div class="wiz-mob-eq"><p class="lbl">Welche Hilfsmittel hast du dafür?</p>
       <p class="hint">Dann nutzt die App auch Übungen mit Band, Rolle oder Stab, im Training und in einer eigenen Mobility-Einheit.</p>
       ${mobEqChips(wiz.mobEq, 'wiz-mob-eq')}</div>`;
@@ -1394,6 +1395,45 @@ function renderWizBasics() {
 }
 
 // Am Ende (Plan ist fertig): niedrigen und hohen Wdh.-Bereich abwechseln oder alle Tage gleich?
+// v402: Schritt „Deine Trainingstage“ – wie viele verschiedene Tage (Paar-Vorlagen, eigene Aufteilung) und Wiederholungsbereich, mit Vorschau der Woche
+const wizDaysetFreq = () => { if (wiz.cat === 'custom') return true; const t = SPLITS.find(s => s.id === wiz.split); return !!(t && t.pairs && feat('wiz-freq')); };
+function renderWizDayset() {
+  const custom = wiz.cat === 'custom', freq = wizDaysetFreq(), ask = wizIntAsk();
+  const fopt = (n, title, text) => `<button class="split-opt freq-opt ${wiz.perWeek === n ? 'on' : ''}" data-action="wiz-freq" data-n="${n}"><b>${title}</b><small>${text}</small></button>`;
+  let a = '';
+  if (freq && custom) {
+    const n = wiz.days.length;
+    a = fopt(1, `1× pro Woche: ${n} Training${n === 1 ? '' : 's'}`, 'Jeder deiner Tage kommt einmal pro Woche dran.')
+      + fopt(2, `2× pro Woche: ${n * 2} Trainings`, 'Jeder deiner Tage kommt zweimal pro Woche dran, die Tage wiederholen sich der Reihe nach. Die Sätze pro Woche bleiben gleich.');
+  } else if (freq) {
+    const tpl = SPLITS.find(s => s.id === wiz.split), all = tpl.days.map(d => d[0]), half = halfNames(tpl.id);
+    a = fopt(1, `Mehr Abwechslung: ${all.length} verschiedene Tage`, 'Jeder Tag kommt 1× pro Woche dran. Zusammengehörige Tage trainieren dieselben Muskeln mit gleich vielen Sätzen, du kannst dort aber andere Übungen und einen anderen Wiederholungsbereich wählen.')
+      + fopt(2, `Unkompliziert: ${half.length} Tag${half.length === 1 ? '' : 'e'}, je 2× pro Woche`, 'Halb so viele Tage, jeder kommt 2× pro Woche mit denselben Übungen dran. Du musst dir weniger merken.');
+  }
+  const mode = wizIntMode(), alt = wizAltPossible();
+  const r = (int, kind) => repRanges(needsCoach())[int][kind].join('–');
+  const reps = int => `Grundübungen ${r(int, 'compound')}, normale Übungen ${r(int, 'normal')}, Assistenzübungen ${r(int, 'assist')} Wdh.`;
+  const seg = !ask ? '' : `<p class="lbl">Wiederholungsbereich</p>
+    <div class="seg three">${[['alt', 'Abwechselnd'], ['heavy', 'Alle niedrig'], ['light', 'Alle hoch']].map(([m, l]) =>
+      `<button class="${mode === m ? 'on' : ''}" data-action="wiz-int" data-m="${m}" ${m === 'alt' && !alt ? 'disabled' : ''}>${l}${m === 'alt' && alt ? ' <small>(empfohlen)</small>' : ''}</button>`).join('')}</div>
+    ${alt ? '' : `<p class="hint nut-small">${freq && wiz.perWeek === 2 ? 'Abwechseln geht nur mit verschiedenen Tagen für dieselben Muskeln. Wähle dafür oben „Mehr Abwechslung“.'
+      : 'Abwechseln geht hier nicht, weil jede Muskelgruppe nur an einem Tag pro Woche dran ist.'}</p>`}
+    ${mode === 'alt' ? `<p class="hint nut-small"><span>Niedrig:</span> ${reps('heavy')}</p><p class="hint nut-small"><span>Hoch:</span> ${reps('light')}</p>` : `<p class="hint nut-small">${reps(mode)}</p>`}
+    <details class="tech-info"><summary>ⓘ Was ist der Unterschied?</summary>
+      <p><b>Niedrige Wdh.:</b> mehr Gewicht, weniger Wiederholungen. Größter Fokus auf Kraft, kürzere Sätze, weniger Brennen. Bei viel Gewicht kommt es besonders auf saubere Technik an.</p>
+      <p><b>Hohe Wdh.:</b> weniger Gewicht, mehr Wiederholungen. Gut zum Lernen der Technik, baut genauso Muskeln auf, solange du nah ans Muskelversagen gehst. Die Sätze dauern länger und brennen mehr.</p>
+      <p><b>Abwechselnd:</b> Muskelgruppen, die mehrmals pro Woche dran sind, trainierst du einmal im niedrigen und einmal im hohen Bereich. So bekommst du beides und mehr Abwechslung, arbeitest dafür aber pro Übung mit zwei Gewichten (die App rechnet sie dir aus).</p>
+      <p>Intensiv sind alle drei gleich: Sätze und Wiederholungen im Tank sind dieselben.</p></details>`;
+  const ints = wizDayIntensities();
+  const prev = `<p class="lbl">So sieht deine Woche aus</p><ul class="dayset-prev">${wiz.days.map((d, i) =>
+      `<li><b>${esc(d.name.replace(INT_NAME_RE, '').trim() || 'Tag ' + (i + 1))}</b>${ask ? ` <span class="hint">· ${INT_NAME[ints[i]]}</span>` : ''}</li>`).join('')}</ul>
+    ${wiz.perWeek === 2 ? '<p class="hint nut-small">Jeder Tag kommt 2× pro Woche dran.</p>' : ''}`;
+  return wizCard('🗓️', 'Deine Trainingstage', ask
+      ? 'Lege fest, wie viele verschiedene Trainingstage dein Plan hat und in welchem Wiederholungsbereich du trainierst. Unten siehst du sofort, wie deine Woche aussieht. Im Plan-Reiter lässt sich der Bereich später je Tag ändern.'
+      : 'Lege fest, wie viele verschiedene Trainingstage dein Plan hat. Unten siehst du sofort, wie deine Woche aussieht.',
+    (a ? `<p class="lbl">Wie viele verschiedene Tage?</p>${a}` : '') + seg + prev);
+}
+
 function renderWizInt() {
   const mode = wizIntMode();
   const alt = wizAltPossible();
@@ -1486,7 +1526,7 @@ function renderWizDeload() {
         soll. Für Erfahrene, die ihren Körper gut einschätzen können.`)}
       <p class="hint">Beides lässt sich später im Plan-Reiter ändern.</p>
     </div>
-    <div class="row"><button class="btn" data-action="wiz-step" data-to="${wizIntAsk() ? 'intq' : 'preview'}">Zurück</button>
+    <div class="row"><button class="btn" data-action="wiz-step" data-to="preview">Zurück</button>
       <button class="btn primary" data-action="wiz-commit">Plan speichern</button></div>
     <p class="hint">Der Plan wird zusätzlich zu deinen bisherigen Plänen gespeichert und aktiv gesetzt. Er steigert sich wie üblich
       über Sätze, Gewicht und Wiederholungen. Das lässt sich später im Plan ändern.</p>`;
@@ -1539,7 +1579,7 @@ function renderWizard() {
   if (!wiz) return '<p class="hint">Der Assistent wurde beendet.</p><button class="btn primary" data-action="wiz-start">Neu starten</button>';
   let h = wizSteps();
   const simple = { mode: renderWizMode, ownday: renderWizOwnDay, ownname: renderWizOwnName, level: renderWizLevel, equip: renderWizEquip, homeeq: renderWizHomeEq, sessions: renderWizSessions, split: renderWizSplit, time: renderWizTime, mob: renderWizMob, goal: renderWizGoal, freq: renderWizFreq, days: renderWizDays,
-    basics: renderWizBasics, intq: renderWizInt, deloadq: renderWizDeload, progq: renderWizProg, progchoice: renderWizProgChoice };
+    basics: renderWizBasics, dayset: renderWizDayset, intq: renderWizInt, deloadq: renderWizDeload, progq: renderWizProg, progchoice: renderWizProgChoice };
   if (simple[wiz.step]) return h + simple[wiz.step]();
   if (wiz.step === 'prio' || wiz.step === 'low') return h + renderWizFocus(wiz.step);
   const groups = wizGroups();
@@ -1722,11 +1762,9 @@ function renderWizard() {
       : `<button class="btn" data-action="wiz-step" data-to="${wizTimePath() ? 'mob' : (feat('wiz-full') ? 'rir' : wizFlow().slice(-1)[0])}">Zurück</button>`}
     ${!lastDay ? `<button class="btn primary" data-action="wiz-pday" data-i="${pdi + 1}">Nächster Tag ›</button>`
       : wizTimePath() ? '<button class="btn primary" data-action="wiz-commit">Plan speichern</button>'
-      : wizIntAsk() ? '<button class="btn primary" data-action="wiz-step" data-to="intq">Weiter</button>'
       : wiz.ownProg === 'own' ? '<button class="btn primary" data-action="wiz-commit">Plan speichern</button>'
       : '<button class="btn primary" data-action="wiz-step" data-to="deloadq">Weiter</button>'}</div>
-    ${!lastDay || wizTimePath() ? '' : wizIntAsk() ? `<p class="hint">${wiz.ownProg === 'own' ? 'Zum Schluss noch eine kurze Frage zum Wiederholungsbereich.' : 'Zum Schluss noch zwei kurze Fragen: Wiederholungsbereich und Zykluslänge mit Deload.'}</p>`
-      : wiz.ownProg === 'own' ? '' : '<p class="hint">Zum Schluss noch eine kurze Frage zur Zykluslänge mit Deload.</p>'}
+    ${!lastDay || wizTimePath() || wiz.ownProg === 'own' ? '' : '<p class="hint">Zum Schluss noch eine kurze Frage zur Zykluslänge mit Deload.</p>'}
     ${needsCoach() ? coachNote() : ''}<button class="btn outline" data-action="wiz-adjust">Übungen anpassen</button>${wizMoreHint()}`;
 }
 
@@ -2017,7 +2055,7 @@ function wizBack() {
     wiz.step = 'preview';
     wiz.pdi = 1e9;  // letzter Tag
   } else if (wiz.step === 'deloadq') {
-    if (wizIntAsk()) wiz.step = 'intq'; else { wiz.step = 'preview'; wiz.pdi = 1e9; }
+    wiz.step = 'preview'; wiz.pdi = 1e9;  // v402: Wiederholungsbereich steht jetzt in „Deine Trainingstage“
   } else {
     const to = wizPrev();
     if (to === 'cancel') return ['plan', {}];

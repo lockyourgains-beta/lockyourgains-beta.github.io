@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 // v393: Übungsfiguren (v396: auch Mobility und Yoga) – detaillierte Figur je Übung in der passenden Haltung mit Gerät (Ziel rot, mit dabei orange).
 // Erzeugt aus den Entwurfsdateien in trainings-app-entwurf/figuren (fig3, mmseg, fig4, kit, scA–scC). Alles gekapselt, nach außen nur exFigHas / exFigSvg / exFigMob / exFigYoga.
 (() => {

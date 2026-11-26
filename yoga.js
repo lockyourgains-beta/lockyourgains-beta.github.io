@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Yoga (v344): Einheiten eintragen wie Cardio, Übungsbibliothek, Abläufe, Statistik ----------
    data.yoga = [{ id, date: 'JJJJ-MM-TT', style, level: 'easy'|'mid'|'hard', min, kcal, own, items?: [{ p: Haltung/Ablauf, n?: Durchgänge, s?: Sekunden je Durchgang }] }]
    kcal = Mehrverbrauch gegenüber Ruhe wie bei Cardio: (MET × Faktor − 1) × kg × Stunden (MET nach dem Compendium of Physical Activities:

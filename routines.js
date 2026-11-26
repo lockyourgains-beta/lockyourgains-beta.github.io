@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 /* ---------- Routinen (v398, User 2026-11-26): feste und eigene Routinen für Yoga und Mobility ----------
    Feste Routinen: Yoga = YOGA_FLOWS (yoga.js), Mobility = MOB_ROUTINES (hier). Eigene: data.routines = { yoga: [...], mob: [...] }.

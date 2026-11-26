@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Weitere Gerichte für den Ernährungsplan (v339) ----------
    Format wie MG_RECIPES_BASE in mealgen.js: Zutat = [Name in der Grundliste, Menge in g, Rolle (, Höchstmenge)].
    Stückgewichte und Standard-Höchstmengen kommen aus MG_UNIT und MG_MAX (mealgen.js), Allergene aus MG_TAG.

@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Ernährungsplan erstellen lassen (v337, v338: Vorlieben, mehr Gerichte, Rest des Tages, Einkaufsliste) ----------
    Gerichte aus der Grundliste (FOOD_BASE, Schlüssel 'b:' + Name). Die App wählt je Wochentag und Mahlzeit ein Gericht und
    rechnet die Mengen an jedem Tag aus dem aktuellen Tagesziel (Kalorien, Eiweiß, Kohlenhydrate, Fett). Ändert sich das Ziel,

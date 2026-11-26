@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 // Einführung („Spotlight“): Beim ersten Öffnen eines Fensters wird der Bildschirm abgedunkelt, ein Knopf bleibt hell
@@ -23,6 +23,8 @@ const TOURS = {
       text: 'Ungeplante Pause? Hier lässt du Tage dieser Woche aus und machst mit einem anderen Tag weiter.' },
     { id: 'start-cardio', sel: '.cardio-btn', title: 'Cardio',
       text: 'Hier trägst du Ausdauertraining ein, z. B. Laufen, Radfahren oder Crosstrainer, mit Dauer, Strecke und Kalorien.' },
+    { id: 'start-explain', sel: '.explain-q|details > summary|#tabs', title: 'Erklärungen und Infos',
+      text: 'Viele Stellen haben eine Erklärung oder zusätzliche Infos. Tipp auf „? Erklärung“ oder auf eine Zeile mit „ⓘ“ bzw. ▸, dann klappt sie auf. Zum Schließen tippst du auf „▴ Erklärung ausblenden“ oder noch einmal auf dieselbe Zeile.' },
     { id: 'start-tabs', sel: '#tabs', title: 'Die Bereiche der App',
       text: 'Unten wechselst du zwischen Training, Plan, Verlauf (mit Diagrammen, Statistik und Erfolgen), Ernährung und Optionen (z. B. Sicherung, Aussehen und Modus).' },
   ],
@@ -37,7 +39,7 @@ const TOURS = {
     { id: 'tr-prog', sel: '.prog-card', feat: 'tr-prog', title: 'Progression heute',
       text: 'Fühlst du dich heute nicht fit, kannst du die Steigerung nur für dieses Training ausschalten. Dann gelten die Werte vom letzten Mal.' },
     { id: 'tr-info', sel: 'section.card h2 .info-dot|section.card .info-btn', title: 'Übung ansehen',
-      text: 'Tipp auf den Namen mit dem „i“: Dann siehst du die Übung als Animation mit Anleitung.' },
+      text: 'Tipp auf den Namen mit dem „i“: Dann siehst du die Übung als Figur mit Anleitung.' },
     { id: 'tr-details', sel: 'section.card .det-btn', title: 'Anpassen',
       text: () => {
         const a = [feat('tr-max') ? 'Max. bei 10 Wdh.' : '', feat('tr-step') ? 'Steigerung' : '', feat('tr-variants') ? 'Ausführung' : ''].filter(Boolean);

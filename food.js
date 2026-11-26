@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Ernährungstagebuch: Lebensmittel erfassen (Grundliste, Open Food Facts, Barcode, eigene) ----------
    data.foodLog = [{ id, date, meal: 'b'|'l'|'d'|'s', key, name, brand, g, per: [kcal, Eiweiß, Kohlenhydrate, Fett, Ballaststoffe, Zucker] je 100 g }]
    (Ballaststoffe/Zucker freiwillig: fehlen oder null = unbekannt, z. B. ältere Einträge – Anzeige ohne Tagesziel)

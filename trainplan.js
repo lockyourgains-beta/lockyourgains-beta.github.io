@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Trainingsplan importieren (Excel, CSV, Google Sheets, Kopieren & Einfügen) ----------
    Wie beim Ernährungsplan (nutplan.js, dessen Leser npParseDelimited/npParseXlsx/npNum hier mitbenutzt werden):
    Spalten Tag, Übung, Sätze, Wdh., Gewicht (kg) – Sätze und Wdh. dürfen auch zusammen in einer Zelle stehen („3×10“),

@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Ernährung: Phase, Kalorienbedarf, Makros, Körpergewicht ----------
@@ -348,7 +348,7 @@ function nutTrainDayQuestion(d) {
         vor allem als Kohlenhydrate. Die liefern Energie fürs Training und helfen bei der Erholung. An Tagen ohne Training gilt dein normales
         Tagesziel. 200 kcal sind ein guter Ausgangswert, das sind etwa 50 g Kohlenhydrate, z. B. zwei Bananen oder eine Portion Reis.
         In einer Diät wird das Defizit an Trainingstagen etwas kleiner, im Aufbau der Überschuss etwas größer.</p>
-      ${opt(true, 'Ja, an Trainingstagen mehr', 'Den Betrag kannst du hier und später im Reiter Ernährung ändern.')}
+      ${opt(true, 'Ja, an Trainingstagen mehr', 'Den Betrag kannst du hier und später im Ernährungstagebuch unter „Kalorien und Makros anpassen“ ändern.')}
       ${on === true ? `<div class="row nut-td-row"><span>Plus an Trainingstagen</span>${nutTdStepper(k, 'nut-td-dstep')}</div>` : ''}
       ${opt(false, 'Nein, jeden Tag gleich', 'Ein Tagesziel für alle Tage.')}
     </div>`;
@@ -1631,7 +1631,6 @@ function renderNutrition() {
       ${nutPhaseHint(n)}
       ${(prog => prog ? `<div class="card nut-progress"><h2>Dein Verlauf</h2>${prog}</div>` : '')(nutProgressCard(n, c, kg))}
       ${nutTrainCard(n)}
-      ${nutTrainDayHtml(n)}
       ${(more => more.trim() ? `<div class="card nut-more-list"><h2>Mehr</h2>${more}</div>` : '')(
         (typeof mcAvailable === 'function' && mcAvailable() && !mcOn()
           ? '<button class="btn nav" data-action="mc-onoff" data-v="1">🌸 Zykluskalender einschalten<small>Freiwillig: Periode eintragen, Phasen sehen, Wassertage beim Gewicht herausrechnen</small></button>' : '')

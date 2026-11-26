@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 'use strict';
 
 /* ---------- Über die App: Gesundheitshinweis, Datenschutz, Impressum, Feedback (v188, 2026-11-09) ---------- */
@@ -126,14 +126,14 @@ function renderAbout() {
     <details class="card about-sec"><summary><b>🔒 Datenschutz</b></summary>${aboutDatenschutz()}</details>
     ${aboutImpressum()}
     <details class="card about-sec"><summary><b>© Rechte & Quellen</b></summary>${aboutRights()}</details>
-    <p class="hint about-copy">© 2026 Alex Hundt | Alle Rechte vorbehalten</p>`;
+    <p class="hint about-copy">© 2026 Alexander Hundt | Alle Rechte vorbehalten</p>`;
 }
 
 // Urheberrecht (siehe LICENSE im Repository) und Pflichtangaben der fremden Bestandteile
 function aboutRights() {
   return `<div class="about-text">
     <p>LockYourGains (Programm, Trainingslogik, Texte, Übungsbeschreibungen und Grafiken) ist urheberrechtlich geschützt.
-      © 2026 Alex Hundt, alle Rechte vorbehalten. Du darfst die App für dein eigenes Training nutzen. Kopieren, Verändern,
+      © 2026 Alexander Hundt, alle Rechte vorbehalten. Du darfst die App für dein eigenes Training nutzen. Kopieren, Verändern,
       Weitergeben oder Veröffentlichen, auch in Teilen, ist ohne schriftliche Zustimmung nicht erlaubt.</p>
     <h3>Verwendete Daten und Software</h3>
     <p><b>Bundeslebensmittelschlüssel (BLS) 4.0</b>: Durchschnittswerte für Lebensmittel, © Max Rubner-Institut.</p>

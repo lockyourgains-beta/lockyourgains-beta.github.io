@@ -1,4 +1,4 @@
-/* LockYourGains | © 2026 Alex Hundt | Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains | © 2026 Alexander Hundt | Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Mikronährstoffe aus dem Bundeslebensmittelschlüssel (v214) ----------
    Quelle: Max Rubner-Institut (2025): Bundeslebensmittelschlüssel (BLS), Version 4.0 – Deutsche Nährstoffdatenbank.
    Karlsruhe. DOI: 10.25826/Data20251217-134202-0 (kostenfrei, auch für App-Entwicklung freigegeben).

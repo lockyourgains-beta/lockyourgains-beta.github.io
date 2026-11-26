@@ -1,4 +1,4 @@
-/* LockYourGains · © 2026 Alex Hundt · Alle Rechte vorbehalten – siehe LICENSE */
+/* LockYourGains · © 2026 Alexander Hundt · Alle Rechte vorbehalten – siehe LICENSE */
 /* ---------- Farben & Grundwerte ---------- */
 :root {
   --bg: #f2f3f7;
@@ -5022,3 +5022,17 @@ html[data-look="viking"][data-theme] :is(.ex-card.tint-0, .ex-card.tint-1, .ex-c
 
 .tech-n { align-items: center; }
 .tech-n .tech-n-val { min-width: 22px; text-align: center; font-size: 17px; }
+
+/* v402: Deine Trainingstage */
+.dayset-prev { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 4px; }
+.dayset-prev li { padding: 7px 10px; border-radius: 10px; background: var(--fill); }
+.wiz-q .seg.three button small { font-weight: 500; font-size: 11px; display: block; }
+
+/* v403: eigener Wdh.-Bereich */
+.rr-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 15px; color: var(--muted); }
+.rr-row .rr-in { width: 64px; text-align: center; padding: 7px 6px; }
+.rr-box { margin: 6px 0; padding: 8px 10px; border-radius: 12px; background: var(--fill); }
+.rr-open { display: block; margin: 4px 0; font-size: 14px; }
+
+/* v405: Überschrift Designs */
+.look-h { margin: 16px 0 2px; font-size: 18px; }
