@@ -192,6 +192,9 @@ function upgradeData(d) {
   if (!Array.isArray(d.yoga)) d.yoga = [];  // v344: Yoga-Einheiten (yoga.js)
   if (!Array.isArray(d.mobility)) d.mobility = [];  // v375: Mobility-Einheiten (mobility.js)
   if (d.mobDraft === undefined) d.mobDraft = null;  // v375: laufende Mobility-Einheit
+  if (!d.routines || typeof d.routines !== 'object' || Array.isArray(d.routines)) d.routines = { yoga: [], mob: [] };  // v398: eigene Routinen (routines.js)
+  for (const k of ['yoga', 'mob']) if (!Array.isArray(d.routines[k])) d.routines[k] = [];
+  if (d.yogaDraft === undefined) d.yogaDraft = null;  // v398: laufende Yoga-Routine
   if (d.mobEq !== undefined && !Array.isArray(d.mobEq)) d.mobEq = null;
   if (!d.mobPref || typeof d.mobPref !== 'object' || Array.isArray(d.mobPref)) d.mobPref = {};
   if (!d.sched || typeof d.sched !== 'object' || Array.isArray(d.sched)) d.sched = {};  // v377: Wochenplaner Cardio/Yoga/Mobility (cardio.js)  // v376: 👍 1 / 👎 -1 je Mobility-Übung  // v375: Hilfsmittel für Mobility (null = noch nicht gefragt)
@@ -6934,7 +6937,7 @@ const SIZES = { '': 'Normal', l: 'Groß', xl: 'Sehr groß' };
 const OPT_SECS = {
   look: { icon: '🎨', title: 'Aussehen', render: () => appearanceCard(),
     sub: () => { const p = data.profile || {}; return lookSpecial() ? LOOKS[currentLook()] : [LOOKS[currentLook()], PROFILE_COLORS[profileColor()].label, THEME_MODES[p.theme || '']].join(' | '); } },
-  train: { icon: '🏋️', title: 'Training', render: () => motivCard() + restCard() + platesCard() + (feat('cycle-adjust') ? cycleModeCard() : '') + (typeof tourCard === 'function' ? tourCard() : '') + explainCard() + hintOffCard(),
+  train: { icon: '🏋️', title: 'Training', render: () => motivCard() + restCard() + (IS_BETA ? voiceTestCard() : '') + platesCard() + (feat('cycle-adjust') ? cycleModeCard() : '') + (typeof tourCard === 'function' ? tourCard() : '') + explainCard() + hintOffCard(),
     sub: () => `Motivation ${MOTIV_OPTS[motivMode()][1].toLowerCase()} | Pausen-Timer ${restCfg().off ? 'aus' : 'an'} | Langhantel ${barKg()} kg` },
   me: { icon: '👤', title: 'Profil & Ernährung', render: () => profileCard() + (typeof nutHintsCard === 'function' ? nutHintsCard() : '') + (typeof mealCfgCard === 'function' ? mealCfgCard() : '') + (typeof mcOptionsCard === 'function' ? mcOptionsCard() : ''),
     sub: () => [(data.profile || {}).name || 'Name, Geschlecht', 'Hinweise zur Ernährung', typeof mealOn === 'function' && mealOn() ? 'Mahlzeiten' : '', typeof mcAvailable === 'function' && mcAvailable() ? 'Zykluskalender' : ''].filter(Boolean).join(' | ') },
@@ -6992,6 +6995,11 @@ function dataSecHtml() {
 // Einträge: [Text, feat?] – feat blendet aus, was im Modus nicht zu sehen ist ('!x' = nur, wenn x NICHT sichtbar).
 // data.seenV = zuletzt gesehene Version; neu Angefangene sehen nichts, bisherige Nutzer beim ersten Mal alles ab v197.
 const CHANGES = [
+  { v: 398, date: '2026-11-26', items: [
+    ['Routinen für Yoga und Mobility: Oben im Yoga- und im Mobility-Bereich gibt es jetzt fertige Routinen mit eigener Seite. Dort steht, wofür die Routine gut ist, wie sie abläuft und welche Übungen dazugehören, jeweils mit Figur und Anleitung. Mit „▶ Routine starten“ läuft sie geführt mit Häkchen und Timer.'],
+    ['Eigene Routinen: Stell dir mit „＋ Eigene Routine zusammenstellen“ deine eigenen zusammen, ändere die Reihenfolge und die Zeit je Übung oder passe eine fertige Routine an. Bei Mobility kannst du auch die aktuelle Einheit als Routine speichern.'],
+    ['Wochenplaner: Für Yoga und Mobility wählst du jetzt je Wochentag eine Routine, z. B. Montag Morgen-Yoga. Auf der Startseite startet „▶ Start“ sie dann direkt.'],
+  ] },
   { v: 396, date: '2026-11-25', items: [
     ['Figuren jetzt auch bei Mobility und Yoga: Öffnest du eine Übung, zeigt oben eine Figur die Haltung, blaue Pfeile zeigen die Bewegung. Die Legende sagt dazu, wo es dehnt, was mitarbeitet oder wo du die Haltung spürst.'],
   ] },
@@ -8684,7 +8692,7 @@ function importData(file) {
       days: d.days, volume: d.volume, rirPlan: d.rirPlan,  // ältere Sicherungen mit nur einem Plan
       sessions: d.sessions, bodyweight: d.bodyweight, cycle: d.cycle, steps: d.steps,
       complaints: d.complaints, hintsDismissed: d.hintsDismissed, dayTemplates: d.dayTemplates,
-      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, yoga: d.yoga, mobility: d.mobility, mobDraft: d.mobDraft, mobEq: d.mobEq, mobPref: d.mobPref, sched: d.sched, nutPlan: d.nutPlan, mealPlan: d.mealPlan, mealPrefs: d.mealPrefs, pantry: d.pantry,
+      cycleShift: d.cycleShift, roundSkips: d.roundSkips, caliSnooze: d.caliSnooze, hyrox: d.hyrox, timeLimit: d.timeLimit, home: d.home, tour: d.tour, hintOff: d.hintOff, pauseAsked: d.pauseAsked, welcomeSeen: d.welcomeSeen, nutrition: d.nutrition, intake: d.intake, foodLog: d.foodLog, foods: d.foods, foodClosed: d.foodClosed, foodMeals: d.foodMeals, water: d.water, waterGoal: d.waterGoal, mcal: d.mcal, cardio: d.cardio, yoga: d.yoga, mobility: d.mobility, mobDraft: d.mobDraft, routines: d.routines, yogaDraft: d.yogaDraft, mobEq: d.mobEq, mobPref: d.mobPref, sched: d.sched, nutPlan: d.nutPlan, mealPlan: d.mealPlan, mealPrefs: d.mealPrefs, pantry: d.pantry,
       customExercises: d.customExercises, profile: d.profile, prefatV: d.prefatV, rirV: d.rirV,
       // v366 (Fehler im Gesamttest): gingen beim Wiederherstellen verloren – Übungsart aus der Bibliothek, Mahlzeiten-Einstellung,
       // gesehene Version, ausgeblendete Hinweise und die Kennzeichen der einmaligen Umstellungen (sonst laufen sie erneut)
@@ -9989,6 +9997,7 @@ ${done ? 'Die eingetragenen Sätze dieser Übung gehen verloren. ' : ''}Im Plan 
 
 // Eingabefelder schreiben direkt in die Daten (ohne neu zu zeichnen)
 const fields = {
+  'voice-sel': el => { data.profile = { ...(data.profile || {}), voice: el.value }; saveData(); voiceSay([VOICE_SAMPLES[LANG === 'en' ? 'en' : 'de'][0]]); },  // v397
   'compl-note': el => { if (complEdit) complEdit.note = el.value; },  // Beschwerde-Tagebuch (v209), gespeichert mit „Heute eintragen“
   'day-name': el => { findDay(current.params.id).name = el.value; saveData(); },
   'backup-pw': el => { backupPw = el.value.trim(); },  // nur im Arbeitsspeicher
@@ -11026,6 +11035,45 @@ actions['motiv-set'] = el => {
   if (current.view === 'start') toast(`Motivation: ${MOTIV_OPTS[el.dataset.m][1]}, änderbar unter Optionen → Training`);
 };
 actions['motiv-hide'] = el => { data.profile = { ...(data.profile || {}), motivHide: el.dataset.k }; saveData(); render(); };
+
+/* ---------- v397 (Beta): Hörtest für Sprachansagen ----------
+   Nutzt die Stimmen des Geräts (speechSynthesis). Bevorzugt Premium-/verbesserte/neuronale Stimmen der eingestellten Sprache.
+   Noch keine Ansagen im Training: erst anhören, dann entscheiden (User 2026-11-25). Gewählte Stimme: data.profile.voice (voiceURI). */
+const VOICE_OK = typeof speechSynthesis !== 'undefined' && typeof SpeechSynthesisUtterance === 'function';
+function voiceList() {
+  if (!VOICE_OK) return [];
+  const lang = LANG === 'en' ? 'en' : 'de';
+  const score = v => (/premium/i.test(v.name) ? 50 : 0) + (/enhanced|verbessert|erweitert/i.test(v.name) ? 40 : 0) + (/neural|natural|online/i.test(v.name) ? 30 : 0)
+    + (/google/i.test(v.name) ? 20 : 0) + (v.localService ? 2 : 0) + (v.default ? 1 : 0) - (/compact|kompakt|eloquence|espeak/i.test(v.name) ? 30 : 0)
+    + ({ 'de-de': 25, 'en-gb': 25, 'en-us': 22 }[(v.lang || '').toLowerCase().replace('_', '-')] || 0);
+  return speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().startsWith(lang)).sort((a, b) => score(b) - score(a));
+}
+function voicePick() {
+  const vs = voiceList(), want = data.profile && data.profile.voice;
+  return vs.find(v => v.voiceURI === want) || vs[0] || null;
+}
+const VOICE_SAMPLES = {
+  de: ['Nächste Haltung: Krieger zwei. Dreißig Sekunden.', 'Noch zehn Sekunden.', 'Seite wechseln.', 'Pause. Neunzig Sekunden.', 'Weiter geht es mit Bankdrücken, Satz zwei.'],
+  en: ['Next pose: warrior two. Thirty seconds.', 'Ten seconds left.', 'Switch sides.', 'Rest. Ninety seconds.', 'Next up: bench press, set two.'] };
+function voiceSay(lines) {
+  if (!VOICE_OK) return;
+  speechSynthesis.cancel();
+  const v = voicePick();
+  lines.forEach(t => { const u = new SpeechSynthesisUtterance(t); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = LANG === 'en' ? 'en-GB' : 'de-DE'; u.rate = 1; speechSynthesis.speak(u); });
+}
+function voiceTestCard() {
+  if (!VOICE_OK) return `<div class="card"><h2>🔊 Sprachansagen (Test)</h2><p class="hint">Dieser Browser kann keine Sprachansagen.</p></div>`;
+  const vs = voiceList(), cur = voicePick();
+  return `<div class="card voice-card"><h2>🔊 Sprachansagen (Test)</h2>
+    <p class="hint">Hör dir an, wie Ansagen beim Training, bei Yoga und Mobility klingen würden. Die App nutzt dafür die Stimmen deines Handys.</p>
+    ${vs.length ? `<label class="lbl" for="voice-sel">Stimme</label>
+      <select class="inp" id="voice-sel" data-field="voice-sel">${vs.map(v => `<option value="${esc(v.voiceURI)}" ${cur && v.voiceURI === cur.voiceURI ? 'selected' : ''}>${esc(v.name.replace(/^(Microsoft|Google|Apple)\s+/, '').replace(/\s+Online \(Natural\)/, ' (natürlich)'))}</option>`).join('')}</select>`
+      : '<p class="hint">Die Stimmen werden noch geladen. Tipp gleich noch einmal auf „Anhören“.</p>'}
+    <button class="btn primary" data-action="voice-test">▶ Anhören</button>
+    <p class="hint explain">Klingt die Stimme blechern? Auf dem iPhone gibt es kostenlos bessere Stimmen: Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Deutsch, dort z. B. Anna oder Helena in der Version „Verbessert“ oder „Premium“ laden. Danach die App neu öffnen und die Stimme hier auswählen.</p></div>`;
+}
+actions['voice-test'] = () => { voiceSay(VOICE_SAMPLES[LANG === 'en' ? 'en' : 'de']); };
+if (VOICE_OK && 'onvoiceschanged' in speechSynthesis) speechSynthesis.onvoiceschanged = () => { if (typeof current !== 'undefined' && current && current.view === 'opt') render(); };
 actions['welcome-motiv'] = el => {
   welc.motiv = el.dataset.m;
   el.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === el));

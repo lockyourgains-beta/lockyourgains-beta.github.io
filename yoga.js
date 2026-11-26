@@ -1180,7 +1180,7 @@ function yogaItemHtml(it, i) {
   const p = YOGA_BY_ID.get(it.p);
   if (!p) return '';
   const unitR = !p.flow && p.unit === 'r';
-  const sub = p.flow ? `Ablauf mit ${p.items.length} Haltungen` : [p.sa, p.side ? 'je Seite' : ''].filter(Boolean).join(' | ');
+  const sub = p.flow ? `Routine mit ${p.items.length} Haltungen` : [p.sa, p.side ? 'je Seite' : ''].filter(Boolean).join(' | ');
   return `<div class="yg-item">
       <div class="yg-item-head"><span><b>${p.flow ? '🔁 ' : ''}${esc(p.de)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span>
         <button class="icon-btn danger" data-action="yoga-item-del" data-i="${i}" aria-label="Entfernen">✕</button></div>
@@ -1196,7 +1196,7 @@ function renderYoga() {
   const f = yogaForm;
   const lastWith = [...data.yoga].reverse().find(y => y.items && y.items.length && y.id !== f.id);
   const lp = yogaPrev(f.style, f.date || todayISO(), f.id);
-  let h = `${yogaCmpCard()}<div class="card cardio-form yoga-form">
+  let h = `${typeof rtSectionHtml === 'function' ? rtSectionHtml('yoga') : ''}${yogaCmpCard()}<h2 class="yg-log-h">✍️ Einheit eintragen</h2><div class="card cardio-form yoga-form">
       <p class="lbl">Stil</p>
       <div class="variants yoga-styles">${Object.entries(YOGA_STYLES).map(([k, s]) => `<button class="vchip ${f.style === k ? 'on' : ''}" data-action="yoga-style" data-k="${k}">${s.label}</button>`).join('')}</div>
       ${lp ? `<p class="hint nut-small cardio-last"><b>Letztes Mal</b> <span>${fmtDate(lp.date + 'T12:00:00')}</span>: <span>${lp.min} min</span> | <span>${(YOGA_LEVELS[lp.level] || YOGA_LEVELS.mid).label}</span>${lp.items && lp.items.length ? ` | <span>${lp.items.length} Übungen</span>` : ''}</p>` : ''}
@@ -1216,14 +1216,14 @@ function renderYoga() {
       ${f.items.map(yogaItemHtml).join('')}
       <div class="row yoga-add-row">
         <button class="btn" data-action="yoga-pick">＋ Übung</button>
-        <button class="btn ${yogaFlowsOpen ? 'on' : ''}" data-action="yoga-flows-toggle" aria-expanded="${yogaFlowsOpen}">＋ Ablauf</button>
+        <button class="btn ${yogaFlowsOpen ? 'on' : ''}" data-action="yoga-flows-toggle" aria-expanded="${yogaFlowsOpen}">＋ Routine</button>
       </div>
       ${yogaFlowsOpen ? `<div class="variants yoga-flow-chips">${YOGA_FLOWS.map(fl => `<button class="vchip" data-action="yoga-add" data-p="${fl.id}">🔁 ${esc(fl.de)}</button>`).join('')}</div>` : ''}
       ${!f.items.length && lastWith ? `<button class="btn center yoga-last" data-action="yoga-last">↺ Übungen vom letzten Mal übernehmen<small>${fmtDate(lastWith.date + 'T12:00:00')}</small></button>` : ''}
     </div>
     <div class="row">${f.id ? '<button class="btn" data-action="yoga-cancel">Abbrechen</button>' : ''}
       <button class="btn primary" data-action="yoga-save">${f.id ? '✔ Speichern' : '＋ Eintragen'}</button></div>
-    <button class="btn nav" data-action="yoga-lib">📖 Yoga-Übungen und Abläufe<small>${YOGA_POSES.length} Haltungen und Atemübungen mit Anleitung, ${YOGA_FLOWS.length} Abläufe</small></button>`;
+    <button class="btn nav" data-action="yoga-lib">📖 Yoga-Übungen<small>${YOGA_POSES.length} Haltungen und Atemübungen mit Anleitung</small></button>`;
   h += schedCardHtml('yoga');  // v377: Wochenplaner
   const list = [...data.yoga].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, 40);
   h += list.length ? `<h2>Deine Einheiten</h2><ul class="list">${list.map(y => yogaRowHtml(y, true)).join('')}</ul>` : '<p class="hint">Noch keine Yoga-Einheiten eingetragen.</p>';
@@ -1237,7 +1237,7 @@ function yogaRowHtml(y, edit = false) {
   const info = `<span>${fmtDate(y.date + 'T12:00:00')}</span> | <span>${y.min} min</span> | <span>${(YOGA_LEVELS[y.level] || YOGA_LEVELS.mid).label}</span> | <span>ca. ${deNum(y.kcal)} kcal</span>${y.own ? ' <span>(eigener Wert)</span>' : ''}`;
   if (!edit) return `<button class="btn nav" data-action="yoga-open-edit" data-id="${y.id}">🧘 <span>${st.label}</span><small>${info}</small></button>`;
   const p = yogaPrevOf(y), d = p ? y.min - p.min : 0;
-  return `<li class="bw-row cardio-row yoga-row"><span>🧘 <span>${st.label}</span><small class="hint">${info}</small>${p && d ? `<small class="hint cardio-row-cmp">${cardioArrow(Math.sign(d))} <span>${d > 0 ? '+' : '−'}${Math.abs(d)} min</span></small>` : ''}${y.items && y.items.length
+  return `<li class="bw-row cardio-row yoga-row"><span>🧘 ${y.rname ? `${esc(y.rname)} <small class="hint">(${st.label})</small>` : `<span>${st.label}</span>`}<small class="hint">${info}</small>${p && d ? `<small class="hint cardio-row-cmp">${cardioArrow(Math.sign(d))} <span>${d > 0 ? '+' : '−'}${Math.abs(d)} min</span></small>` : ''}${y.items && y.items.length
       ? `<small class="hint yoga-row-items">${esc(yogaItemsText(y.items))}</small>` : ''}</span>
       <button class="icon-btn" data-action="yoga-edit" data-id="${y.id}" aria-label="Bearbeiten">✎</button>
       <button class="icon-btn danger" data-action="yoga-del" data-id="${y.id}" aria-label="Löschen">✕</button></li>`;
@@ -1252,7 +1252,7 @@ const ygSearchStr = p => [p.de, p.sa, tr(p.de)].join(' ').toLowerCase();
 
 // Liste nach Kategorien; pick = Auswahl fürs Eintragen (Antippen fügt hinzu), sonst Bibliothek (Antippen klappt auf)
 function yogaPoseList(pick) {
-  const q = ygQ.trim().toLowerCase(), chosen = pick ? new Set(yogaForm.items.map(i => i.p)) : null;
+  const q = ygQ.trim().toLowerCase(), chosen = pick ? new Set((current.params && current.params.rt && rtEdit ? rtEdit.items : yogaForm.items).map(i => i.p)) : null;
   let any = false;
   const h = YOGA_CATS.map(([c, label]) => {
     const ps = YOGA_POSES.filter(p => p.cat === c);
@@ -1296,8 +1296,12 @@ function yogaPoseDetail(p) {
       ${st.n ? `<p class="hint nut-small yg-stat"><span>Bei dir: ${st.n}× eingetragen</span>${st.best ? ` | <span>längste Zeit ${st.best} s</span>` : ''} | <span>zuletzt ${fmtDate(st.last + 'T12:00:00')}</span></p>` : ''}
     </div>`;
 }
-function renderYogaPick() {
+function renderYogaPick(p) {
   if (!yogaForm) yogaForm = yogaFormFresh();
+  if (p && p.rt && rtEdit) return `<div class="card yg-pick"><p class="hint nut-small">Antippen fügt die Haltung zur Routine hinzu, nochmal antippen nimmt sie heraus. Zeit und Reihenfolge stellst du danach ein.</p>
+      <input class="inp" type="search" data-field="yoga-q" value="${esc(ygQ)}" placeholder="Suchen, z. B. Krieger" autocomplete="off">
+      ${yogaPoseList(true)}</div>
+    <button class="btn primary" data-action="yoga-pick-done">✔ Fertig (${rtEdit.items.length} ${rtEdit.items.length === 1 ? 'Haltung' : 'Haltungen'})</button>`;
   return `<div class="card yg-pick"><p class="hint nut-small">Antippen fügt die Übung hinzu. Durchgänge und Zeit trägst du danach ein, wenn du magst.</p>
       <input class="inp" type="search" data-field="yoga-q" value="${esc(ygQ)}" placeholder="Suchen, z. B. Krieger" autocomplete="off">
       ${yogaPoseList(true)}</div>
@@ -1305,12 +1309,9 @@ function renderYogaPick() {
 }
 function renderYogaLib() {
   let h = `<div class="seg two"><button class="${ygLibTab === 'poses' ? 'on' : ''}" data-action="yoga-libtab" data-k="poses">Übungen</button>
-    <button class="${ygLibTab === 'flows' ? 'on' : ''}" data-action="yoga-libtab" data-k="flows">Abläufe</button></div>`;
-  if (ygLibTab === 'flows') {
-    return h + YOGA_FLOWS.map(fl => `<div class="card yg-flow"><h2>🔁 ${esc(fl.de)}</h2><p class="hint nut-small">${esc(fl.how)}</p>
-      <p class="hint nut-small">Ein Durchgang dauert etwa ${Math.max(1, Math.round(yogaFlowSec(fl) / 60))} Minuten.</p>
-      <ol class="yg-flow-list">${fl.items.map(([id, v]) => { const p = YOGA_BY_ID.get(id); return p ? `<li><span>${esc(p.de)}</span><small>${p.unit === 'r' ? `${v} Runden` : `${v} s`}${p.side ? ' je Seite' : ''}</small></li>` : ''; }).join('')}</ol></div>`).join('');
-  }
+    <button class="${ygLibTab === 'flows' ? 'on' : ''}" data-action="yoga-libtab" data-k="flows">Routinen</button></div>`;
+  if (ygLibTab === 'flows') return h + (typeof rtSectionHtml === 'function' ? rtSectionHtml('yoga') : '');  // v398: Routinen mit eigener Seite
+
   return h + `<div class="card yg-lib"><input class="inp" type="search" data-field="yoga-q" value="${esc(ygQ)}" placeholder="Suchen, z. B. Krieger" autocomplete="off">
       ${yogaPoseList(false)}</div>
     <p class="hint nut-small explain">Mach nur, was sich gut anfühlt. Bei Schmerzen, Schwindel, Bluthochdruck, Problemen mit Nacken oder Rücken
@@ -1382,7 +1383,7 @@ function renderYogaStats() {
 }
 
 views.yoga = { title: 'Yoga', tab: 'start', back: 'start', render: renderYoga };
-views.yogapick = { title: 'Übung hinzufügen', tab: 'start', back: () => ['yoga', {}], render: renderYogaPick };
+views.yogapick = { title: 'Übung hinzufügen', tab: 'start', back: p => p && p.rt ? ['rtedit', {}] : ['yoga', {}], render: renderYogaPick };
 views.yogalib = { title: 'Yoga-Übungen', tab: 'start', back: () => ['yoga', {}], render: renderYogaLib };
 
 // Suche: nur ein- und ausblenden (Eingabefeld behält den Fokus)
@@ -1410,7 +1411,7 @@ Object.assign(actions, {
   'yoga-level': el => { yogaForm.level = el.dataset.k; render(); },
   'yoga-cancel': () => { yogaForm = null; render(); },
   'yoga-pick': () => { ygQ = ''; ygOpenCat = null; go('yogapick'); },
-  'yoga-pick-done': () => go('yoga'),
+  'yoga-pick-done': () => current.params && current.params.rt ? go('rtedit', {}) : go('yoga'),
   'yoga-lib': () => { ygQ = ''; ygOpenCat = null; ygOpenPose = null; go('yogalib'); },
   'yoga-libtab': el => { ygLibTab = el.dataset.k; render(); },
   'yoga-cat': el => { ygOpenCat = ygOpenCat === el.dataset.c ? null : el.dataset.c; render(); },
@@ -1418,6 +1419,11 @@ Object.assign(actions, {
   'yoga-flows-toggle': () => { yogaFlowsOpen = !yogaFlowsOpen; render(); },
   // Übung oder Ablauf hinzufügen (in der Auswahl: nochmal antippen nimmt sie wieder heraus)
   'yoga-add': el => {
+    if (current.view === 'yogapick' && current.params.rt && rtEdit) {  // v398: Haltung für eine eigene Routine
+      const p = el.dataset.p, i = rtEdit.items.findIndex(x => x.p === p), x = YOGA_BY_ID.get(p);
+      if (i >= 0) rtEdit.items.splice(i, 1); else if (x && !x.flow) rtEdit.items.push({ p, v: x.hold });
+      render(); return;
+    }
     if (!yogaForm) yogaForm = yogaFormFresh();
     const p = el.dataset.p, i = yogaForm.items.findIndex(x => x.p === p);
     if (current.view === 'yogapick' && i >= 0) yogaForm.items.splice(i, 1);

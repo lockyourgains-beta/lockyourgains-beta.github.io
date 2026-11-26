@@ -463,6 +463,19 @@ function schedText(s, plain = false) {
   return r + (s.min ? ` | ${sp(`${s.min} min`)}` : '');
 }
 const schedDateTxt = iso => fmtDate(iso + 'T12:00:00');
+// v398: Routine für den Tag (Yoga, Mobility): bei festen Tagen je Wochentag, sonst eine für alle
+function schedRt(k, iso = todayISO()) {
+  const s = schedOf(k);
+  if (!s || typeof rtGet !== 'function') return null;
+  const id = (s.mode === 'days' && s.rtDays && s.rtDays[isoWd(iso)]) || s.rt || '';
+  return id ? rtGet(k, id) : null;
+}
+function schedRtSel(k, val, d) {
+  if (typeof rtFixed !== 'function') return '';
+  const opt = r => `<option value="${r.id}" ${val === r.id ? 'selected' : ''}>${esc(r.name)}</option>`, own = rtOwn(k);
+  return `<select class="inp sched-rt" data-field="sched-rt" data-d="${d}"><option value="">Ohne feste Routine</option>
+    ${own.length ? `<optgroup label="Meine Routinen">${own.map(opt).join('')}</optgroup>` : ''}<optgroup label="Fertige Routinen">${rtFixed(k).map(opt).join('')}</optgroup></select>`;
+}
 
 // Startseite: „Heute geplant“ und Wochenstand
 function schedStartHtml() {
@@ -477,7 +490,8 @@ function schedStartHtml() {
         <div class="sched-btns"><button class="btn small" data-action="sched-move" data-k="${k}" data-d="${miss}" data-to="${t}">Heute nachholen</button>
         <button class="btn small" data-action="sched-move" data-k="${k}" data-d="${miss}" data-to="">Auslassen</button></div></div>`);
     const due = schedToday(k);
-    if (due) rows.push(`<div class="sched-row"><span><b>${K.icon} <span>${K.label}</span>${s.min ? ` <span>${s.min} min</span>` : ''}</b><small>${due.left
+    const rtd = due && k !== 'cardio' ? schedRt(k) : null;
+    if (due) rows.push(`<div class="sched-row"><span><b>${K.icon} <span>${K.label}</span>${rtd ? `: ${esc(rtd.name)}` : s.min ? ` <span>${s.min} min</span>` : ''}</b><small>${due.left
         ? `noch ${due.left}× diese Woche` : due.since ? `<span>Fällig seit</span> ${schedDateTxt(due.since)}` : 'Heute geplant'}</small></span>
         <div class="sched-btns"><button class="btn small primary" data-action="sched-start" data-k="${k}">▶ Start</button>
         <button class="btn small" data-action="sched-later" data-k="${k}">Morgen</button></div></div>`);
@@ -499,7 +513,9 @@ function schedCardHtml(k) {
   if (!e) {
     if (!s) return `<button class="btn outline nav sched-open" data-action="sched-edit" data-k="${k}">📅 Regelmäßig planen
         <small>Feste Wochentage, x-mal pro Woche oder alle paar Tage</small></button>`;
-    return `<div class="card sched-card"><div class="sched-head"><span><span class="lbl">📅 Dein Rhythmus</span><small class="hint">${schedText(s)}</small></span>
+    const rts = k === 'cardio' ? '' : s.mode === 'days' && s.rtDays && Object.keys(s.rtDays).length
+      ? s.days.filter(d => s.rtDays[d]).map(d => `<span>${SCHED_WD[d]}</span>: ${esc(rtNameOf(k, s.rtDays[d]))}`).join(' | ') : s.rt ? `<span>Routine</span>: ${esc(rtNameOf(k, s.rt))}` : '';
+    return `<div class="card sched-card"><div class="sched-head"><span><span class="lbl">📅 Dein Rhythmus</span><small class="hint">${schedText(s)}</small>${rts ? `<small class="hint">${rts}</small>` : ''}</span>
         <button class="btn small" data-action="sched-edit" data-k="${k}">Ändern</button></div>
       <p class="hint nut-small"><span>Diese Woche:</span> ${schedWeekDone(k)} von ${schedWeekPlanned(k)}</p></div>`;
   }
@@ -513,6 +529,9 @@ function schedCardHtml(k) {
       <p class="hint nut-small">${e.mode === 'days' ? 'An diesen Wochentagen erinnert dich die Startseite.' : e.mode === 'times'
         ? 'Ohne feste Tage: Die Startseite erinnert dich, bis du die Einheiten der Woche (Montag bis Sonntag) geschafft hast.'
         : 'Gezählt ab deiner letzten Einheit. Machst du sie früher oder später, verschiebt sich der nächste Termin mit.'}</p>
+      ${k === 'cardio' || typeof rtFixed !== 'function' ? '' : `<p class="lbl">Routine</p>${e.mode === 'days' && e.days.length
+        ? `<div class="sched-rts">${e.days.map(d => `<label class="row sched-rt-row"><span>${SCHED_WD[d]}</span>${schedRtSel(k, (e.rtDays || {})[d] || '', d)}</label>`).join('')}</div>`
+        : schedRtSel(k, e.rt || '', 'all')}<p class="hint nut-small">Mit Routine startet „▶ Start“ auf der Startseite sie direkt.</p>`}
       <label class="row"><span>Dauer (Minuten)<br><small class="hint">freiwillig</small></span>
         <input class="inp kg" type="text" inputmode="numeric" autocomplete="off" data-field="sched-min" value="${esc(e.min)}" placeholder="–"></label>
       <div class="row">${s ? '<button class="btn" data-action="sched-del">Entfernen</button>' : '<button class="btn" data-action="sched-cancel">Abbrechen</button>'}
@@ -525,12 +544,13 @@ function schedCardHtml(k) {
 Object.assign(actions, {
   'sched-edit': el => {
     const k = el.dataset.k, s = schedOf(k);
-    schedEdit = { k, mode: s ? s.mode : 'days', days: s && s.days ? [...s.days] : [], times: s && s.times || 2, every: s && s.every || 2, min: s && s.min ? String(s.min) : '' };
+    schedEdit = { k, mode: s ? s.mode : 'days', days: s && s.days ? [...s.days] : [], times: s && s.times || 2, every: s && s.every || 2, min: s && s.min ? String(s.min) : '',
+      rt: s && s.rt || '', rtDays: s && s.rtDays ? { ...s.rtDays } : {} };
     render();
   },
   'sched-cancel': () => { schedEdit = null; render(); },
   'sched-mode': el => { schedEdit.mode = el.dataset.v; render(); },
-  'sched-day': el => { const d = +el.dataset.d, l = schedEdit.days, i = l.indexOf(d); if (i >= 0) l.splice(i, 1); else l.push(d); l.sort((a, b) => a - b); render(); },
+  'sched-day': el => { const d = +el.dataset.d, l = schedEdit.days, i = l.indexOf(d); if (i >= 0) l.splice(i, 1); else { l.push(d); if (schedEdit.rt && schedEdit.rtDays && !schedEdit.rtDays[d]) schedEdit.rtDays[d] = schedEdit.rt; } l.sort((a, b) => a - b); render(); },
   'sched-n': el => { const w = el.dataset.w; schedEdit[w] = Math.min(7, Math.max(1, schedEdit[w] + Number(el.dataset.d))); render(); },
   'sched-save': () => {
     const e = schedEdit;
@@ -538,7 +558,10 @@ Object.assign(actions, {
     const min = String(e.min).trim() === '' ? null : parseNum(e.min);
     if (min != null && !(min >= 1 && min <= 600)) { alert('Bitte eine Dauer zwischen 1 und 600 Minuten eintragen oder das Feld leer lassen.'); return; }
     if (!data.sched || typeof data.sched !== 'object') data.sched = {};
-    data.sched[e.k] = { mode: e.mode, days: e.mode === 'days' ? [...e.days] : [], times: e.times, every: e.every, min: min != null ? Math.round(min) : null, from: todayISO(), moved: {} };
+    const rtDays = {};
+    if (e.mode === 'days') for (const d of e.days) if (e.rtDays && e.rtDays[d]) rtDays[d] = e.rtDays[d];
+    data.sched[e.k] = { mode: e.mode, days: e.mode === 'days' ? [...e.days] : [], times: e.times, every: e.every, min: min != null ? Math.round(min) : null, from: todayISO(), moved: {},
+      rt: e.mode === 'days' ? '' : e.rt || '', rtDays };
     schedEdit = null;
     saveData(); render();
     toast('📅 Rhythmus gespeichert');
@@ -551,7 +574,8 @@ Object.assign(actions, {
     saveData(); render();
   },
   'sched-start': el => {
-    const k = el.dataset.k, s = schedOf(k);
+    const k = el.dataset.k, s = schedOf(k), rtd = k !== 'cardio' ? schedRt(k) : null;
+    if (rtd) { rtStart(k, rtd.id); return; }  // v398: geplante Routine direkt starten
     if (k === 'cardio' && s && s.min) { cardioForm = cardioFormFresh(); cardioForm.min = String(s.min); cardioCmpId = null; go('cardio'); return; }
     if (k === 'yoga' && s && s.min && typeof yogaFormFresh === 'function') { yogaForm = yogaFormFresh(); yogaForm.min = String(s.min); go('yoga'); return; }
     actions[SCHED_KINDS[k].open](el);
@@ -572,3 +596,4 @@ Object.assign(actions, {
   },
 });
 fields['sched-min'] = el => { if (schedEdit) schedEdit.min = el.value; };
+fields['sched-rt'] = el => { if (!schedEdit) return; if (el.dataset.d === 'all') schedEdit.rt = el.value; else { if (!schedEdit.rtDays) schedEdit.rtDays = {}; schedEdit.rtDays[el.dataset.d] = el.value; } };

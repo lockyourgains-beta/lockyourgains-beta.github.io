@@ -344,11 +344,14 @@ function renderMobLib() {
   return `<p class="hint explain">${MOB_INTRO}</p><div class="card yg-lib">${mobSearchInput()}${mobListHtml(null)}</div>
     <p class="hint nut-small explain">${MOB_CARE}</p>`;
 }
-function renderMobPick({ day: id, sess }) {
-  // v375: auch für die Mobility-Einheit (sess) – die Liste steht dann in data.mobDraft.items
-  const day = sess ? (data.mobDraft ? { mob: data.mobDraft.items } : null) : findDay(id);
+function renderMobPick({ day: id, sess, rt }) {
+  // v375: auch für die Mobility-Einheit (sess) – die Liste steht dann in data.mobDraft.items; v398: eigene Routine (rt) in rtEdit.items
+  const day = rt ? (rtEdit ? { mob: rtEdit.items } : null) : sess ? (data.mobDraft ? { mob: data.mobDraft.items } : null) : findDay(id);
   if (!day) return '<p class="hint">Trainingstag nicht gefunden.</p>';
   const n = mobEdit(day).length;
+  if (rt) return `<p class="hint explain">Antippen ＋ fügt die Übung zur Routine hinzu. Der Pfeil zeigt, wie sie geht und wofür sie gut ist.</p>
+    <div class="card yg-pick">${mobSearchInput()}${mobListHtml(day)}</div>
+    <button class="btn primary" data-action="mob-pick-done" data-rt="1">✔ Fertig (${n} ${n === 1 ? 'Übung' : 'Übungen'})</button>`;
   return `<p class="hint explain">${sess ? 'Antippen ＋ fügt die Übung zu deiner Mobility-Einheit hinzu.' : `Antippen ＋ fügt die Übung zu „${esc(day.name)}“ hinzu.`} Der Pfeil zeigt, wie sie geht und wofür sie gut ist.</p>
     <div class="card yg-pick">${mobSearchInput()}${mobListHtml(day)}</div>
     <button class="btn primary" data-action="mob-pick-done" ${sess ? 'data-sess="1"' : `data-day="${day.id}"`}>✔ Fertig (${n} ${n === 1 ? 'Übung' : 'Übungen'})</button>`;
@@ -553,7 +556,11 @@ function renderMobSess() {
   const compl = mobComplRegs();
   const seg = (act, val, cur, label) => `<button class="${cur === val ? 'on' : ''}" data-action="${act}" data-v="${val}">${label}</button>`;
   const focusOpts = [next || day ? ['next', 'Nächstes Training'] : null, ['full', 'Ganzkörper'], ['regs', 'Regionen wählen']].filter(Boolean);
-  let h = `<div class="card ms-setup">
+  let h = (typeof rtSectionHtml === 'function' ? rtSectionHtml('mob') : '') + `<h2 class="yg-log-h">🤸 ${f.focus === 'rt' ? 'Deine Routine' : 'Einheit zusammenstellen'}</h2>`;
+  if (f.focus === 'rt') h += `<div class="card ms-setup"><p><b>${esc(f.rname || 'Routine')}</b></p>
+      <p class="hint nut-small">Du machst gerade diese Routine. Lieber eine Einheit, die die App für dich zusammenstellt?</p>
+      <button class="btn small" data-action="ms-focus" data-v="full">✨ Einheit von der App zusammenstellen</button></div>`;
+  else h += `<div class="card ms-setup">
       <p class="lbl">Dauer</p>
       <div class="seg four">${MOB_DURS.map(d => seg('ms-dur', d, f.dur, `${d} min`)).join('')}</div>
       <p class="lbl">Schwerpunkt</p>
@@ -593,7 +600,8 @@ function renderMobSess() {
         Tippe auf eine Übung für die Beschreibung, ⇄ tauscht sie gegen eine andere aus derselben Region.</p>
         <ul class="mob-list">${rows}</ul>` : '<p class="hint nut-small">Noch keine Übungen. Wähle oben einen Schwerpunkt oder füge selbst welche hinzu.</p>'}
       <div class="mob-btns"><button class="btn small" data-action="ms-pick">＋ Übung</button>
-        <button class="btn small" data-action="ms-new">✨ Neu vorschlagen</button></div>
+        ${f.focus === 'rt' ? '' : '<button class="btn small" data-action="ms-new">✨ Neu vorschlagen</button>'}
+        ${f.items.length ? '<button class="btn small" data-action="ms-as-rt">💾 Als Routine speichern</button>' : ''}</div>
       <label class="row"><span>Datum</span><input class="inp date" type="date" data-field="ms-date" value="${f.date}" max="${todayISO()}"></label>
       <div class="row"><button class="btn" data-action="ms-reset">Verwerfen</button>
         <button class="btn primary" data-action="ms-save">✔ Speichern</button></div>
@@ -608,7 +616,7 @@ const mobEntryInfo = x => `<span>${fmtDate(x.date + 'T12:00:00')}</span> | <span
 // gespeicherte Einheit: im Mobility-Bildschirm mit Löschen, sonst als Knopf (Kalendertag)
 function mobEntryRowHtml(x, edit = false) {
   if (!edit) return `<button class="btn nav" data-action="mobs-open">🤸 <span>Mobility</span><small>${mobEntryInfo(x)}</small></button>`;
-  return `<li class="bw-row cardio-row"><span>🤸 <span>Mobility</span><small class="hint">${mobEntryInfo(x)}</small>
+  return `<li class="bw-row cardio-row"><span>🤸 ${x.rname ? esc(x.rname) : '<span>Mobility</span>'}<small class="hint">${mobEntryInfo(x)}</small>
       ${mobEntryText(x) ? `<small class="hint yoga-row-items">${esc(mobEntryText(x))}</small>` : ''}</span>
       <button class="icon-btn danger" data-action="ms-entry-del" data-id="${x.id}" aria-label="Löschen">✕</button></li>`;
 }
@@ -616,15 +624,20 @@ function mobEntryRowHtml(x, edit = false) {
 /* ----- Ansichten und Aktionen ----- */
 views.moblib = { title: 'Mobility-Übungen', tab: 'plan', back: p => p && p.day ? ['day', { id: p.day }] : ['library', {}], render: renderMobLib };
 views.mobsess = { title: 'Mobility', tab: 'start', back: 'start', render: renderMobSess };
-views.mobpick = { title: 'Mobility auswählen', tab: p => p.sess ? 'start' : 'plan', back: p => p.sess ? ['mobsess', {}] : ['day', { id: p.day }], render: renderMobPick };
+views.mobpick = { title: 'Mobility auswählen', tab: p => p.sess || p.rt ? 'start' : 'plan', back: p => p.rt ? ['rtedit', {}] : p.sess ? ['mobsess', {}] : ['day', { id: p.day }], render: renderMobPick };
 
 Object.assign(actions, {
   'mob-lib': () => { mobQ = ''; go('moblib', {}); },
   'mob-reg': el => { mobOpenReg = mobOpenReg === el.dataset.r ? null : el.dataset.r; render(); },
   'mob-info': el => { mobOpenEx = mobOpenEx === el.dataset.k ? null : el.dataset.k; render(); },
   'mob-pick': el => { mobQ = ''; go('mobpick', { day: el.dataset.day }); },
-  'mob-pick-done': el => el.dataset.sess ? go('mobsess', {}) : go('day', { id: el.dataset.day }),
+  'mob-pick-done': el => el.dataset.rt ? go('rtedit', {}) : el.dataset.sess ? go('mobsess', {}) : go('day', { id: el.dataset.day }),
   'mob-toggle': el => {
+    if (current.params.rt && rtEdit) {  // v398: eigene Routine
+      const l = rtEdit.items, i = l.findIndex(m => m.id === el.dataset.id);
+      if (i >= 0) l.splice(i, 1); else l.push({ id: el.dataset.id, sets: 1 });
+      render(); return;
+    }
     if (current.params.sess) {  // v375: Mobility-Einheit
       const list = data.mobDraft && data.mobDraft.items;
       if (!list) return;
@@ -769,6 +782,12 @@ Object.assign(actions, {
     saveData(); render();
   },
   'ms-pick': () => { mobQ = ''; go('mobpick', { sess: 1 }); },
+  'ms-as-rt': () => {  // v398: aktuelle Einheit als eigene Routine
+    const f = data.mobDraft;
+    if (!f || !f.items.length) return;
+    rtEdit = { k: 'mob', id: null, name: f.focus === 'rt' && f.rname ? `${f.rname} (eigene)` : '', items: f.items.map(m => ({ id: m.id, sets: m.sets || 1 })) };
+    go('rtedit', {});
+  },
   'ms-timer': el => mobTimerStart(+el.dataset.i),
   'ms-timer-stop': () => { mobTimerStop(); render(); },
   'ms-reset': () => {
@@ -788,6 +807,7 @@ Object.assign(actions, {
     const min = Math.max(1, Math.round(items.reduce((a, m) => a + m.done, 0) * MOB_MIN));
     const day = f.focus === 'next' && f.dayId && findDay(f.dayId);
     const entry = { id: uid(), date: f.date || todayISO(), min, focus: f.focus, regs, items };
+    if (f.focus === 'rt' && f.rname) entry.rname = f.rname;  // v398
     if (day) entry.dayName = day.name;
     if (!Array.isArray(data.mobility)) data.mobility = [];
     data.mobility.push(entry);
